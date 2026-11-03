@@ -10,6 +10,7 @@ import (
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/application"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/service"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/validate"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -64,6 +65,7 @@ type model struct {
 	IsStripPrefixEnabled       types.Bool   `tfsdk:"is_stripprefix_enabled"`
 	IsForceHTTPSEnabled        types.Bool   `tfsdk:"is_force_https_enabled"`
 	IsPermanentRedirectEnabled types.Bool   `tfsdk:"is_permanent_redirect_enabled"`
+	Redirect                   types.String `tfsdk:"redirect"`
 	TraefikCertificateResolver types.String `tfsdk:"traefik_certificate_resolver"`
 	MaxRestartCount            types.Int64  `tfsdk:"max_restart_count"`
 	ForceDomainOverride        types.Bool   `tfsdk:"force_domain_override"`
@@ -174,6 +176,13 @@ func (r *serviceApplicationResource) Schema(_ context.Context, _ resource.Schema
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers:       []planmodifier.Bool{boolUseState()},
+			},
+			"redirect": schema.StringAttribute{
+				MarkdownDescription: "Domain redirect mode: `www`, `non-www`, or `both`. Requires Coolify >= v4.5.1. On older instances the provider keeps the value in state and does not send it. Removing the attribute later does not clear a stored value.",
+				Optional:            true,
+				Computed:            true,
+				PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+				Validators:          []validator.String{stringvalidator.OneOf("www", "non-www", "both")},
 			},
 			"traefik_certificate_resolver": schema.StringAttribute{
 				MarkdownDescription: "Traefik certificate resolver. Null uses the server setting. `none` uses no resolver. " + needs45,
@@ -309,6 +318,7 @@ func buildInput(plan, state model) client.UpdateServiceApplicationInput {
 	input.IsStripPrefixEnabled = flex.BoolIfChanged(plan.IsStripPrefixEnabled, state.IsStripPrefixEnabled)
 	input.IsForceHTTPSEnabled = flex.BoolIfChanged(plan.IsForceHTTPSEnabled, state.IsForceHTTPSEnabled)
 	input.IsPermanentRedirectEnabled = flex.BoolIfChanged(plan.IsPermanentRedirectEnabled, state.IsPermanentRedirectEnabled)
+	input.Redirect = flex.StringIfChanged(plan.Redirect, state.Redirect)
 	input.MaxRestartCount = flex.Int64IfChanged(plan.MaxRestartCount, state.MaxRestartCount)
 	if !plan.NoindexDomains.Equal(state.NoindexDomains) {
 		input.NoindexDomains = stringListPtr(plan.NoindexDomains)
@@ -333,6 +343,9 @@ func prepareInput(c *client.Client, input client.UpdateServiceApplicationInput) 
 	if !c.SupportsServiceApplicationMaxRestart() {
 		input.MaxRestartCount = nil
 	}
+	if !c.SupportsCoolify451() {
+		input.Redirect = nil
+	}
 	return input
 }
 
@@ -340,7 +353,7 @@ func inputEmpty(input client.UpdateServiceApplicationInput) bool {
 	return input.URL == nil && input.NoindexDomains == nil && input.HumanName == nil && input.Description == nil &&
 		input.Image == nil && input.ExcludeFromStatus == nil && input.IsLogDrainEnabled == nil && input.IsGzipEnabled == nil &&
 		input.IsStripPrefixEnabled == nil && input.IsForceHTTPSEnabled == nil && input.IsPermanentRedirectEnabled == nil &&
-		input.TraefikCertificateResolver == nil && input.MaxRestartCount == nil
+		input.TraefikCertificateResolver == nil && input.MaxRestartCount == nil && input.Redirect == nil
 }
 
 func flatten(api *client.ServiceApplication, m *model, c *client.Client) {
@@ -382,6 +395,13 @@ func flattenVersionGated(api *client.ServiceApplication, m *model, c *client.Cli
 	}
 	if !keepConfigured(c != nil && !c.SupportsCoolify45(), m.IsPermanentRedirectEnabled) {
 		setBool(&m.IsPermanentRedirectEnabled, api.IsPermanentRedirectEnabled)
+	}
+	if !keepConfiguredString(c != nil && !c.SupportsCoolify451(), m.Redirect) {
+		if api.Redirect != "" {
+			m.Redirect = types.StringValue(api.Redirect)
+		} else if m.Redirect.IsUnknown() {
+			m.Redirect = types.StringNull()
+		}
 	}
 	flattenVersionGatedStrings(api, m, c)
 	if c == nil || c.SupportsApplicationSettingsV43() || m.NoindexDomains.IsNull() || m.NoindexDomains.IsUnknown() {
@@ -425,6 +445,12 @@ func warnVersionGated(c *client.Client, plan model, diags *diag.Diagnostics) {
 	ver := c.CoolifyVersion
 	if ver == "" {
 		ver = "unknown"
+	}
+	if !c.SupportsCoolify451() && !plan.Redirect.IsNull() && !plan.Redirect.IsUnknown() {
+		diags.AddWarning(
+			"Coolify version cannot write service application redirect",
+			fmt.Sprintf("This Coolify instance (%s) is older than v4.5.1. redirect stays in state and is not sent.", ver),
+		)
 	}
 	if !c.SupportsCoolify45() {
 		if (!plan.IsPermanentRedirectEnabled.IsNull() && !plan.IsPermanentRedirectEnabled.IsUnknown()) ||

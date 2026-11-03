@@ -26,6 +26,7 @@ type UpdateServiceApplicationInput struct {
 	IsPermanentRedirectEnabled *bool     `json:"is_permanent_redirect_enabled,omitempty"`
 	TraefikCertificateResolver *string   `json:"traefik_certificate_resolver,omitempty"`
 	MaxRestartCount            *int64    `json:"max_restart_count,omitempty"`
+	Redirect                   *string   `json:"redirect,omitempty"`
 }
 
 func (c *Client) ListServiceApplications(ctx context.Context, serviceUUID string) ([]ServiceApplication, error) {
@@ -59,6 +60,9 @@ func (c *Client) UpdateServiceApplication(ctx context.Context, serviceUUID, appU
 	}
 	if !c.SupportsServiceApplicationMaxRestart() {
 		input.MaxRestartCount = nil
+	}
+	if !c.SupportsCoolify451() {
+		input.Redirect = nil
 	}
 	path := fmt.Sprintf("/api/v1/services/%s/applications/%s", url.PathEscape(serviceUUID), url.PathEscape(appUUID))
 	if forceDomainOverride {

@@ -270,7 +270,7 @@ func (r *digitalOceanServerResource) Create(ctx context.Context, req resource.Cr
 		return
 	}
 
-	flattenDigitalOceanServer(srv, &plan)
+	flattenDigitalOceanServer(r.client, srv, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 	tflog.Debug(ctx, "created resource", map[string]interface{}{"resource_type": "coolify_server_digitalocean", "uuid": created.UUID})
 }
@@ -295,7 +295,7 @@ func (r *digitalOceanServerResource) Read(ctx context.Context, req resource.Read
 		return
 	}
 
-	flattenDigitalOceanServer(srv, &state)
+	flattenDigitalOceanServer(r.client, srv, &state)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
@@ -338,6 +338,7 @@ func (r *digitalOceanServerResource) Update(ctx context.Context, req resource.Up
 	tflog.Debug(ctx, "updating resource", map[string]interface{}{"resource_type": "coolify_server_digitalocean", "uuid": state.UUID.ValueString()})
 
 	server.WarnDiskUsageInterval(r.client, plan.ServerDiskUsageNotificationIntervalHours, &resp.Diagnostics)
+	server.WarnUnsupportedServerV451(r.client, plan.commonPtrs(), &resp.Diagnostics)
 	input := server.BuildServerUpdateInput(plan.commonPtrs(), state.commonPtrs())
 
 	if _, err := r.client.UpdateServer(ctx, state.UUID.ValueString(), input); err != nil {
@@ -351,7 +352,7 @@ func (r *digitalOceanServerResource) Update(ctx context.Context, req resource.Up
 		return
 	}
 
-	flattenDigitalOceanServer(srv, &plan)
+	flattenDigitalOceanServer(r.client, srv, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 	tflog.Debug(ctx, "updated resource", map[string]interface{}{"resource_type": "coolify_server_digitalocean", "uuid": state.UUID.ValueString()})
 }
@@ -419,8 +420,10 @@ func (m *digitalOceanServerResourceModel) commonPtrs() server.ServerCommonPtrs {
 	}
 }
 
-func flattenDigitalOceanServer(srv *client.Server, model *digitalOceanServerResourceModel) {
-	server.FlattenServerCommon(srv, model.commonPtrs())
+func flattenDigitalOceanServer(c *client.Client, srv *client.Server, model *digitalOceanServerResourceModel) {
+	ptrs := model.commonPtrs()
+	server.NoteServerCoolifyVersion(c, &ptrs)
+	server.FlattenServerCommon(srv, ptrs)
 	// enable_ipv6 and monitoring are not on GET. Keep a known state
 	// value. Do not invent true after import.
 }

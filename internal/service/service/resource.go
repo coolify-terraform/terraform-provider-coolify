@@ -46,20 +46,21 @@ type serviceResourceModel struct {
 	ServerUUID  types.String   `tfsdk:"server_uuid"`
 	// DestinationUUID is create-only. Coolify GET does not return it; preserve
 	// from state after apply.
-	DestinationUUID               types.String      `tfsdk:"destination_uuid"`
-	EnvironmentName               types.String      `tfsdk:"environment_name"`
-	EnvironmentUUID               types.String      `tfsdk:"environment_uuid"`
-	Type                          types.String      `tfsdk:"type"`
-	Status                        types.String      `tfsdk:"status"`
-	DockerCompose                 types.String      `tfsdk:"docker_compose"`
-	DockerComposeRaw              types.String      `tfsdk:"docker_compose_raw"`
-	ConnectToNetwork              types.Bool        `tfsdk:"connect_to_docker_network"`
-	IsContainerLabelEscapeEnabled types.Bool        `tfsdk:"is_container_label_escape_enabled"`
-	ConfigHash                    types.String      `tfsdk:"config_hash"`
-	InstantDeploy                 types.Bool        `tfsdk:"instant_deploy"`
-	RedactAllEnvValuesInLogs      types.Bool        `tfsdk:"redact_all_env_values_in_logs"`
-	URLs                          []serviceURLModel `tfsdk:"urls"`
-	ForceDomainOverride           types.Bool        `tfsdk:"force_domain_override"`
+	DestinationUUID                types.String      `tfsdk:"destination_uuid"`
+	EnvironmentName                types.String      `tfsdk:"environment_name"`
+	EnvironmentUUID                types.String      `tfsdk:"environment_uuid"`
+	Type                           types.String      `tfsdk:"type"`
+	Status                         types.String      `tfsdk:"status"`
+	DockerCompose                  types.String      `tfsdk:"docker_compose"`
+	DockerComposeRaw               types.String      `tfsdk:"docker_compose_raw"`
+	ConnectToNetwork               types.Bool        `tfsdk:"connect_to_docker_network"`
+	IsContainerLabelEscapeEnabled  types.Bool        `tfsdk:"is_container_label_escape_enabled"`
+	ConfigHash                     types.String      `tfsdk:"config_hash"`
+	InstantDeploy                  types.Bool        `tfsdk:"instant_deploy"`
+	RedactAllEnvValuesInLogs       types.Bool        `tfsdk:"redact_all_env_values_in_logs"`
+	IncludeCoolifyDefaultVariables types.Bool        `tfsdk:"include_coolify_default_variables"`
+	URLs                           []serviceURLModel `tfsdk:"urls"`
+	ForceDomainOverride            types.Bool        `tfsdk:"force_domain_override"`
 }
 
 type serviceURLModel struct {
@@ -230,7 +231,8 @@ func (r *serviceResource) Schema(ctx context.Context, _ resource.SchemaRequest, 
 				MarkdownDescription: "Force domain assignment even if conflicts with other resources are detected. Only relevant when `urls` is set.",
 				Optional:            true,
 			},
-			"redact_all_env_values_in_logs": serviceRedactAllEnvAttr(),
+			"redact_all_env_values_in_logs":     serviceRedactAllEnvAttr(),
+			"include_coolify_default_variables": serviceIncludeCoolifyDefaultVariablesAttr(),
 		},
 	}
 }
@@ -320,6 +322,7 @@ func (r *serviceResource) Create(ctx context.Context, req resource.CreateRequest
 	input.ConnectToNetwork = flex.BoolValueOrNull(plan.ConnectToNetwork)
 	input.IsContainerLabelEscapeEnabled = flex.BoolValueOrNull(plan.IsContainerLabelEscapeEnabled)
 	input.RedactAllEnvValuesInLogs = serviceRedactAllEnv(r.client, plan.RedactAllEnvValuesInLogs, &resp.Diagnostics)
+	includeVars := serviceIncludeCoolifyDefaultVariables(r.client, plan.IncludeCoolifyDefaultVariables, &resp.Diagnostics)
 	input.URLs = expandServiceURLs(plan.URLs)
 	if flex.ConfigBoolTrue(ctx, req.Config, path.Root("force_domain_override"), &resp.Diagnostics) && len(input.URLs) > 0 {
 		forced := true
@@ -360,7 +363,20 @@ func (r *serviceResource) Create(ctx context.Context, req resource.CreateRequest
 		return
 	}
 
-	flattenService(svc, &plan)
+	if includeVars != nil {
+		patched, patchErr := r.client.UpdateService(ctx, created.UUID, client.UpdateServiceInput{
+			IncludeCoolifyDefaultVariables: includeVars,
+		})
+		if patchErr != nil {
+			resp.Diagnostics.AddError(
+				"Service created but a Coolify >= v4.5.1 setting was not applied",
+				fmt.Sprintf("service %s: %s", created.UUID, patchErr),
+			)
+			return
+		}
+		svc = patched
+	}
+	flattenService(r.client, svc, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 	tflog.Debug(ctx, "created resource", map[string]interface{}{"resource_type": "coolify_service", "uuid": created.UUID})
 }
@@ -399,6 +415,9 @@ func nullUnknownServiceCreate(plan *serviceResourceModel) {
 	if plan.RedactAllEnvValuesInLogs.IsUnknown() {
 		plan.RedactAllEnvValuesInLogs = types.BoolNull()
 	}
+	if plan.IncludeCoolifyDefaultVariables.IsUnknown() {
+		plan.IncludeCoolifyDefaultVariables = types.BoolNull()
+	}
 }
 
 func (r *serviceResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
@@ -420,7 +439,7 @@ func (r *serviceResource) Read(ctx context.Context, req resource.ReadRequest, re
 		return
 	}
 
-	flattenService(svc, &state)
+	flattenService(r.client, svc, &state)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
@@ -446,13 +465,14 @@ func (r *serviceResource) Update(ctx context.Context, req resource.UpdateRequest
 		encodedComposeRaw = &encoded
 	}
 	input := client.UpdateServiceInput{
-		Name:                          flex.StringIfChanged(plan.Name, state.Name),
-		Description:                   flex.StringIfChanged(plan.Description, state.Description),
-		DockerComposeRaw:              encodedComposeRaw,
-		ConnectToNetwork:              flex.BoolIfChanged(plan.ConnectToNetwork, state.ConnectToNetwork),
-		IsContainerLabelEscapeEnabled: flex.BoolIfChanged(plan.IsContainerLabelEscapeEnabled, state.IsContainerLabelEscapeEnabled),
-		RedactAllEnvValuesInLogs:      serviceRedactAllEnvChanged(r.client, plan.RedactAllEnvValuesInLogs, state.RedactAllEnvValuesInLogs, &resp.Diagnostics),
-		URLs:                          serviceURLsForUpdate(plan.URLs, state.URLs),
+		Name:                           flex.StringIfChanged(plan.Name, state.Name),
+		Description:                    flex.StringIfChanged(plan.Description, state.Description),
+		DockerComposeRaw:               encodedComposeRaw,
+		ConnectToNetwork:               flex.BoolIfChanged(plan.ConnectToNetwork, state.ConnectToNetwork),
+		IsContainerLabelEscapeEnabled:  flex.BoolIfChanged(plan.IsContainerLabelEscapeEnabled, state.IsContainerLabelEscapeEnabled),
+		RedactAllEnvValuesInLogs:       serviceRedactAllEnvChanged(r.client, plan.RedactAllEnvValuesInLogs, state.RedactAllEnvValuesInLogs, &resp.Diagnostics),
+		IncludeCoolifyDefaultVariables: serviceIncludeCoolifyDefaultVariablesChanged(r.client, plan.IncludeCoolifyDefaultVariables, state.IncludeCoolifyDefaultVariables, &resp.Diagnostics),
+		URLs:                           serviceURLsForUpdate(plan.URLs, state.URLs),
 	}
 	if flex.ConfigBoolTrue(ctx, req.Config, path.Root("force_domain_override"), &resp.Diagnostics) && len(input.URLs) > 0 {
 		forced := true
@@ -472,7 +492,7 @@ func (r *serviceResource) Update(ctx context.Context, req resource.UpdateRequest
 		return
 	}
 
-	flattenService(svc, &plan)
+	flattenService(r.client, svc, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
@@ -551,6 +571,43 @@ func (r *serviceResource) ImportState(ctx context.Context, req resource.ImportSt
 	)
 }
 
+func serviceIncludeCoolifyDefaultVariablesAttr() schema.BoolAttribute {
+	return schema.BoolAttribute{
+		MarkdownDescription: "Include Coolify's default environment variables in this service. Requires Coolify >= v4.5.1. On older instances the provider keeps the value in state and does not send it.",
+		Optional:            true,
+		Computed:            true,
+		PlanModifiers:       []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
+	}
+}
+
+func serviceIncludeCoolifyDefaultVariables(c *client.Client, v types.Bool, diags *diag.Diagnostics) *bool {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	if c != nil && !c.SupportsCoolify451() {
+		diags.AddWarning(
+			"Coolify version does not accept include_coolify_default_variables",
+			"Requires Coolify >= v4.5.1. The provider keeps the value in state and does not send it.",
+		)
+		return nil
+	}
+	b := v.ValueBool()
+	return &b
+}
+
+func serviceIncludeCoolifyDefaultVariablesChanged(c *client.Client, plan, state types.Bool, diags *diag.Diagnostics) *bool {
+	if c != nil && !c.SupportsCoolify451() {
+		if !plan.IsNull() && !plan.IsUnknown() && !plan.Equal(state) {
+			diags.AddWarning(
+				"Coolify version does not accept include_coolify_default_variables",
+				"Requires Coolify >= v4.5.1. The provider keeps the value in state and does not send it.",
+			)
+		}
+		return nil
+	}
+	return flex.BoolIfChanged(plan, state)
+}
+
 func serviceRedactAllEnv(c *client.Client, v types.Bool, diags *diag.Diagnostics) *bool {
 	if v.IsNull() || v.IsUnknown() {
 		return nil
@@ -579,7 +636,7 @@ func serviceRedactAllEnvChanged(c *client.Client, plan, state types.Bool, diags 
 	return flex.BoolIfChanged(plan, state)
 }
 
-func flattenService(svc *client.Service, model *serviceResourceModel) {
+func flattenService(c *client.Client, svc *client.Service, model *serviceResourceModel) {
 	model.UUID = types.StringValue(svc.UUID)
 	model.Name = flex.StringToFramework(svc.Name)
 	model.Description = flex.StringFromAPI(svc.Description, model.Description)
@@ -604,6 +661,12 @@ func flattenService(svc *client.Service, model *serviceResourceModel) {
 	}
 	if svc.RedactAllEnvValuesInLogs != nil {
 		model.RedactAllEnvValuesInLogs = types.BoolValue(*svc.RedactAllEnvValuesInLogs)
+	}
+	if c != nil && !c.SupportsCoolify451() && !model.IncludeCoolifyDefaultVariables.IsNull() && !model.IncludeCoolifyDefaultVariables.IsUnknown() {
+		// Keep the configured value. Older Coolify rejects the write and may
+		// still return a stored default.
+	} else if svc.IncludeCoolifyDefaultVariables != nil {
+		model.IncludeCoolifyDefaultVariables = types.BoolValue(*svc.IncludeCoolifyDefaultVariables)
 	}
 
 	// Immutable fields: only update if the API returns them because

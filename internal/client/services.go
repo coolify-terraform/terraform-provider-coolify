@@ -31,24 +31,29 @@ type ServiceApplication struct {
 	IsPermanentRedirectEnabled *bool    `json:"is_permanent_redirect_enabled,omitempty"`
 	TraefikCertificateResolver string   `json:"traefik_certificate_resolver,omitempty"`
 	MaxRestartCount            *int64   `json:"max_restart_count,omitempty"`
+	// Redirect is www, non-www, or both. Requires Coolify >= v4.5.1.
+	Redirect string `json:"redirect,omitempty"`
 }
 
 type Service struct {
-	UUID                          string               `json:"uuid"`
-	Name                          string               `json:"name"`
-	Description                   string               `json:"description,omitempty"`
-	Type                          string               `json:"type"`
-	ServerUUID                    string               `json:"server_uuid,omitempty"`
-	ProjectUUID                   string               `json:"project_uuid,omitempty"`
-	EnvironmentName               string               `json:"environment_name,omitempty"`
-	Status                        string               `json:"status,omitempty"`
-	DockerCompose                 string               `json:"docker_compose,omitempty"`
-	DockerComposeRaw              string               `json:"docker_compose_raw,omitempty"`
-	ConnectToNetwork              *bool                `json:"connect_to_docker_network,omitempty"`
-	IsContainerLabelEscapeEnabled *bool                `json:"is_container_label_escape_enabled,omitempty"`
-	RedactAllEnvValuesInLogs      *bool                `json:"redact_all_env_values_in_logs,omitempty"`
-	ConfigHash                    string               `json:"config_hash,omitempty"`
-	Applications                  []ServiceApplication `json:"applications,omitempty"`
+	UUID                          string `json:"uuid"`
+	Name                          string `json:"name"`
+	Description                   string `json:"description,omitempty"`
+	Type                          string `json:"type"`
+	ServerUUID                    string `json:"server_uuid,omitempty"`
+	ProjectUUID                   string `json:"project_uuid,omitempty"`
+	EnvironmentName               string `json:"environment_name,omitempty"`
+	Status                        string `json:"status,omitempty"`
+	DockerCompose                 string `json:"docker_compose,omitempty"`
+	DockerComposeRaw              string `json:"docker_compose_raw,omitempty"`
+	ConnectToNetwork              *bool  `json:"connect_to_docker_network,omitempty"`
+	IsContainerLabelEscapeEnabled *bool  `json:"is_container_label_escape_enabled,omitempty"`
+	RedactAllEnvValuesInLogs      *bool  `json:"redact_all_env_values_in_logs,omitempty"`
+	// IncludeCoolifyDefaultVariables requires Coolify >= v4.5.1.
+	// UpdateService drops it on older instances.
+	IncludeCoolifyDefaultVariables *bool                `json:"include_coolify_default_variables,omitempty"`
+	ConfigHash                     string               `json:"config_hash,omitempty"`
+	Applications                   []ServiceApplication `json:"applications,omitempty"`
 }
 
 // ServiceURL maps a compose service name to one or more URLs.
@@ -122,15 +127,16 @@ func (c *Client) CreateService(ctx context.Context, input CreateServiceInput) (*
 }
 
 type UpdateServiceInput struct {
-	Name                          *string      `json:"name,omitempty"`
-	Description                   *string      `json:"description,omitempty"`
-	DockerComposeRaw              *string      `json:"docker_compose_raw,omitempty"`
-	ConnectToNetwork              *bool        `json:"connect_to_docker_network,omitempty"`
-	IsContainerLabelEscapeEnabled *bool        `json:"is_container_label_escape_enabled,omitempty"`
-	RedactAllEnvValuesInLogs      *bool        `json:"redact_all_env_values_in_logs,omitempty"`
-	InstantDeploy                 *bool        `json:"instant_deploy,omitempty"`
-	URLs                          []ServiceURL `json:"urls,omitempty"`
-	ForceDomainOverride           *bool        `json:"force_domain_override,omitempty"`
+	Name                           *string      `json:"name,omitempty"`
+	Description                    *string      `json:"description,omitempty"`
+	DockerComposeRaw               *string      `json:"docker_compose_raw,omitempty"`
+	ConnectToNetwork               *bool        `json:"connect_to_docker_network,omitempty"`
+	IsContainerLabelEscapeEnabled  *bool        `json:"is_container_label_escape_enabled,omitempty"`
+	RedactAllEnvValuesInLogs       *bool        `json:"redact_all_env_values_in_logs,omitempty"`
+	IncludeCoolifyDefaultVariables *bool        `json:"include_coolify_default_variables,omitempty"`
+	InstantDeploy                  *bool        `json:"instant_deploy,omitempty"`
+	URLs                           []ServiceURL `json:"urls,omitempty"`
+	ForceDomainOverride            *bool        `json:"force_domain_override,omitempty"`
 }
 
 // CreateServiceJSONTags returns JSON keys on CreateServiceInput.
@@ -148,6 +154,9 @@ func UpdateServiceJSONTags() map[string]struct{} {
 func (c *Client) UpdateService(ctx context.Context, uuid string, input UpdateServiceInput) (*Service, error) {
 	if !c.SupportsCoolify45() {
 		input.RedactAllEnvValuesInLogs = nil
+	}
+	if !c.SupportsCoolify451() {
+		input.IncludeCoolifyDefaultVariables = nil
 	}
 	var s Service
 	if err := c.do(ctx, http.MethodPatch, fmt.Sprintf("/api/v1/services/%s", url.PathEscape(uuid)), input, &s); err != nil {

@@ -14,6 +14,10 @@ type ServerProxy struct {
 	ProxyType                  string  `json:"proxy_type,omitempty"`
 	Configuration              string  `json:"configuration,omitempty"`
 	TraefikCertificateResolver *string `json:"traefik_certificate_resolver,omitempty"`
+	// ProxyErrorPage is custom HTML for unknown hosts and maintenance.
+	// Empty means Coolify is using the default page. Requires >= v4.5.1.
+	// At most 1 MiB (Server::PROXY_ERROR_PAGE_MAX_BYTES).
+	ProxyErrorPage string `json:"proxy_error_page,omitempty"`
 }
 
 type ServerProxyUpdateInput struct {
@@ -22,6 +26,9 @@ type ServerProxyUpdateInput struct {
 	GenerateExactLabels        *bool   `json:"generate_exact_labels,omitempty"`
 	ProxyType                  *string `json:"proxy_type,omitempty"`
 	TraefikCertificateResolver *string `json:"traefik_certificate_resolver,omitempty"`
+	// ProxyErrorPage nil is omitted. A pointer to "" is sent and Coolify
+	// stores null, which restores the default page.
+	ProxyErrorPage *string `json:"proxy_error_page,omitempty"`
 }
 
 type ServerProxyConfigInput struct {
@@ -37,6 +44,9 @@ func (c *Client) GetServerProxy(ctx context.Context, serverUUID string) (*Server
 }
 
 func (c *Client) UpdateServerProxy(ctx context.Context, serverUUID string, input ServerProxyUpdateInput) (*ServerProxy, error) {
+	if !c.SupportsCoolify451() {
+		input.ProxyErrorPage = nil
+	}
 	var r ServerProxy
 	if err := c.do(ctx, http.MethodPatch, fmt.Sprintf("/api/v1/servers/%s/proxy", url.PathEscape(serverUUID)), input, &r); err != nil {
 		return nil, fmt.Errorf("updating server proxy %s: %w", serverUUID, err)

@@ -130,9 +130,10 @@ var skipKindCatalog = []skipKind{
 		id:    skipOperator,
 		title: "Operator reads and one-shot actions",
 		why: "Preview list, get, and create are owned by Coolify when a pull request opens. " +
-			"Audit events, secret-manager configuration, integration tokens, a live registry login check, " +
+			"Audit events, a live registry login check, Cloudflare zone sync, " +
 			"and PATCH /team (current team profile) are operator actions, not resource settings.",
-		instead: "`coolify_application_preview` to track a preview, patch its domains, and delete it. " +
+		instead: "`coolify_integration_token` for Cloudflare, Doppler, Infisical, and Vault tokens. " +
+			"`coolify_application_preview` to track a preview, patch its domains, and delete it. " +
 			"`coolify_server_docker_registry` for saved registry logins. " +
 			"`data.coolify_team` to read the current team. Use the Coolify UI for imports, audit, and team profile edits.",
 		order: 12,

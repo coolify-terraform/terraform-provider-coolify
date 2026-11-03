@@ -367,7 +367,7 @@ ImportStateVerifyIgnore: []string{"private_key", "postgres_password"},
 
 ## Acceptance Test Coverage
 
-### Resources (61 total)
+### Resources (62 total)
 
 | Resource | Acc Test | Create | Update | Import | Notes |
 |----------|----------|--------|--------|--------|-------|
@@ -417,6 +417,7 @@ ImportStateVerifyIgnore: []string{"private_key", "postgres_password"},
 | `coolify_server_validate` | Yes | Yes | N/A | N/A | Trigger resource |
 | `coolify_envs_bulk` | Yes | Yes | N/A | N/A | Atomic env var set management |
 | `coolify_gitlab_app` | Unit | Yes | Yes | Yes | Requires Coolify >= v4.3.0 |
+| `coolify_integration_token` | Unit | Yes | Yes | Yes | Requires Coolify >= v4.6.0. Create checks the secret with Cloudflare, Doppler, Infisical, or Vault, so acceptance is not run here |
 | `coolify_tag` | Unit | Yes | Yes | Yes | Requires Coolify >= v4.2.0 |
 | `coolify_resource_tag` | Unit | Yes | N/A | Yes | Requires Coolify >= v4.2.0 |
 | `coolify_cloud_init_script` | Unit | Yes | Yes | Yes | Requires Coolify >= v4.3.0 |
@@ -429,7 +430,7 @@ ImportStateVerifyIgnore: []string{"private_key", "postgres_password"},
 | `coolify_server_docker_registry` | Yes | Yes | Yes | Yes | Coolify 4.4 tip only. Skips when the registry route is absent. Login steps also skip unless `COOLIFY_DOCKER_REGISTRY_USERNAME` and `COOLIFY_DOCKER_REGISTRY_PASSWORD` are set, because Coolify runs `docker login` on the server |
 | `coolify_application_destination` | Unit | Yes | N/A | Yes | Extra destination only; requires Coolify >= v4.2.0 |
 
-### Data Sources (78 total)
+### Data Sources (80 total)
 
 | Data Source | Acc Test | Notes |
 |-------------|----------|-------|
@@ -463,6 +464,8 @@ ImportStateVerifyIgnore: []string{"private_key", "postgres_password"},
 | `coolify_environments` | Yes | |
 | `coolify_environment_variable` | Yes | Via envvar test |
 | `coolify_environment_variables` | Yes | Via envvar test |
+| `coolify_integration_token` | No | Requires Coolify >= v4.6.0 |
+| `coolify_integration_tokens` | No | Requires Coolify >= v4.6.0 |
 | `coolify_private_key` | Yes | Via private_key test |
 | `coolify_private_keys` | Yes | Via private_key test |
 | `coolify_server` | Yes | By UUID |

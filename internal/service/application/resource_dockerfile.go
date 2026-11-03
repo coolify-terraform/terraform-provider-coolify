@@ -298,7 +298,7 @@ func flattenDockerfileApplication(app *client.Application, state *dockerfileAppl
 	// lives in the API's "dockerfile" field, not "dockerfile_location".
 	savedDockerfileLocation := state.DockerfileLocation
 	f := state.common()
-	f.PreserveConfiguredMaxRestart = c != nil && !c.SupportsApplicationSettingsV43()
+	noteCoolifyVersion(&f, c)
 	flattenApplicationCommon(app, f)
 	// Preserve the user's value if it was set (normal CRUD flow).
 	// On import, savedDockerfileLocation is null, so let the common

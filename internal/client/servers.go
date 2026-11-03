@@ -137,6 +137,12 @@ type UpdateServerInput struct {
 	ServerDiskUsageCheckFrequency            *string `json:"server_disk_usage_check_frequency,omitempty"`
 	ServerDiskUsageNotificationIntervalHours *int    `json:"server_disk_usage_notification_interval_hours,omitempty"`
 	ConnectionTimeout                        *int    `json:"connection_timeout,omitempty"`
+	// WildcardDomain, ServerTimezone, and BackupCompressionCPUPercentage
+	// are accepted on PATCH from Coolify >= v4.5.1. UpdateServer drops
+	// them on older instances.
+	WildcardDomain                 *string `json:"wildcard_domain,omitempty"`
+	ServerTimezone                 *string `json:"server_timezone,omitempty"`
+	BackupCompressionCPUPercentage *int    `json:"backup_compression_cpu_percentage,omitempty"`
 }
 
 func (c *Client) ListServers(ctx context.Context) ([]Server, error) {
@@ -164,6 +170,11 @@ func (c *Client) CreateServer(ctx context.Context, input CreateServerInput) (*Se
 func (c *Client) UpdateServer(ctx context.Context, uuid string, input UpdateServerInput) (*Server, error) {
 	input.IsBuildServer, input.ServerRole = applyServerRoleWrite(c, input.IsBuildServer, input.ServerRole)
 	input.ServerDiskUsageNotificationIntervalHours = applyDiskIntervalWrite(c, input.ServerDiskUsageNotificationIntervalHours)
+	if !c.SupportsCoolify451() {
+		input.WildcardDomain = nil
+		input.ServerTimezone = nil
+		input.BackupCompressionCPUPercentage = nil
+	}
 	var s Server
 	if err := c.do(ctx, http.MethodPatch, fmt.Sprintf("/api/v1/servers/%s", url.PathEscape(uuid)), input, &s); err != nil {
 		return nil, fmt.Errorf("updating server %s: %w", uuid, err)

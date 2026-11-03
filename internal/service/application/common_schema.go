@@ -644,12 +644,16 @@ func applicationSettingAttrs() map[string]schema.Attribute {
 	for k, v := range applicationSettingAttrsV451() {
 		attrs[k] = v
 	}
+	for k, v := range applicationSettingAttrsV46() {
+		attrs[k] = v
+	}
 	return attrs
 }
 
 // applicationSettingAttrsV451 is the Coolify >= v4.5.1 write set. No Default:
 // v4.5.0 rejects the key, and a default would send it after import.
 func applicationSettingAttrsV451() map[string]schema.Attribute {
+	const needs451 = "Requires Coolify >= v4.5.1. On older instances the provider keeps the value in state and does not send it."
 	return map[string]schema.Attribute{
 		"rolling_update_drain_seconds": schema.Int64Attribute{
 			MarkdownDescription: "Seconds to wait after the new container is healthy before old containers stop during a rolling update. `0` turns the wait off. On create, leaving it unset lets Coolify use `5`. Removing the attribute later does not clear a stored value; set `5` to restore that default, or `0` to turn the wait off. Requires Coolify >= v4.5.1. On older instances the provider keeps the value in state and does not send it.",
@@ -657,6 +661,47 @@ func applicationSettingAttrsV451() map[string]schema.Attribute {
 			Computed:            true,
 			PlanModifiers:       []planmodifier.Int64{int64planmodifier.UseStateForUnknown()},
 			Validators:          []validator.Int64{int64validator.Between(0, 300)},
+		},
+		"include_coolify_default_variables": schema.BoolAttribute{
+			MarkdownDescription: "Include Coolify's default environment variables in this application. " + needs451,
+			Optional:            true,
+			Computed:            true,
+			PlanModifiers:       []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
+		},
+		"is_container_label_readonly_enabled": schema.BoolAttribute{
+			MarkdownDescription: "Mark generated container labels read-only. Coolify's stored default is true. " + needs451,
+			Optional:            true,
+			Computed:            true,
+			PlanModifiers:       []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
+		},
+	}
+}
+
+// applicationSettingAttrsV46 is the Coolify >= v4.6.0 write set. No Default:
+// older servers reject the keys, and a default would send them after import.
+func applicationSettingAttrsV46() map[string]schema.Attribute {
+	const needs46 = "Requires Coolify >= v4.6.0. On older instances, including 4.6 release candidates, the provider keeps the value in state and does not send it."
+	return map[string]schema.Attribute{
+		"git_https_username": schema.StringAttribute{
+			MarkdownDescription: "HTTPS Git username for a private repository that is not a GitHub App. At most 255 characters. A colon or a line break is rejected. " + needs46,
+			Optional:            true,
+			Computed:            true,
+			PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+			Validators: []validator.String{
+				stringvalidator.LengthAtMost(255),
+				stringvalidator.RegexMatches(regexp.MustCompile(`^[^:\r\n]*$`), "must not contain a colon or a line break"),
+			},
+		},
+		"git_https_password": schema.StringAttribute{
+			MarkdownDescription: "HTTPS Git password or token. At most 2048 characters. A line break is rejected. Coolify stores it encrypted and does not return it on GET, so the provider keeps the configured value. After import the value is empty until you set it again. " + needs46,
+			Optional:            true,
+			Computed:            true,
+			Sensitive:           true,
+			PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+			Validators: []validator.String{
+				stringvalidator.LengthAtMost(2048),
+				stringvalidator.RegexMatches(regexp.MustCompile(`^[^\r\n]*$`), "must not contain a line break"),
+			},
 		},
 	}
 }

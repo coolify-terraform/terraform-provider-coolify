@@ -11,6 +11,7 @@ import (
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/flex"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/validate"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -37,6 +38,7 @@ type serverProxyModel struct {
 	ProxyType                  types.String `tfsdk:"proxy_type"`
 	Configuration              types.String `tfsdk:"configuration"`
 	TraefikCertificateResolver types.String `tfsdk:"traefik_certificate_resolver"`
+	ProxyErrorPage             types.String `tfsdk:"proxy_error_page"`
 }
 
 func NewResource() resource.Resource { return &serverProxyResource{} }
@@ -82,6 +84,15 @@ func (r *serverProxyResource) Schema(_ context.Context, _ resource.SchemaRequest
 				Optional: true,
 				MarkdownDescription: "Raw proxy Docker Compose written with PUT .../proxy/configuration. " +
 					"The provider sends the planned value. Coolify GET/PATCH may also return the previously stored compose when the token can read sensitive data; that response is not used as the PUT body.",
+			},
+			"proxy_error_page": schema.StringAttribute{
+				Optional: true,
+				Computed: true,
+				MarkdownDescription: "Custom HTML shown for unknown hosts when redirect_url is empty, and for resources in maintenance. " +
+					"Null or an empty string restores Coolify's default page. At most 1 MiB. " +
+					"Requires Coolify >= v4.5.1. On older instances the provider keeps the value in state and does not send it.",
+				PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+				Validators:    []validator.String{stringvalidator.LengthAtMost(1048576)},
 			},
 			"traefik_certificate_resolver": schema.StringAttribute{
 				Optional: true,
@@ -130,6 +141,10 @@ func proxyUpdateFromPlan(plan serverProxyModel) client.ServerProxyUpdateInput {
 		v := plan.TraefikCertificateResolver.ValueString()
 		in.TraefikCertificateResolver = &v
 	}
+	if !plan.ProxyErrorPage.IsNull() && !plan.ProxyErrorPage.IsUnknown() {
+		v := plan.ProxyErrorPage.ValueString()
+		in.ProxyErrorPage = &v
+	}
 	return in
 }
 
@@ -156,6 +171,11 @@ func flattenProxy(got *client.ServerProxy, plan *serverProxyModel) {
 		plan.TraefikCertificateResolver = types.StringValue(*got.TraefikCertificateResolver)
 	} else if plan.TraefikCertificateResolver.IsUnknown() {
 		plan.TraefikCertificateResolver = types.StringNull()
+	}
+	if got.ProxyErrorPage != "" {
+		plan.ProxyErrorPage = types.StringValue(got.ProxyErrorPage)
+	} else if plan.ProxyErrorPage.IsUnknown() {
+		plan.ProxyErrorPage = types.StringNull()
 	}
 	if got.Configuration != "" && !plan.Configuration.IsNull() && !plan.Configuration.IsUnknown() {
 		plan.Configuration = types.StringValue(got.Configuration)
@@ -201,7 +221,8 @@ func (r *serverProxyResource) apply(ctx context.Context, plan *serverProxyModel)
 		}
 		flattenProxy(got, plan)
 	}
-	if input.RedirectEnabled != nil || input.RedirectURL != nil || input.GenerateExactLabels != nil || input.TraefikCertificateResolver != nil {
+	input = r.withoutUnsupportedProxyErrorPage(input)
+	if input.RedirectEnabled != nil || input.RedirectURL != nil || input.GenerateExactLabels != nil || input.TraefikCertificateResolver != nil || input.ProxyErrorPage != nil {
 		got, err := r.client.UpdateServerProxy(ctx, uuid, input)
 		if err != nil {
 			return err
@@ -259,6 +280,7 @@ func (r *serverProxyResource) Create(ctx context.Context, req resource.CreateReq
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	warnProxyErrorPage(r.client, plan.ProxyErrorPage, &resp.Diagnostics)
 	if err := r.apply(ctx, &plan); err != nil {
 		resp.Diagnostics.AddError("Error applying server proxy", err.Error())
 		return
@@ -291,6 +313,7 @@ func (r *serverProxyResource) Update(ctx context.Context, req resource.UpdateReq
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	warnProxyErrorPage(r.client, plan.ProxyErrorPage, &resp.Diagnostics)
 	if err := r.apply(ctx, &plan); err != nil {
 		resp.Diagnostics.AddError("Error updating server proxy", err.Error())
 		return
@@ -300,6 +323,27 @@ func (r *serverProxyResource) Update(ctx context.Context, req resource.UpdateReq
 
 func (r *serverProxyResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 	// No DELETE API; leave remote config in place.
+}
+
+func (r *serverProxyResource) withoutUnsupportedProxyErrorPage(input client.ServerProxyUpdateInput) client.ServerProxyUpdateInput {
+	if r.client != nil && !r.client.SupportsCoolify451() {
+		input.ProxyErrorPage = nil
+	}
+	return input
+}
+
+func warnProxyErrorPage(c *client.Client, v types.String, diags *diag.Diagnostics) {
+	if diags == nil || c == nil || c.SupportsCoolify451() || v.IsNull() || v.IsUnknown() {
+		return
+	}
+	ver := c.CoolifyVersion
+	if ver == "" {
+		ver = "unknown"
+	}
+	diags.AddWarning(
+		"Coolify version cannot write proxy_error_page",
+		fmt.Sprintf("This Coolify instance (%s) is older than v4.5.1. proxy_error_page stays in state and is not sent.", ver),
+	)
 }
 
 func (r *serverProxyResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {

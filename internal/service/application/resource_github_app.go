@@ -244,7 +244,7 @@ func (m *gitHubAppApplicationResourceModel) common() commonAppFields {
 
 func flattenGitHubAppApplication(app *client.Application, state *gitHubAppApplicationResourceModel, c *client.Client) {
 	f := state.common()
-	f.PreserveConfiguredMaxRestart = c != nil && !c.SupportsApplicationSettingsV43()
+	noteCoolifyVersion(&f, c)
 	flattenApplicationCommon(app, f)
 	if app.GitHubAppUUID != "" {
 		state.GitHubAppUUID = types.StringValue(app.GitHubAppUUID)

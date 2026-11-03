@@ -29,6 +29,13 @@ var registryExtrasNotInContract = map[string]bool{
 	"GET /hostinger/ssh-keys":             true,
 	"GET /hostinger/templates":            true,
 	"POST /servers/hostinger":             true,
+	// Coolify 4.6.0 integration token read, update, and delete. The pin
+	// contract is still v4.4.2 and only lists the create route.
+	"GET /security/integration-tokens":                    true,
+	"DELETE /security/integration-tokens/{uuid}":          true,
+	"GET /security/integration-tokens/{uuid}":             true,
+	"PATCH /security/integration-tokens/{uuid}":           true,
+	"POST /security/integration-tokens/{uuid}/sync-zones": true,
 }
 
 // coveredEndpoints returns the provider's route coverage registry.
@@ -394,7 +401,12 @@ func coveredEndpoints() map[string]coverageStatus {
 		"POST /services/{uuid}/storages/{storage_uuid}/backups/run":                    skipped(skipRunNow),
 		"POST /services/{uuid}/tags":                                                   covered("coolify_tag + coolify_resource_tag", "v0.1.15"),
 		"POST /tags":                                                                   covered("coolify_tag + coolify_resource_tag", "v0.1.15"),
-		"POST /security/integration-tokens":                                            skipped(skipOperator),
+		"POST /security/integration-tokens":                                            covered("coolify_integration_token", "v0.1.31"),
+		"GET /security/integration-tokens":                                             covered("data.coolify_integration_tokens", "v0.1.31"),
+		"GET /security/integration-tokens/{uuid}":                                      covered("data.coolify_integration_token", "v0.1.31"),
+		"PATCH /security/integration-tokens/{uuid}":                                    covered("coolify_integration_token", "v0.1.31"),
+		"DELETE /security/integration-tokens/{uuid}":                                   covered("coolify_integration_token", "v0.1.31"),
+		"POST /security/integration-tokens/{uuid}/sync-zones":                          skipped(skipOperator),
 		"GET /audit-events":                                                            skipped(skipOperator),
 		"PATCH /team":                                                                  skipped(skipOperator),
 		"POST /team/envs":                                                              covered("coolify_shared_environment_variable", "v0.1.15"),

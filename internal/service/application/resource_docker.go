@@ -263,7 +263,7 @@ func splitDockerImage(image string) (string, string) {
 // flattenDockerImageApplication copies API fields into the Terraform state model.
 func flattenDockerImageApplication(app *client.Application, state *dockerImageApplicationResourceModel, c *client.Client) {
 	f := state.common()
-	f.PreserveConfiguredMaxRestart = c != nil && !c.SupportsApplicationSettingsV43()
+	noteCoolifyVersion(&f, c)
 	flattenApplicationCommon(app, f)
 	// Coolify may strip the tag from Docker image names (e.g.
 	// "redis:7-alpine" becomes "redis"). Preserve the user's original value

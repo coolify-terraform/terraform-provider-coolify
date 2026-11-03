@@ -78,6 +78,7 @@ resource "coolify_service" "custom" {
 - `environment_name` (String) Environment name. Defaults to `production` when `environment_uuid` is omitted. Set `environment_uuid` instead when the environment may be renamed. Changing a known name forces a new resource. Do not set both.
 - `environment_uuid` (String) Environment UUID from `coolify_environment.uuid`. Create-only. Use this instead of `environment_name` so renaming the environment does not replace this service. Setting this when `environment_name` is already stored, including after import, keeps the service and drops the name from state. It does not move the service. Changing a known UUID forces a new resource. Do not set both this and `environment_name`.
 - `force_domain_override` (Boolean) Force domain assignment even if conflicts with other resources are detected. Only relevant when `urls` is set.
+- `include_coolify_default_variables` (Boolean) Include Coolify's default environment variables in this service. Requires Coolify >= v4.5.1. On older instances the provider keeps the value in state and does not send it.
 - `instant_deploy` (Boolean) Whether to immediately deploy the service after creation. When `true`, Coolify starts the service containers right away. When `false` (default), the service is created but not started.
 - `is_container_label_escape_enabled` (Boolean) Whether container label escaping is enabled for this service.
 - `name` (String) The name of the service.

@@ -66,6 +66,30 @@ class TestTipVersionParse(unittest.TestCase):
     def test_parse_missing(self):
         self.assertEqual(cc.parse_tip_version_from_constants("no version here"), "")
 
+    def test_parse_release_json_uses_stable(self):
+        payload = """
+        {
+          "stable": {"coolify": "v4.6.0"},
+          "preview": {"coolify": "4.5.3"}
+        }
+        """
+        self.assertEqual(cc.parse_tip_version_from_release(payload), "4.6.0")
+
+    def test_parse_release_json_missing_stable(self):
+        self.assertEqual(cc.parse_tip_version_from_release('{"preview": {"coolify": "4.5.3"}}'), "")
+        self.assertEqual(cc.parse_tip_version_from_release("not-json"), "")
+
+    def test_current_constants_php_has_no_literal(self):
+        php = """
+        $release = json_decode(file_get_contents(dirname(__DIR__).'/release.json'), true);
+        return [
+            'coolify' => [
+                'version' => env('COOLIFY_VERSION') ?: $release['stable']['coolify'],
+            ],
+        ];
+        """
+        self.assertEqual(cc.parse_tip_version_from_constants(php), "")
+
     def test_fetch_tip_version_includes_both_failures(self):
         with mock.patch.object(
             cc.subprocess,

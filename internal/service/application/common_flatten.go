@@ -577,6 +577,10 @@ func hasNonDefaultAppExtendedFields(f commonAppFields) bool {
 		(f.IsPermanentRedirectEnabled != nil && !f.IsPermanentRedirectEnabled.IsNull() && !f.IsPermanentRedirectEnabled.IsUnknown()) ||
 		(f.RedactAllEnvValuesInLogs != nil && !f.RedactAllEnvValuesInLogs.IsNull() && !f.RedactAllEnvValuesInLogs.IsUnknown()) ||
 		flex.Int64PtrConfigured(f.RollingUpdateDrainSeconds) ||
+		(f.IncludeCoolifyDefaultVariables != nil && !f.IncludeCoolifyDefaultVariables.IsNull() && !f.IncludeCoolifyDefaultVariables.IsUnknown()) ||
+		(f.IsContainerLabelReadonlyEnabled != nil && !f.IsContainerLabelReadonlyEnabled.IsNull() && !f.IsContainerLabelReadonlyEnabled.IsUnknown()) ||
+		(f.GitHTTPSUsername != nil && !f.GitHTTPSUsername.IsNull() && !f.GitHTTPSUsername.IsUnknown()) ||
+		(f.GitHTTPSPassword != nil && !f.GitHTTPSPassword.IsNull() && !f.GitHTTPSPassword.IsUnknown()) ||
 		listPtrConfigured(f.NoindexDomains) ||
 		flex.BoolPtrNonDefault(f.ForceDomainOverride, false) ||
 		// String overrides
@@ -841,7 +845,39 @@ func flattenApplicationSettingFields(app *client.Application, f commonAppFields)
 	setBoolIfPresent(f.IsPermanentRedirectEnabled, app.IsPermanentRedirectEnabled)
 	setBoolIfPresent(f.RedactAllEnvValuesInLogs, app.RedactAllEnvValuesInLogs)
 	setInt64IfPresent(f.RollingUpdateDrainSeconds, app.RollingUpdateDrainSeconds)
+	if !keepConfiguredBool(f.WithholdCoolify451, f.IncludeCoolifyDefaultVariables) {
+		setBoolIfPresent(f.IncludeCoolifyDefaultVariables, app.IncludeCoolifyDefaultVariables)
+	}
+	if !keepConfiguredBool(f.WithholdCoolify451, f.IsContainerLabelReadonlyEnabled) {
+		setBoolIfPresent(f.IsContainerLabelReadonlyEnabled, app.IsContainerLabelReadonlyEnabled)
+	}
+	if !keepConfiguredString(f.WithholdCoolify46, f.GitHTTPSUsername) {
+		setStringIfPresent(f.GitHTTPSUsername, app.GitHTTPSUsername)
+	}
+	// The password is encrypted and GET omits it. Keep a configured value.
+	if !keepConfiguredString(true, f.GitHTTPSPassword) {
+		setStringIfPresent(f.GitHTTPSPassword, app.GitHTTPSPassword)
+	}
 	flattenNoindexDomains(app.NoindexDomains, f.NoindexDomains)
+}
+
+// noteCoolifyVersion records which writes Read must not overwrite from an
+// older instance. An empty or nil client means newest.
+func noteCoolifyVersion(f *commonAppFields, c *client.Client) {
+	if f == nil {
+		return
+	}
+	f.PreserveConfiguredMaxRestart = c != nil && !c.SupportsApplicationSettingsV43()
+	f.WithholdCoolify451 = c != nil && !c.SupportsCoolify451()
+	f.WithholdCoolify46 = c != nil && !c.SupportsCoolify46()
+}
+
+func keepConfiguredBool(withhold bool, v *types.Bool) bool {
+	return withhold && v != nil && !v.IsNull() && !v.IsUnknown()
+}
+
+func keepConfiguredString(withhold bool, v *types.String) bool {
+	return withhold && v != nil && !v.IsNull() && !v.IsUnknown()
 }
 
 func setStringIfPresent(dst *types.String, api string) {
@@ -989,6 +1025,10 @@ func addApplicationSettingUpdateFields(plan, state commonAppFields, input *clien
 	if plan.RollingUpdateDrainSeconds != nil && state.RollingUpdateDrainSeconds != nil {
 		input.RollingUpdateDrainSeconds = flex.Int64IfChanged(*plan.RollingUpdateDrainSeconds, *state.RollingUpdateDrainSeconds)
 	}
+	setBoolDiff(&input.IncludeCoolifyDefaultVariables, plan.IncludeCoolifyDefaultVariables, state.IncludeCoolifyDefaultVariables)
+	setBoolDiff(&input.IsContainerLabelReadonlyEnabled, plan.IsContainerLabelReadonlyEnabled, state.IsContainerLabelReadonlyEnabled)
+	setStrDiff(&input.GitHTTPSUsername, plan.GitHTTPSUsername, state.GitHTTPSUsername)
+	setStrDiff(&input.GitHTTPSPassword, plan.GitHTTPSPassword, state.GitHTTPSPassword)
 	if plan.NoindexDomains != nil && state.NoindexDomains != nil && !plan.NoindexDomains.Equal(*state.NoindexDomains) {
 		if plan.NoindexDomains.IsNull() {
 			empty := []string{}
@@ -1054,6 +1094,14 @@ func setApplicationSettingPostCreate(input *client.UpdateApplicationInput, f com
 	flex.SetBoolPtr(&input.RedactAllEnvValuesInLogs, safeBool(f.RedactAllEnvValuesInLogs))
 	if f.RollingUpdateDrainSeconds != nil {
 		flex.SetInt64Ptr(&input.RollingUpdateDrainSeconds, *f.RollingUpdateDrainSeconds)
+	}
+	flex.SetBoolPtr(&input.IncludeCoolifyDefaultVariables, safeBool(f.IncludeCoolifyDefaultVariables))
+	flex.SetBoolPtr(&input.IsContainerLabelReadonlyEnabled, safeBool(f.IsContainerLabelReadonlyEnabled))
+	if f.GitHTTPSUsername != nil {
+		flex.SetStrPtr(&input.GitHTTPSUsername, *f.GitHTTPSUsername)
+	}
+	if f.GitHTTPSPassword != nil {
+		flex.SetStrPtr(&input.GitHTTPSPassword, *f.GitHTTPSPassword)
 	}
 	if listPtrConfigured(f.NoindexDomains) {
 		list := stringListFromTypes(*f.NoindexDomains)

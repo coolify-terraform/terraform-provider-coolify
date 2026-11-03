@@ -42,6 +42,7 @@ resource "coolify_database_backup" "daily" {
 
 - `backup_now` (Boolean) Trigger an immediate backup after creation. Only used during create, ignored on updates.
 - `databases_to_backup` (String) Comma-separated list of database names to back up selectively. Defaults to the primary database name if not specified.
+- `disable_local_backup` (Boolean) Delete the local backup file after the upload to S3. Only valid when `save_s3` is true. Turning `save_s3` off also turns this off. Requires Coolify >= v4.5.1. On older instances the provider keeps the value in state and does not send it.
 - `dump_all` (Boolean) Whether to dump all databases.
 - `enabled` (Boolean) Whether the backup schedule is active.
 - `missing_backup_notification_days` (Number) Days without a backup execution before Coolify sends a missing-backup notification. `0` disables alerts. Valid range is 0-365. Requires Coolify >= v4.3.18. Absent from `v4.4-rc.1` (that rc was cut before the field). On older instances the provider keeps the value in state and does not send it.
@@ -59,7 +60,6 @@ resource "coolify_database_backup" "daily" {
 ### Read-Only
 
 - `description` (String) Optional description of the backup schedule. Read-only: Coolify does not accept this field on the public create/update backup API (UI-only write). Present when set out-of-band.
-- `disable_local_backup` (Boolean) Whether local backup retention is disabled. Read-only: Coolify does not accept this field on the public create/update backup API (UI-only write).
 - `id` (Number) The numeric ID of the backup configuration.
 - `last_execution_at` (String) Timestamp of the last backup execution. Read-only. Coolify >= v4.3.18.
 - `missing_backup_notification_sent_at` (String) Timestamp of the last missing-backup notification. Read-only. Coolify >= v4.3.18.

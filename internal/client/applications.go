@@ -146,6 +146,15 @@ type Application struct {
 	RedactAllEnvValuesInLogs   *bool  `json:"redact_all_env_values_in_logs,omitempty"`
 	// RollingUpdateDrainSeconds is Coolify >= v4.5.1. Omitted on older GET.
 	RollingUpdateDrainSeconds *int64 `json:"rolling_update_drain_seconds,omitempty"`
+	// IncludeCoolifyDefaultVariables and IsContainerLabelReadonlyEnabled
+	// are Coolify >= v4.5.1 settings. Older GET responses may still return
+	// the label flag from the settings row.
+	IncludeCoolifyDefaultVariables  *bool `json:"include_coolify_default_variables,omitempty"`
+	IsContainerLabelReadonlyEnabled *bool `json:"is_container_label_readonly_enabled,omitempty"`
+	// GitHTTPSUsername and GitHTTPSPassword are Coolify >= v4.6.0.
+	// The password is encrypted and GET omits it.
+	GitHTTPSUsername string `json:"git_https_username,omitempty"`
+	GitHTTPSPassword string `json:"git_https_password,omitempty"`
 	// NoindexDomains is the subset of domains served with X-Robots-Tag noindex
 	// (Coolify >= v4.3.0). JSON array on the wire; empty means none.
 	NoindexDomains  []string `json:"noindex_domains,omitempty"`
@@ -297,6 +306,8 @@ type ApplicationSettings struct {
 	IsPermanentRedirectEnabled       *bool  `json:"is_permanent_redirect_enabled,omitempty"`
 	RedactAllEnvValuesInLogs         *bool  `json:"redact_all_env_values_in_logs,omitempty"`
 	RollingUpdateDrainSeconds        *int64 `json:"rolling_update_drain_seconds,omitempty"`
+	IncludeCoolifyDefaultVariables   *bool  `json:"include_coolify_default_variables,omitempty"`
+	IsContainerLabelReadonlyEnabled  *bool  `json:"is_container_label_readonly_enabled,omitempty"`
 }
 
 // PromoteSettings copies nested settings onto top-level Application fields when unset.
@@ -350,6 +361,8 @@ func (a *Application) PromoteSettings() {
 	promoteBool(&a.IsPermanentRedirectEnabled, s.IsPermanentRedirectEnabled)
 	promoteBool(&a.RedactAllEnvValuesInLogs, s.RedactAllEnvValuesInLogs)
 	promoteInt64(&a.RollingUpdateDrainSeconds, s.RollingUpdateDrainSeconds)
+	promoteBool(&a.IncludeCoolifyDefaultVariables, s.IncludeCoolifyDefaultVariables)
+	promoteBool(&a.IsContainerLabelReadonlyEnabled, s.IsContainerLabelReadonlyEnabled)
 }
 
 func promoteBool(dst **bool, src *bool) {
@@ -467,6 +480,10 @@ type UpdateApplicationInput struct {
 	IsPermanentRedirectEnabled      *bool   `json:"is_permanent_redirect_enabled,omitempty"`
 	RedactAllEnvValuesInLogs        *bool   `json:"redact_all_env_values_in_logs,omitempty"`
 	RollingUpdateDrainSeconds       *int64  `json:"rolling_update_drain_seconds,omitempty"`
+	IncludeCoolifyDefaultVariables  *bool   `json:"include_coolify_default_variables,omitempty"`
+	IsContainerLabelReadonlyEnabled *bool   `json:"is_container_label_readonly_enabled,omitempty"`
+	GitHTTPSUsername                *string `json:"git_https_username,omitempty"`
+	GitHTTPSPassword                *string `json:"git_https_password,omitempty"`
 	// Extended health checks
 	HealthCheckCommand      *string `json:"health_check_command,omitempty"`
 	HealthCheckHost         *string `json:"health_check_host,omitempty"`
@@ -623,6 +640,9 @@ func (c *Client) UpdateApplication(ctx context.Context, uuid string, input Updat
 	if !c.SupportsCoolify451() {
 		input.clearApplicationSettingsV451()
 	}
+	if !c.SupportsCoolify46() {
+		input.clearApplicationSettingsV46()
+	}
 	// github_app_uuid is create-only. Coolify 4.5.0 lists it on update,
 	// but changing the app still replaces the application.
 	input.GitHubAppUUID = nil
@@ -732,9 +752,17 @@ func (i *UpdateApplicationInput) clearApplicationSettingsV45() {
 }
 
 // clearApplicationSettingsV451 drops Coolify >= v4.5.1 write keys.
-// v4.5.0 still accepts the v4.5.0 keys and rejects this one.
+// v4.5.0 still accepts the v4.5.0 keys and rejects these.
 func (i *UpdateApplicationInput) clearApplicationSettingsV451() {
 	i.RollingUpdateDrainSeconds = nil
+	i.IncludeCoolifyDefaultVariables = nil
+	i.IsContainerLabelReadonlyEnabled = nil
+}
+
+// clearApplicationSettingsV46 drops Coolify >= v4.6.0 write keys.
+func (i *UpdateApplicationInput) clearApplicationSettingsV46() {
+	i.GitHTTPSUsername = nil
+	i.GitHTTPSPassword = nil
 }
 
 // HasOnlyApplicationSettings reports whether the payload would be empty once

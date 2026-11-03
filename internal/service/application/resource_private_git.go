@@ -246,7 +246,7 @@ func (m *privateGitApplicationResourceModel) common() commonAppFields {
 
 func flattenPrivateGitApplication(app *client.Application, state *privateGitApplicationResourceModel, c *client.Client) {
 	f := state.common()
-	f.PreserveConfiguredMaxRestart = c != nil && !c.SupportsApplicationSettingsV43()
+	noteCoolifyVersion(&f, c)
 	flattenApplicationCommon(app, f)
 	if app.PrivateKeyUUID != "" {
 		state.PrivateKeyUUID = types.StringValue(app.PrivateKeyUUID)

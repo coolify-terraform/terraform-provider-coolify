@@ -68,6 +68,7 @@ resource "coolify_service_application" "web" {
 - `is_stripprefix_enabled` (Boolean) Strip the path prefix.
 - `max_restart_count` (Number) Maximum Docker restart count before Coolify stops the container. `0` disables the limit. Requires Coolify >= v4.3.19. v4.4-rc.1 does not accept it. On older instances the provider keeps the value in state and does not send it.
 - `noindex_domains` (List of String) Domains that should send `X-Robots-Tag: noindex`. Entries that are not on this application are ignored by Coolify. Requires Coolify >= v4.3.0. On older instances the provider keeps the value in state and does not send it.
+- `redirect` (String) Domain redirect mode: `www`, `non-www`, or `both`. Requires Coolify >= v4.5.1. On older instances the provider keeps the value in state and does not send it. Removing the attribute later does not clear a stored value.
 - `traefik_certificate_resolver` (String) Traefik certificate resolver. Null uses the server setting. `none` uses no resolver. Requires Coolify >= v4.5.0. On older instances the provider keeps the value in state and does not send it.
 - `url` (String) Comma-separated public URLs. Same rules as `coolify_service` `urls`. Coolify may already have a URL; leaving this unset keeps that value.
 
