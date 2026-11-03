@@ -18,7 +18,7 @@ type IntegrationToken struct {
 	AutomaticDNS  *bool    `json:"automatic_dns,omitempty"`
 	ProxiedDNS    *bool    `json:"proxied_dns,omitempty"`
 	DNSZonesCount *int64   `json:"dns_zones_count,omitempty"`
-	ZonesSyncedAt string   `json:"zones_synced_at,omitempty"`
+	ZonesSyncedAt *string  `json:"zones_synced_at,omitempty"`
 	CreatedAt     string   `json:"created_at,omitempty"`
 	UpdatedAt     string   `json:"updated_at,omitempty"`
 }

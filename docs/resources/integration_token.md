@@ -47,8 +47,8 @@ resource "coolify_integration_token" "vault" {
 - `capabilities` (List of String) What the token may do. Cloudflare: `dns` and `tunnel` (`tunnel` also needs `dns`). Doppler, Infisical, and Vault: `secrets`. Omit this to let Coolify use `dns` for Cloudflare and `secrets` for the others.
 - `metadata_base_url` (String, Sensitive) Secret-manager API URL. Required for Infisical and Vault. Forbidden for Cloudflare. Not returned on read.
 - `metadata_client_id` (String) Infisical client id. Required for Infisical. Forbidden for Cloudflare. Not returned on read.
-- `metadata_namespace` (String) Vault namespace. Forbidden for Cloudflare. Not returned on read. Remove the attribute to clear the stored namespace.
-- `metadata_timeout` (Number) Secret-manager request timeout in seconds (1-300). Forbidden for Cloudflare. Not returned on read. Remove the attribute to clear the stored timeout.
+- `metadata_namespace` (String) Vault namespace. Forbidden for Cloudflare. Not returned on read, so import does not load it. Remove the attribute to clear a namespace already stored in state.
+- `metadata_timeout` (Number) Secret-manager request timeout in seconds (1-300). Forbidden for Cloudflare. Not returned on read, so import does not load it. Remove the attribute to clear a timeout already stored in state.
 - `proxied_dns` (Boolean) Cloudflare only. Create new DNS records proxied (orange cloud). Coolify's default is false. Other providers reject this attribute.
 
 ### Read-Only

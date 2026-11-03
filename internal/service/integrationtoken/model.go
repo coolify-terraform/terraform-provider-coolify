@@ -237,11 +237,7 @@ func flattenIntegrationToken(got *client.IntegrationToken, m *integrationTokenMo
 	} else if m.DNSZonesCount.IsUnknown() {
 		m.DNSZonesCount = types.Int64Null()
 	}
-	if got.ZonesSyncedAt != "" {
-		m.ZonesSyncedAt = types.StringValue(got.ZonesSyncedAt)
-	} else if m.ZonesSyncedAt.IsUnknown() {
-		m.ZonesSyncedAt = types.StringNull()
-	}
+	setZonesSyncedAt(m, got.ZonesSyncedAt)
 	if got.CreatedAt != "" {
 		m.CreatedAt = types.StringValue(got.CreatedAt)
 	} else if m.CreatedAt.IsUnknown() {
@@ -251,6 +247,16 @@ func flattenIntegrationToken(got *client.IntegrationToken, m *integrationTokenMo
 		m.UpdatedAt = types.StringValue(got.UpdatedAt)
 	} else if m.UpdatedAt.IsUnknown() {
 		m.UpdatedAt = types.StringNull()
+	}
+}
+
+func setZonesSyncedAt(m *integrationTokenModel, got *string) {
+	if got != nil && *got != "" {
+		m.ZonesSyncedAt = types.StringValue(*got)
+		return
+	}
+	if m.ZonesSyncedAt.IsUnknown() {
+		m.ZonesSyncedAt = types.StringNull()
 	}
 }
 

@@ -127,12 +127,12 @@ func integrationTokenAttributes() map[string]schema.Attribute {
 			PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 		},
 		"metadata_namespace": schema.StringAttribute{
-			MarkdownDescription: "Vault namespace. Forbidden for Cloudflare. Not returned on read. Remove the attribute to clear the stored namespace.",
+			MarkdownDescription: "Vault namespace. Forbidden for Cloudflare. Not returned on read, so import does not load it. Remove the attribute to clear a namespace already stored in state.",
 			Optional:            true,
 			PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 		},
 		"metadata_timeout": schema.Int64Attribute{
-			MarkdownDescription: "Secret-manager request timeout in seconds (1-300). Forbidden for Cloudflare. Not returned on read. Remove the attribute to clear the stored timeout.",
+			MarkdownDescription: "Secret-manager request timeout in seconds (1-300). Forbidden for Cloudflare. Not returned on read, so import does not load it. Remove the attribute to clear a timeout already stored in state.",
 			Optional:            true,
 			PlanModifiers:       []planmodifier.Int64{int64planmodifier.UseStateForUnknown()},
 			Validators:          []validator.Int64{int64validator.Between(1, 300)},
@@ -251,16 +251,20 @@ func (r *integrationTokenResource) ImportState(ctx context.Context, req resource
 }
 
 func (r *integrationTokenResource) requireCoolify46(diags *diag.Diagnostics) bool {
-	if r.client == nil || r.client.SupportsCoolify46() {
+	return coolify46Ready(r.client, diags)
+}
+
+func coolify46Ready(c *client.Client, diags *diag.Diagnostics) bool {
+	if c == nil || c.SupportsCoolify46() {
 		return true
 	}
-	ver := r.client.CoolifyVersion
+	ver := c.CoolifyVersion
 	if ver == "" {
 		ver = "unknown"
 	}
 	diags.AddError(
 		"Integration tokens need Coolify >= v4.6.0",
-		fmt.Sprintf("This Coolify instance (%s) does not have the integration token read and update API. Upgrade Coolify before managing coolify_integration_token.", ver),
+		fmt.Sprintf("This Coolify instance (%s) does not have the integration token API. Upgrade Coolify before using coolify_integration_token.", ver),
 	)
 	return false
 }
