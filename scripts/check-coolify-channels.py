@@ -8,8 +8,10 @@ stayed at 4.2.0 until the day of stable release, so version numbers alone
 were too late.
 
 This script compares:
-  - stable:  coolify.v4.version from CDN versions.json
-  - nightly: coolify.nightly.version from the same file
+  - stable:  stable.coolify.version from CDN versions.json
+    (fallback: coolify.v4.version)
+  - nightly: nightly.coolify.version from the same file
+    (fallback: coolify.nightly.version)
   - pin:     version from testdata/contracts/coolify-v4.json
   - prereleases: GitHub releases with prerelease=true (optional)
   - latest_release: newest non-draft GitHub release tag (stable or pre)
@@ -147,13 +149,51 @@ def version_eq(a: str, b: str) -> bool:
     return normalize_version(a) == normalize_version(b)
 
 
+# Nightly alphas look like 4.7.0-alpha.0.20261106.1. The date build
+# changes every CDN publish. The issue title uses the line, not that stamp,
+# so a later publish updates the open issue instead of replacing it.
+_DATED_PRERELEASE = re.compile(r"^(?P<base>.+-.*)\.\d{8}\.\d+$")
+
+
+def title_version(v: str) -> str:
+    raw = normalize_version(v)
+    match = _DATED_PRERELEASE.match(raw)
+    if match:
+        return match.group("base")
+    return raw
+
+
+def _nested_version(data: dict[str, Any], path: tuple[str, ...]) -> str:
+    """Return a string at path, or empty when any step is missing."""
+    node: Any = data
+    for key in path:
+        if not isinstance(node, dict):
+            return ""
+        node = node.get(key)
+    if not isinstance(node, str):
+        return ""
+    return node.strip()
+
+
 def load_versions_json(data: dict[str, Any]) -> tuple[str, str]:
-    coolify = data.get("coolify") or {}
-    stable = (coolify.get("v4") or {}).get("version") or ""
-    nightly = (coolify.get("nightly") or {}).get("version") or ""
+    """Read stable and nightly Coolify versions from CDN versions.json.
+
+    Prefer the current top-level channels (stable.coolify.version and
+    nightly.coolify.version). Fall back to coolify.v4.version and
+    coolify.nightly.version when a new key is absent. preview is not
+    a nightly stand-in. When both shapes are present, the new keys win.
+    """
+    stable = _nested_version(data, ("stable", "coolify", "version")) or _nested_version(
+        data, ("coolify", "v4", "version")
+    )
+    nightly = _nested_version(
+        data, ("nightly", "coolify", "version")
+    ) or _nested_version(data, ("coolify", "nightly", "version"))
     if not stable or not nightly:
         raise ValueError(
-            "versions.json missing coolify.v4.version or coolify.nightly.version"
+            "versions.json missing stable or nightly version "
+            "(stable.coolify.version or coolify.v4.version; "
+            "nightly.coolify.version or coolify.nightly.version)"
         )
     return normalize_version(stable), normalize_version(nightly)
 
@@ -492,11 +532,14 @@ def decide(
     )
     watch_next_line = nightly_ahead
 
-    # Title prefers the highest-urgency target version.
-    target = pin
+    # Title prefers the highest-urgency target version. A dated
+    # prerelease stamp is not part of the title, so two nightly
+    # publishes of the same alpha line do not replace the issue.
+    target = title_version(pin)
     for cand in (tip_v, nightly, latest, stable, pre or ""):
-        if cand and (not target or version_lt(target, cand)):
-            target = cand
+        shown = title_version(cand)
+        if shown and (not target or version_lt(target, shown)):
+            target = shown
 
     if needs_support_work:
         title = f"coolify-channel: support Coolify {target} (pin is {pin})"

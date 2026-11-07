@@ -46,6 +46,30 @@ class TestLoadVersions(unittest.TestCase):
         self.assertEqual(stable, "4.1.2")
         self.assertEqual(nightly, "4.2.0")
 
+    def test_load_top_level_channels(self):
+        # 2026-11 CDN shape: nightly moved off coolify.nightly.
+        data = {
+            "stable": {"coolify": {"version": "4.6.0"}},
+            "nightly": {"coolify": {"version": "4.7.0-alpha.0.20261106.1"}},
+            "coolify": {"v4": {"version": "4.6.0"}},
+        }
+        stable, nightly = cc.load_versions_json(data)
+        self.assertEqual(stable, "4.6.0")
+        self.assertEqual(nightly, "4.7.0-alpha.0.20261106.1")
+
+    def test_new_keys_win_when_both_present(self):
+        data = {
+            "stable": {"coolify": {"version": "4.6.0"}},
+            "nightly": {"coolify": {"version": "4.7.0-alpha.0.20261106.1"}},
+            "coolify": {
+                "v4": {"version": "4.5.3"},
+                "nightly": {"version": "4.6-rc.1"},
+            },
+        }
+        stable, nightly = cc.load_versions_json(data)
+        self.assertEqual(stable, "4.6.0")
+        self.assertEqual(nightly, "4.7.0-alpha.0.20261106.1")
+
     def test_missing(self):
         with self.assertRaises(ValueError):
             cc.load_versions_json({"coolify": {"v4": {"version": "4.1.2"}}})
@@ -286,6 +310,41 @@ class TestDecide(unittest.TestCase):
         d = cc.decide(snap, previous=prev)
         self.assertEqual(d.action, "update")
         self.assertTrue(any("Stable CDN changed" in r for r in d.reasons))
+
+    def test_dated_nightly_alpha_keeps_one_title(self):
+        first = cc.decide(
+            cc.ChannelSnapshot(
+                stable="4.6.0",
+                nightly="4.7.0-alpha.0.20261106.1",
+                pin="4.4.2",
+                latest_release="4.6.0",
+                tip_version="4.6.0",
+            )
+        )
+        second = cc.decide(
+            cc.ChannelSnapshot(
+                stable="4.6.0",
+                nightly="4.7.0-alpha.0.20261107.1",
+                pin="4.4.2",
+                latest_release="4.6.0",
+                tip_version="4.6.0",
+            )
+        )
+        self.assertEqual(first.title, second.title)
+        self.assertIn("4.7.0-alpha.0", first.title)
+        self.assertNotIn("20261106", first.title)
+        self.assertIn("4.7.0-alpha.0.20261107.1", second.body)
+        again = cc.decide(
+            cc.ChannelSnapshot(
+                stable="4.6.0",
+                nightly="4.7.0-alpha.0.20261107.1",
+                pin="4.4.2",
+                latest_release="4.6.0",
+                tip_version="4.6.0",
+            ),
+            existing_title=first.title,
+        )
+        self.assertEqual(again.action, "update")
 
     def test_same_title_updates_existing_issue(self):
         snap = cc.ChannelSnapshot(
