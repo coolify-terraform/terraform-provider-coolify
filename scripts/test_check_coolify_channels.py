@@ -71,8 +71,31 @@ class TestLoadVersions(unittest.TestCase):
         self.assertEqual(nightly, "4.7.0-alpha.0.20261106.1")
 
     def test_missing(self):
-        with self.assertRaises(ValueError):
+        with self.assertRaises(ValueError) as raised:
             cc.load_versions_json({"coolify": {"v4": {"version": "4.1.2"}}})
+        self.assertIn("Found channel labels: v4", str(raised.exception))
+
+    def test_wrapped_channels_still_load(self):
+        # A future document can nest the same channel objects.
+        data = {
+            "channels": {
+                "stable": {"coolify": {"version": "4.6.0"}},
+                "nightly": {"coolify": {"version": "4.7.0-alpha.0"}},
+            }
+        }
+        stable, nightly = cc.load_versions_json(data)
+        self.assertEqual(stable, "4.6.0")
+        self.assertEqual(nightly, "4.7.0-alpha.0")
+
+    def test_preview_is_not_nightly(self):
+        data = {
+            "stable": {"coolify": {"version": "4.6.0"}},
+            "preview": {"coolify": {"version": "4.6.0"}},
+        }
+        with self.assertRaises(ValueError) as raised:
+            cc.load_versions_json(data)
+        message = str(raised.exception)
+        self.assertIn("Found channel labels: preview, stable", message)
 
 
 class TestTipVersionParse(unittest.TestCase):
@@ -417,6 +440,21 @@ class TestDecide(unittest.TestCase):
 
 
 class TestCLI(unittest.TestCase):
+    def test_unreadable_versions_exits_without_raising(self):
+        with tempfile.TemporaryDirectory() as td:
+            path = Path(td) / "versions.json"
+            path.write_text(json.dumps({"preview": {"coolify": {"version": "4.6.0"}}}))
+            rc = cc.main(
+                [
+                    "--versions-json",
+                    str(path),
+                    "--pinned-version",
+                    "4.4.2",
+                    "--json",
+                ]
+            )
+            self.assertEqual(rc, 2)
+
     def test_empty_pin_exits_error(self):
         data = {
             "coolify": {
