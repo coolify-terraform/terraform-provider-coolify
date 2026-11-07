@@ -8,10 +8,10 @@ stayed at 4.2.0 until the day of stable release, so version numbers alone
 were too late.
 
 This script compares:
-  - stable:  stable.coolify.version from CDN versions.json
-    (fallback: coolify.v4.version)
-  - nightly: nightly.coolify.version from the same file
-    (fallback: coolify.nightly.version)
+  - stable:  a stable or v4 channel's coolify.version anywhere in
+    CDN versions.json (stable.coolify.version, or coolify.v4.version)
+  - nightly: a nightly channel's coolify.version anywhere in that file
+    (nightly.coolify.version, or coolify.nightly.version)
   - pin:     version from testdata/contracts/coolify-v4.json
   - prereleases: GitHub releases with prerelease=true (optional)
   - latest_release: newest non-draft GitHub release tag (stable or pre)
@@ -163,37 +163,74 @@ def title_version(v: str) -> str:
     return raw
 
 
-def _nested_version(data: dict[str, Any], path: tuple[str, ...]) -> str:
-    """Return a string at path, or empty when any step is missing."""
-    node: Any = data
-    for key in path:
-        if not isinstance(node, dict):
-            return ""
-        node = node.get(key)
-    if not isinstance(node, str):
-        return ""
-    return node.strip()
+class _VersionHit:
+    """One Coolify version found while walking versions.json."""
+
+    def __init__(self, version: str, rank: int) -> None:
+        self.version = version
+        self.rank = rank
+
+
+def _consider_version(
+    found: dict[str, _VersionHit], label: str, value: Any, rank: int
+) -> None:
+    if not isinstance(value, str) or not value.strip():
+        return
+    previous = found.get(label)
+    # Rank 0 is a channel object (stable.coolify.version). Rank 1 is the
+    # older coolify.v4 / coolify.nightly nesting. A later old key must
+    # not replace a channel object that was already seen.
+    if previous is None or rank < previous.rank:
+        found[label] = _VersionHit(value.strip(), rank)
+
+
+def _collect_channel_versions(node: Any, path: tuple[str, ...] = ()) -> dict[str, _VersionHit]:
+    """Find coolify.version strings anywhere in the CDN document.
+
+    Coolify has published two shapes, and has wrapped channels once.
+    Walking the tree keeps the next wrapper from becoming an uncaught
+    ValueError. preview is recorded but is not used as nightly.
+    """
+    found: dict[str, _VersionHit] = {}
+
+    def walk(current: Any, trail: tuple[str, ...]) -> None:
+        if not isinstance(current, dict):
+            return
+        coolify = current.get("coolify")
+        if isinstance(coolify, dict):
+            if trail:
+                _consider_version(found, trail[-1], coolify.get("version"), 0)
+            for name, child in coolify.items():
+                if isinstance(child, dict):
+                    _consider_version(found, str(name), child.get("version"), 1)
+        for key, child in current.items():
+            if key == "coolify":
+                continue
+            walk(child, trail + (str(key),))
+
+    walk(node, path)
+    return found
 
 
 def load_versions_json(data: dict[str, Any]) -> tuple[str, str]:
     """Read stable and nightly Coolify versions from CDN versions.json.
 
-    Prefer the current top-level channels (stable.coolify.version and
-    nightly.coolify.version). Fall back to coolify.v4.version and
-    coolify.nightly.version when a new key is absent. preview is not
-    a nightly stand-in. When both shapes are present, the new keys win.
+    Accepts stable.coolify.version and nightly.coolify.version at any
+    depth, and the older coolify.v4.version / coolify.nightly.version
+    keys. When both shapes are present, the channel object wins.
     """
-    stable = _nested_version(data, ("stable", "coolify", "version")) or _nested_version(
-        data, ("coolify", "v4", "version")
-    )
-    nightly = _nested_version(
-        data, ("nightly", "coolify", "version")
-    ) or _nested_version(data, ("coolify", "nightly", "version"))
+    found = _collect_channel_versions(data)
+    stable_hit = found.get("stable") or found.get("v4")
+    nightly_hit = found.get("nightly")
+    stable = stable_hit.version if stable_hit else ""
+    nightly = nightly_hit.version if nightly_hit else ""
     if not stable or not nightly:
+        labels = ", ".join(sorted(found)) or "(none)"
         raise ValueError(
-            "versions.json missing stable or nightly version "
-            "(stable.coolify.version or coolify.v4.version; "
-            "nightly.coolify.version or coolify.nightly.version)"
+            "versions.json has no stable or nightly Coolify version. "
+            f"Found channel labels: {labels}. "
+            "Expected a stable or v4 channel and a nightly channel, "
+            "each with coolify.version."
         )
     return normalize_version(stable), normalize_version(nightly)
 
@@ -1099,17 +1136,31 @@ def main(argv: Optional[list[str]] = None) -> int:
     args = parser.parse_args(argv)
 
     if args.versions_json:
-        data = json.loads(args.versions_json.read_text())
-        stable, nightly = load_versions_json(data)
+        try:
+            data = json.loads(args.versions_json.read_text())
+        except json.JSONDecodeError as exc:
+            print(f"ERROR: could not parse {args.versions_json}: {exc}", file=sys.stderr)
+            return 2
     elif args.fetch:
         try:
             data = fetch_json(CDN_VERSIONS_URL)
-        except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as e:
-            print(f"ERROR: failed to fetch {CDN_VERSIONS_URL}: {e}", file=sys.stderr)
+        except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as exc:
+            print(f"ERROR: failed to fetch {CDN_VERSIONS_URL}: {exc}", file=sys.stderr)
             return 2
-        stable, nightly = load_versions_json(data)
     else:
         print("ERROR: provide --versions-json or --fetch", file=sys.stderr)
+        return 2
+
+    try:
+        stable, nightly = load_versions_json(data)
+    except ValueError as exc:
+        # A shape change used to raise out of main and skip this message.
+        # Exit 2 leaves the open channel issue untouched.
+        print(f"ERROR: {exc}", file=sys.stderr)
+        print(
+            "ERROR: not updating the channel issue from an unreadable versions.json.",
+            file=sys.stderr,
+        )
         return 2
 
     if args.pinned_version is not None:
