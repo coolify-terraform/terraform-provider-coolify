@@ -149,6 +149,20 @@ def version_eq(a: str, b: str) -> bool:
     return normalize_version(a) == normalize_version(b)
 
 
+# Nightly alphas look like 4.7.0-alpha.0.20261106.1. The date build
+# changes every CDN publish. The issue title uses the line, not that stamp,
+# so a later publish updates the open issue instead of replacing it.
+_DATED_PRERELEASE = re.compile(r"^(?P<base>.+-.*)\.\d{8}\.\d+$")
+
+
+def title_version(v: str) -> str:
+    raw = normalize_version(v)
+    match = _DATED_PRERELEASE.match(raw)
+    if match:
+        return match.group("base")
+    return raw
+
+
 def _nested_version(data: dict[str, Any], path: tuple[str, ...]) -> str:
     """Return a string at path, or empty when any step is missing."""
     node: Any = data
@@ -518,11 +532,14 @@ def decide(
     )
     watch_next_line = nightly_ahead
 
-    # Title prefers the highest-urgency target version.
-    target = pin
+    # Title prefers the highest-urgency target version. A dated
+    # prerelease stamp is not part of the title, so two nightly
+    # publishes of the same alpha line do not replace the issue.
+    target = title_version(pin)
     for cand in (tip_v, nightly, latest, stable, pre or ""):
-        if cand and (not target or version_lt(target, cand)):
-            target = cand
+        shown = title_version(cand)
+        if shown and (not target or version_lt(target, shown)):
+            target = shown
 
     if needs_support_work:
         title = f"coolify-channel: support Coolify {target} (pin is {pin})"

@@ -311,6 +311,41 @@ class TestDecide(unittest.TestCase):
         self.assertEqual(d.action, "update")
         self.assertTrue(any("Stable CDN changed" in r for r in d.reasons))
 
+    def test_dated_nightly_alpha_keeps_one_title(self):
+        first = cc.decide(
+            cc.ChannelSnapshot(
+                stable="4.6.0",
+                nightly="4.7.0-alpha.0.20261106.1",
+                pin="4.4.2",
+                latest_release="4.6.0",
+                tip_version="4.6.0",
+            )
+        )
+        second = cc.decide(
+            cc.ChannelSnapshot(
+                stable="4.6.0",
+                nightly="4.7.0-alpha.0.20261107.1",
+                pin="4.4.2",
+                latest_release="4.6.0",
+                tip_version="4.6.0",
+            )
+        )
+        self.assertEqual(first.title, second.title)
+        self.assertIn("4.7.0-alpha.0", first.title)
+        self.assertNotIn("20261106", first.title)
+        self.assertIn("4.7.0-alpha.0.20261107.1", second.body)
+        again = cc.decide(
+            cc.ChannelSnapshot(
+                stable="4.6.0",
+                nightly="4.7.0-alpha.0.20261107.1",
+                pin="4.4.2",
+                latest_release="4.6.0",
+                tip_version="4.6.0",
+            ),
+            existing_title=first.title,
+        )
+        self.assertEqual(again.action, "update")
+
     def test_same_title_updates_existing_issue(self):
         snap = cc.ChannelSnapshot(
             stable="4.1.2", nightly="4.2.0", pin="4.1.2", prereleases=["4.2.0"]
