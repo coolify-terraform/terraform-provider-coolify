@@ -1,7 +1,7 @@
 {
-  "version": "v4.4.2",
-  "extracted_from": "coollabsio/coolify@v4.4.2",
-  "extracted_at": "2026-10-07T16:35:01.755740+00:00",
+  "version": "v4.6.0",
+  "extracted_from": "coollabsio/coolify@v4.6.0",
+  "extracted_at": "2026-11-03T00:27:34.853090+00:00",
   "models": {
     "Application": {
       "table": "applications",
@@ -15,6 +15,8 @@
         "git_branch",
         "git_commit_sha",
         "git_full_url",
+        "git_https_username",
+        "git_https_password",
         "docker_registry_image_name",
         "docker_registry_image_tag",
         "build_pack",
@@ -81,6 +83,10 @@
         "is_http_basic_auth_enabled",
         "http_basic_auth_username",
         "http_basic_auth_password",
+        "http_basic_auth_hash_algorithm",
+        "http_basic_auth_bcrypt_cost",
+        "http_basic_auth_argon2id_memory_cost",
+        "http_basic_auth_argon2id_time_cost",
         "connect_to_docker_network",
         "force_domain_override",
         "is_container_label_escape_enabled",
@@ -105,6 +111,7 @@
       "guarded": [],
       "hidden": [
         "http_basic_auth_password",
+        "git_https_password",
         "manual_webhook_secret_github",
         "manual_webhook_secret_gitlab",
         "manual_webhook_secret_bitbucket",
@@ -202,7 +209,7 @@
           "type": "boolean",
           "nullable": false,
           "default": false,
-          "cast": null,
+          "cast": "boolean",
           "sensitive": false,
           "fillable": true,
           "flatten_hint": "unconditional"
@@ -444,6 +451,25 @@
           "flatten_hint": "or_clear",
           "max_length": 255
         },
+        "git_https_password": {
+          "type": "text",
+          "nullable": true,
+          "default": null,
+          "cast": "encrypted",
+          "sensitive": true,
+          "fillable": true,
+          "flatten_hint": "if_configured"
+        },
+        "git_https_username": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        },
         "git_repository": {
           "type": "string",
           "nullable": false,
@@ -467,7 +493,7 @@
           "type": "boolean",
           "nullable": false,
           "default": false,
-          "cast": null,
+          "cast": "boolean",
           "sensitive": false,
           "fillable": true,
           "flatten_hint": "unconditional"
@@ -585,6 +611,43 @@
           "sensitive": false,
           "fillable": true,
           "flatten_hint": "unconditional"
+        },
+        "http_basic_auth_argon2id_memory_cost": {
+          "type": "integer",
+          "nullable": false,
+          "default": 65536,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "http_basic_auth_argon2id_time_cost": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "http_basic_auth_bcrypt_cost": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "http_basic_auth_hash_algorithm": {
+          "type": "string",
+          "nullable": false,
+          "default": "bcrypt",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
         },
         "http_basic_auth_password": {
           "type": "string",
@@ -1128,6 +1191,15 @@
           "fillable": true,
           "flatten_hint": "or_clear"
         },
+        "include_coolify_default_variables": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": "boolean",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
         "include_source_commit_in_build": {
           "type": "boolean",
           "nullable": false,
@@ -1308,6 +1380,15 @@
           "fillable": true,
           "flatten_hint": "unconditional"
         },
+        "is_permanent_redirect_enabled": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": "boolean",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
         "is_pr_deployments_public_enabled": {
           "type": "boolean",
           "nullable": false,
@@ -1380,6 +1461,24 @@
           "fillable": true,
           "flatten_hint": "unconditional"
         },
+        "redact_all_env_values_in_logs": {
+          "type": "boolean",
+          "nullable": false,
+          "default": true,
+          "cast": "boolean",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "rolling_update_drain_seconds": {
+          "type": "integer",
+          "nullable": false,
+          "default": 5,
+          "cast": "integer",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
         "stop_grace_period": {
           "type": "integer",
           "nullable": true,
@@ -1388,6 +1487,16 @@
           "sensitive": false,
           "fillable": true,
           "flatten_hint": "or_clear"
+        },
+        "traefik_certificate_resolver": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear",
+          "max_length": 255
         },
         "use_build_secrets": {
           "type": "boolean",
@@ -1417,6 +1526,8 @@
         "vultr_instance_status",
         "digitalocean_droplet_id",
         "digitalocean_droplet_status",
+        "hostinger_virtual_machine_id",
+        "hostinger_virtual_machine_status",
         "is_validating",
         "validation_logs",
         "detected_traefik_version",
@@ -1427,12 +1538,22 @@
       "guarded": [],
       "hidden": [
         "logdrain_axiom_api_key",
-        "logdrain_newrelic_license_key"
+        "logdrain_newrelic_license_key",
+        "proxy_error_page"
       ],
       "appends": [
         "is_coolify_host"
       ],
       "fields": {
+        "canvas_position": {
+          "type": "json",
+          "nullable": true,
+          "default": null,
+          "cast": "array",
+          "sensitive": false,
+          "fillable": false,
+          "flatten_hint": "or_clear"
+        },
         "cloud_provider_token_id": {
           "type": "bigInteger",
           "nullable": true,
@@ -1509,6 +1630,25 @@
           "fillable": false,
           "flatten_hint": "unconditional"
         },
+        "hostinger_virtual_machine_id": {
+          "type": "bigInteger",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
+        },
+        "hostinger_virtual_machine_status": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        },
         "ip": {
           "type": "string",
           "nullable": false,
@@ -1574,6 +1714,15 @@
           "sensitive": false,
           "fillable": true,
           "flatten_hint": "unconditional"
+        },
+        "proxy_error_page": {
+          "type": "text",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": false,
+          "flatten_hint": "if_configured"
         },
         "sentinel_waiting_since": {
           "type": "timestamp",
@@ -1692,18 +1841,24 @@
         "is_usable",
         "wildcard_domain",
         "is_cloudflare_tunnel",
+        "cloudflare_tunnel_id",
+        "cloudflare_tunnel_account_id",
+        "cloudflare_tunnel_integration_token_id",
         "is_logdrain_newrelic_enabled",
         "logdrain_newrelic_license_key",
         "logdrain_newrelic_base_uri",
-        "is_logdrain_highlight_enabled",
-        "logdrain_highlight_project_id",
         "is_logdrain_axiom_enabled",
         "logdrain_axiom_dataset_name",
         "logdrain_axiom_api_key",
+        "logdrain_axiom_domain",
         "is_swarm_worker",
         "is_logdrain_custom_enabled",
         "logdrain_custom_config",
         "logdrain_custom_config_parser",
+        "is_logdrain_cloudwatch_enabled",
+        "logdrain_cloudwatch_region",
+        "logdrain_cloudwatch_group",
+        "logdrain_cloudwatch_stream_prefix",
         "concurrent_builds",
         "dynamic_timeout",
         "force_disabled",
@@ -1739,10 +1894,17 @@
         "geoip_refresh_days",
         "geoip_maxmind_license_key",
         "traffic_ip_mode",
+        "traefik_certificate_resolver",
         "docker_version",
         "docker_version_checked_at",
         "compose_version",
-        "compose_version_checked_at"
+        "compose_version_checked_at",
+        "patch_check_frequency",
+        "patch_check_result",
+        "patch_check_error",
+        "patch_checked_at",
+        "is_auto_security_updates_enabled",
+        "auto_security_updates_time"
       ],
       "guarded": [],
       "hidden": [
@@ -1757,6 +1919,16 @@
       ],
       "appends": [],
       "fields": {
+        "auto_security_updates_time": {
+          "type": "string",
+          "nullable": false,
+          "default": "03:00",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
         "backup_compression_cpu_percentage": {
           "type": "string",
           "nullable": false,
@@ -1765,6 +1937,35 @@
           "sensitive": false,
           "fillable": true,
           "flatten_hint": "unconditional"
+        },
+        "cloudflare_tunnel_account_id": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        },
+        "cloudflare_tunnel_id": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        },
+        "cloudflare_tunnel_integration_token_id": {
+          "type": "bigInteger",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
         },
         "compose_version": {
           "type": "string",
@@ -1931,6 +2132,15 @@
           "fillable": true,
           "flatten_hint": "unconditional"
         },
+        "is_auto_security_updates_enabled": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": "boolean",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
         "is_build_server": {
           "type": "boolean",
           "nullable": false,
@@ -1976,16 +2186,16 @@
           "fillable": true,
           "flatten_hint": "unconditional"
         },
-        "is_logdrain_custom_enabled": {
+        "is_logdrain_cloudwatch_enabled": {
           "type": "boolean",
           "nullable": false,
           "default": false,
-          "cast": null,
+          "cast": "boolean",
           "sensitive": false,
           "fillable": true,
           "flatten_hint": "unconditional"
         },
-        "is_logdrain_highlight_enabled": {
+        "is_logdrain_custom_enabled": {
           "type": "boolean",
           "nullable": false,
           "default": false,
@@ -2113,12 +2323,52 @@
           "flatten_hint": "or_clear",
           "max_length": 255
         },
-        "logdrain_custom_config": {
-          "type": "text",
+        "logdrain_axiom_domain": {
+          "type": "string",
+          "nullable": true,
+          "default": "us-east-1.aws.edge.axiom.co",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        },
+        "logdrain_cloudwatch_group": {
+          "type": "string",
           "nullable": true,
           "default": null,
           "cast": null,
           "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear",
+          "max_length": 512
+        },
+        "logdrain_cloudwatch_region": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        },
+        "logdrain_cloudwatch_stream_prefix": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        },
+        "logdrain_custom_config": {
+          "type": "text",
+          "nullable": true,
+          "default": null,
+          "cast": "encrypted",
+          "sensitive": true,
           "fillable": true,
           "flatten_hint": "if_configured"
         },
@@ -2130,16 +2380,6 @@
           "sensitive": false,
           "fillable": true,
           "flatten_hint": "if_configured"
-        },
-        "logdrain_highlight_project_id": {
-          "type": "string",
-          "nullable": true,
-          "default": null,
-          "cast": null,
-          "sensitive": false,
-          "fillable": true,
-          "flatten_hint": "or_clear",
-          "max_length": 255
         },
         "logdrain_newrelic_base_uri": {
           "type": "string",
@@ -2160,6 +2400,43 @@
           "fillable": true,
           "flatten_hint": "if_configured",
           "max_length": 255
+        },
+        "patch_check_error": {
+          "type": "text",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
+        },
+        "patch_check_frequency": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        },
+        "patch_check_result": {
+          "type": "json",
+          "nullable": true,
+          "default": null,
+          "cast": "array",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
+        },
+        "patch_checked_at": {
+          "type": "timestamp",
+          "nullable": true,
+          "default": null,
+          "cast": "datetime",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
         },
         "sentinel_custom_url": {
           "type": "string",
@@ -2264,6 +2541,16 @@
           "flatten_hint": "unconditional",
           "max_length": 255
         },
+        "traefik_certificate_resolver": {
+          "type": "string",
+          "nullable": true,
+          "default": "letsencrypt",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        },
         "traffic_ip_mode": {
           "type": "string",
           "nullable": false,
@@ -2334,6 +2621,15 @@
       "hidden": [],
       "appends": [],
       "fields": {
+        "canvas_position": {
+          "type": "json",
+          "nullable": true,
+          "default": null,
+          "cast": "array",
+          "sensitive": false,
+          "fillable": false,
+          "flatten_hint": "or_clear"
+        },
         "description": {
           "type": "string",
           "nullable": true,
@@ -2407,6 +2703,15 @@
       "hidden": [],
       "appends": [],
       "fields": {
+        "canvas_positions": {
+          "type": "json",
+          "nullable": true,
+          "default": null,
+          "cast": "array",
+          "sensitive": false,
+          "fillable": false,
+          "flatten_hint": "or_clear"
+        },
         "description": {
           "type": "string",
           "nullable": true,
@@ -2461,6 +2766,7 @@
         "config_hash",
         "compose_parsing_version",
         "is_container_label_escape_enabled",
+        "redact_all_env_values_in_logs",
         "environment_id",
         "server_id",
         "destination_id",
@@ -2577,6 +2883,15 @@
           "fillable": true,
           "flatten_hint": "unconditional",
           "max_length": 255
+        },
+        "redact_all_env_values_in_logs": {
+          "type": "boolean",
+          "nullable": false,
+          "default": true,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "server_id": {
           "type": "bigInteger",
@@ -3864,8 +4179,8 @@
           "type": "text",
           "nullable": false,
           "default": null,
-          "cast": null,
-          "sensitive": false,
+          "cast": "encrypted",
+          "sensitive": true,
           "fillable": true,
           "flatten_hint": "if_configured"
         },
@@ -4302,8 +4617,8 @@
           "type": "text",
           "nullable": false,
           "default": null,
-          "cast": null,
-          "sensitive": false,
+          "cast": "encrypted",
+          "sensitive": true,
           "fillable": true,
           "flatten_hint": "if_configured"
         },
@@ -5282,6 +5597,7 @@
       "appends": [
         "internal_db_url",
         "external_db_url",
+        "database_type",
         "server_status"
       ],
       "fields": {
@@ -6060,7 +6376,8 @@
       "guarded": [],
       "hidden": [
         "value",
-        "real_value"
+        "real_value",
+        "uses_legacy_escaping"
       ],
       "appends": [
         "real_value",
@@ -6093,7 +6410,7 @@
           "type": "boolean",
           "nullable": false,
           "default": false,
-          "cast": null,
+          "cast": "boolean",
           "sensitive": false,
           "fillable": true,
           "flatten_hint": "unconditional"
@@ -6171,6 +6488,15 @@
           "fillable": true,
           "flatten_hint": "or_clear"
         },
+        "preserve_compose_null": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": "boolean",
+          "sensitive": false,
+          "fillable": false,
+          "flatten_hint": "unconditional"
+        },
         "resourceable_id": {
           "type": "bigInteger",
           "nullable": true,
@@ -6189,6 +6515,15 @@
           "fillable": true,
           "flatten_hint": "or_clear",
           "max_length": 255
+        },
+        "uses_legacy_escaping": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": "boolean",
+          "sensitive": false,
+          "fillable": false,
+          "flatten_hint": "if_configured"
         },
         "uuid": {
           "type": "string",
@@ -6608,8 +6943,8 @@
           "type": "longText",
           "nullable": true,
           "default": null,
-          "cast": null,
-          "sensitive": false,
+          "cast": "encrypted",
+          "sensitive": true,
           "fillable": true,
           "flatten_hint": "if_configured"
         },
@@ -6770,8 +7105,8 @@
           "type": "longText",
           "nullable": true,
           "default": null,
-          "cast": null,
-          "sensitive": false,
+          "cast": "encrypted",
+          "sensitive": true,
           "fillable": true,
           "flatten_hint": "if_configured"
         }
@@ -6788,6 +7123,7 @@
         "secret",
         "bucket",
         "endpoint",
+        "use_path_style_endpoint",
         "is_usable",
         "unusable_email_sent"
       ],
@@ -6877,6 +7213,15 @@
           "nullable": false,
           "default": false,
           "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "use_path_style_endpoint": {
+          "type": "boolean",
+          "nullable": false,
+          "default": true,
+          "cast": "boolean",
           "sensitive": false,
           "fillable": true,
           "flatten_hint": "unconditional"
@@ -7385,6 +7730,8 @@
         "git_repository",
         "git_branch",
         "git_commit_sha",
+        "git_https_username",
+        "git_https_password",
         "private_key_uuid",
         "docker_registry_image_name",
         "docker_registry_image_tag",
@@ -7433,6 +7780,7 @@
         "instant_deploy",
         "dockerfile",
         "dockerfile_location",
+        "dockerfile_target_build",
         "docker_compose_location",
         "docker_compose_raw",
         "docker_compose_custom_start_command",
@@ -7446,6 +7794,10 @@
         "is_http_basic_auth_enabled",
         "http_basic_auth_username",
         "http_basic_auth_password",
+        "http_basic_auth_hash_algorithm",
+        "http_basic_auth_bcrypt_cost",
+        "http_basic_auth_argon2id_memory_cost",
+        "http_basic_auth_argon2id_time_cost",
         "connect_to_docker_network",
         "force_domain_override",
         "autogenerate_domain",
@@ -7461,11 +7813,17 @@
         "inject_build_args_to_dockerfile",
         "include_source_commit_in_build",
         "is_env_sorting_enabled",
+        "redact_all_env_values_in_logs",
+        "include_coolify_default_variables",
         "is_pr_deployments_public_enabled",
         "stop_grace_period",
+        "rolling_update_drain_seconds",
         "docker_images_to_keep",
         "is_gzip_enabled",
         "is_stripprefix_enabled",
+        "is_permanent_redirect_enabled",
+        "traefik_certificate_resolver",
+        "is_container_label_readonly_enabled",
         "is_raw_compose_deployment_enabled",
         "is_log_drain_enabled",
         "is_gpu_enabled",
@@ -7492,6 +7850,8 @@
         "git_repository",
         "git_branch",
         "git_commit_sha",
+        "git_https_username",
+        "git_https_password",
         "docker_registry_image_name",
         "docker_registry_image_tag",
         "build_pack",
@@ -7550,12 +7910,18 @@
         "is_http_basic_auth_enabled",
         "http_basic_auth_username",
         "http_basic_auth_password",
+        "http_basic_auth_hash_algorithm",
+        "http_basic_auth_bcrypt_cost",
+        "http_basic_auth_argon2id_memory_cost",
+        "http_basic_auth_argon2id_time_cost",
         "connect_to_docker_network",
         "force_domain_override",
         "is_container_label_escape_enabled",
         "is_preserve_repository_enabled",
         "preview_url_template",
         "max_restart_count",
+        "github_app_uuid",
+        "dockerfile",
         "is_git_submodules_enabled",
         "is_git_lfs_enabled",
         "is_git_shallow_clone_enabled",
@@ -7563,11 +7929,17 @@
         "inject_build_args_to_dockerfile",
         "include_source_commit_in_build",
         "is_env_sorting_enabled",
+        "redact_all_env_values_in_logs",
+        "include_coolify_default_variables",
         "is_pr_deployments_public_enabled",
         "stop_grace_period",
+        "rolling_update_drain_seconds",
         "docker_images_to_keep",
         "is_gzip_enabled",
         "is_stripprefix_enabled",
+        "is_permanent_redirect_enabled",
+        "traefik_certificate_resolver",
+        "is_container_label_readonly_enabled",
         "is_raw_compose_deployment_enabled",
         "is_log_drain_enabled",
         "is_gpu_enabled",
@@ -7742,8 +8114,10 @@
         "database_backup_retention_days_s3",
         "database_backup_retention_max_storage_s3",
         "s3_storage_uuid",
+        "s3_storage_uuids",
         "timeout",
-        "missing_backup_notification_days"
+        "missing_backup_notification_days",
+        "disable_local_backup"
       ]
     },
     "DatabasesController::update_backup": {
@@ -7760,8 +8134,10 @@
         "database_backup_retention_days_s3",
         "database_backup_retention_max_storage_s3",
         "s3_storage_uuid",
+        "s3_storage_uuids",
         "timeout",
-        "missing_backup_notification_days"
+        "missing_backup_notification_days",
+        "disable_local_backup"
       ]
     },
     "DatabasesController::create_database": {
@@ -7984,6 +8360,21 @@
         "instant_validate"
       ]
     },
+    "HostingerController::createServer": {
+      "allowed_fields": [
+        "cloud_provider_token_uuid",
+        "cloud_provider_token_id",
+        "item_id",
+        "data_center_id",
+        "template_id",
+        "name",
+        "private_key_uuid",
+        "enable_backups",
+        "public_key_ids",
+        "post_install_script_id",
+        "instant_validate"
+      ]
+    },
     "InstanceEmailSettingsController::update": {
       "allowed_fields": [
         "smtp_enabled",
@@ -8016,6 +8407,13 @@
         "resend_api_key"
       ]
     },
+    "IntegrationTokensController::update": {
+      "allowed_fields": [
+        "metadata",
+        "automatic_dns",
+        "proxied_dns"
+      ]
+    },
     "NotificationsController::update_email": {
       "allowed_fields": [
         "smtp_enabled",
@@ -8034,6 +8432,7 @@
         "use_instance_email_settings",
         "deployment_success_email_notifications",
         "deployment_failure_email_notifications",
+        "deployment_commit_details_email_notifications",
         "status_change_email_notifications",
         "restart_limit_reached_email_notifications",
         "backup_success_email_notifications",
@@ -8204,6 +8603,7 @@
         "region",
         "key",
         "secret",
+        "use_path_style_endpoint",
         "is_usable",
         "message",
         "errors"
@@ -8218,6 +8618,7 @@
         "region",
         "key",
         "secret",
+        "use_path_style_endpoint",
         "is_usable",
         "message",
         "errors"
@@ -8299,22 +8700,62 @@
         "is_logdrain_axiom_enabled",
         "logdrain_axiom_dataset_name",
         "logdrain_axiom_api_key",
+        "logdrain_axiom_domain",
         "is_logdrain_custom_enabled",
         "logdrain_custom_config",
-        "logdrain_custom_config_parser"
+        "logdrain_custom_config_parser",
+        "is_logdrain_cloudwatch_enabled",
+        "logdrain_cloudwatch_region",
+        "logdrain_cloudwatch_group",
+        "logdrain_cloudwatch_stream_prefix"
       ]
     },
     "ServerProxyController::update": {
       "allowed_fields": [
         "redirect_enabled",
         "redirect_url",
+        "proxy_error_page",
         "generate_exact_labels",
+        "traefik_certificate_resolver",
         "proxy_type"
       ]
     },
     "ServerProxyController::saveConfiguration": {
       "allowed_fields": [
         "configuration"
+      ]
+    },
+    "ServerSentinelController::update": {
+      "allowed_fields": [
+        "is_metrics_enabled",
+        "is_sentinel_debug_enabled",
+        "sentinel_token",
+        "sentinel_metrics_refresh_rate_seconds",
+        "sentinel_metrics_history_days",
+        "sentinel_push_interval_seconds",
+        "sentinel_custom_url",
+        "traffic_topn",
+        "traffic_sample_threshold",
+        "traffic_retention_1h_days",
+        "traffic_retention_1d_days",
+        "is_geoip_enabled",
+        "geoip_refresh_days",
+        "geoip_maxmind_license_key",
+        "traffic_ip_mode"
+      ]
+    },
+    "ServerTransferController::migrate": {
+      "allowed_fields": [
+        "target_url",
+        "target_token"
+      ]
+    },
+    "ServerTransferController::import": {
+      "allowed_fields": [
+        "bundle",
+        "dry_run",
+        "preserve_uuids",
+        "adopt_mode"
       ]
     },
     "ServersController::create_server": {
@@ -8350,48 +8791,15 @@
         "server_disk_usage_check_frequency",
         "server_disk_usage_notification_interval_hours",
         "connection_timeout",
-        "is_terminal_enabled"
+        "is_terminal_enabled",
+        "wildcard_domain",
+        "server_timezone",
+        "backup_compression_cpu_percentage"
       ]
     },
     "ServersController::validate_server": {
       "allowed_fields": [
         "install"
-      ]
-    },
-    "ServerSentinelController::update": {
-      "allowed_fields": [
-        "is_metrics_enabled",
-        "is_sentinel_debug_enabled",
-        "sentinel_token",
-        "sentinel_metrics_refresh_rate_seconds",
-        "sentinel_metrics_history_days",
-        "sentinel_push_interval_seconds",
-        "sentinel_custom_url",
-        "traffic_topn",
-        "traffic_sample_threshold",
-        "traffic_retention_1h_days",
-        "traffic_retention_1d_days",
-        "is_geoip_enabled",
-        "geoip_refresh_days",
-        "geoip_maxmind_license_key",
-        "traffic_ip_mode"
-      ]
-    },
-    "ServerTransferController::migrate": {
-      "allowed_fields": [
-        "target_url",
-        "target_token",
-        "preserve_uuids",
-        "adopt_mode"
-      ]
-    },
-    "ServerTransferController::import": {
-      "allowed_fields": [
-        "bundle",
-        "passphrase",
-        "dry_run",
-        "preserve_uuids",
-        "adopt_mode"
       ]
     },
     "ServiceApplicationsController::update": {
@@ -8404,8 +8812,11 @@
         "exclude_from_status",
         "is_log_drain_enabled",
         "is_gzip_enabled",
+        "traefik_certificate_resolver",
         "is_stripprefix_enabled",
         "is_force_https_enabled",
+        "is_permanent_redirect_enabled",
+        "redirect",
         "max_restart_count"
       ]
     },
@@ -8433,11 +8844,12 @@
         "destination_uuid",
         "instant_deploy",
         "docker_compose_raw",
+        "connect_to_docker_network",
         "urls",
         "force_domain_override",
         "is_container_label_escape_enabled",
-        "tags",
-        "connect_to_docker_network"
+        "redact_all_env_values_in_logs",
+        "tags"
       ]
     },
     "ServicesController::update_by_uuid": {
@@ -8449,7 +8861,9 @@
         "connect_to_docker_network",
         "urls",
         "force_domain_override",
-        "is_container_label_escape_enabled"
+        "is_container_label_escape_enabled",
+        "redact_all_env_values_in_logs",
+        "include_coolify_default_variables"
       ]
     },
     "ServicesController::clone_by_uuid": {
@@ -8650,6 +9064,7 @@
         "disable_local_backup",
         "stop_during_backup",
         "s3_storage_uuid",
+        "s3_storage_uuids",
         "retention_amount_locally",
         "retention_days_locally",
         "retention_max_storage_locally",
@@ -8668,6 +9083,7 @@
         "disable_local_backup",
         "stop_during_backup",
         "s3_storage_uuid",
+        "s3_storage_uuids",
         "retention_amount_locally",
         "retention_days_locally",
         "retention_max_storage_locally",
@@ -8696,6 +9112,82 @@
     }
   },
   "enums": {
+    "AccessScope": [
+      "team",
+      "project",
+      "environment",
+      "resource"
+    ],
+    "ProcessStatus": [
+      "queued",
+      "in_progress",
+      "finished",
+      "error",
+      "killed",
+      "cancelled",
+      "closed"
+    ],
+    "RedirectTypes": [
+      "both",
+      "www",
+      "non-www"
+    ],
+    "ProxyTypes": [
+      "NONE",
+      "TRAEFIK",
+      "NGINX",
+      "CADDY",
+      "exited",
+      "running"
+    ],
+    "GithubRunnerStatus": [
+      "queued",
+      "provisioning",
+      "idle",
+      "running",
+      "completed",
+      "failed",
+      "cancelled",
+      "timed_out"
+    ],
+    "NewDatabaseTypes": [
+      "postgresql",
+      "mysql",
+      "mongodb",
+      "redis",
+      "mariadb",
+      "keydb",
+      "dragonfly",
+      "clickhouse",
+      "sqlite"
+    ],
+    "ServerRole": [
+      "deployment",
+      "build",
+      "both"
+    ],
+    "StaticImageTypes": [
+      "nginx:alpine"
+    ],
+    "NewResourceTypes": [
+      "public",
+      "private-gh-app",
+      "private-gitea-app",
+      "private-deploy-key",
+      "dockerfile",
+      "dockercompose",
+      "docker-image",
+      "service",
+      "postgresql",
+      "mysql",
+      "mongodb",
+      "redis",
+      "mariadb",
+      "keydb",
+      "dragonfly",
+      "clickhouse",
+      "sqlite"
+    ],
     "ActivityTypes": [
       "inline",
       "command"
@@ -8706,6 +9198,28 @@
       "finished",
       "failed",
       "cancelled-by-user"
+    ],
+    "Role": [
+      "member",
+      "admin",
+      "owner"
+    ],
+    "GithubRunnerDockerMode": [
+      "dind",
+      "sysbox",
+      "none"
+    ],
+    "HttpBasicAuthHashAlgorithm": [
+      "bcrypt",
+      "argon2id"
+    ],
+    "ManagedDnsDeletionResult": [
+      "deleted",
+      "already_gone",
+      "not_owned",
+      "changed_externally",
+      "failed",
+      "busy"
     ],
     "BuildPackTypes": [
       "nixpacks",
@@ -8723,97 +9237,18 @@
       "created",
       "exited"
     ],
-    "GithubRunnerDockerMode": [
-      "dind",
-      "sysbox",
-      "none"
-    ],
-    "GithubRunnerStatus": [
-      "queued",
-      "provisioning",
-      "idle",
-      "running",
-      "completed",
-      "failed",
-      "cancelled",
-      "timed_out"
-    ],
-    "ManagedDnsDeletionResult": [
-      "deleted",
-      "already_gone",
-      "not_owned",
-      "changed_externally",
-      "failed",
-      "busy"
-    ],
-    "NewDatabaseTypes": [
-      "postgresql",
-      "mysql",
-      "mongodb",
-      "redis",
-      "mariadb",
-      "keydb",
-      "dragonfly",
-      "clickhouse",
-      "sqlite"
-    ],
-    "NewResourceTypes": [
-      "public",
-      "private-gh-app",
-      "private-deploy-key",
-      "dockerfile",
-      "dockercompose",
-      "docker-image",
-      "service",
-      "postgresql",
-      "mysql",
-      "mongodb",
-      "redis",
-      "mariadb",
-      "keydb",
-      "dragonfly",
-      "clickhouse",
-      "sqlite"
-    ],
-    "ProcessStatus": [
-      "queued",
-      "in_progress",
-      "finished",
-      "error",
-      "killed",
-      "cancelled",
-      "closed"
-    ],
-    "ProxyTypes": [
-      "NONE",
-      "TRAEFIK",
-      "NGINX",
-      "CADDY",
-      "exited",
-      "running"
-    ],
-    "RedirectTypes": [
-      "both",
-      "www",
-      "non-www"
-    ],
-    "Role": [
-      "member",
-      "admin",
-      "owner"
-    ],
-    "ServerRole": [
-      "deployment",
-      "build",
-      "both"
-    ],
-    "StaticImageTypes": [
-      "nginx:alpine"
-    ],
     "TrafficIpMode": [
       "full",
       "anonymized",
       "off"
+    ],
+    "AccessLevel": [
+      "read",
+      "read:sensitive",
+      "deploy",
+      "write",
+      "delete",
+      "root"
     ]
   },
   "validation_patterns": {
@@ -8834,8 +9269,9 @@
     "APPLICATION_DOMAIN_FORBIDDEN_PATTERN": "/[`$;&|<>()\\\\\\\\\\r\\n]/",
     "DB_IDENTIFIER_PATTERN": "/^[A-Za-z_][A-Za-z0-9_]{0,62}$/",
     "DB_PASSWORD_PATTERN": "/^[A-Za-z0-9!@#%^*()_+\\-=\\[\\]{}:,.?\\/~]+$/",
-    "DOCKER_IMAGE_NAME_PATTERN": "/\\A(?=.{1,255}\\z)(?:(?:[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?(?::[0-9]+)?\\/)?[a-z0-9]+(?:(?:[._]|__|-+)[a-z0-9]+)*(?:\\/[a-z0-9]+(?:(?:[._]|__|-+)[a-z0-9]+)*)*)(?:@sha256)?\\z/",
-    "DOCKER_IMAGE_TAG_PATTERN": "/\\A[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}\\z/"
+    "DOCKER_IMAGE_NAME_PATTERN": "/\\A(?=.{1,255}\\z)(?:(?:(?:[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?|\\[[0-9a-f:.]+\\])(?::[0-9]+)?\\/)?[a-z0-9]+(?:(?:[._]|__|-+)[a-z0-9]+)*(?:\\/[a-z0-9]+(?:(?:[._]|__|-+)[a-z0-9]+)*)*)(?:@sha256)?\\z/",
+    "DOCKER_IMAGE_LITERAL_TAG_PATTERN": "/\\A[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}\\z/",
+    "DOCKER_IMAGE_TAG_PATTERN": "/\\A(?=.{1,128}\\z)(?:[A-Za-z0-9_]|\\$(?:[A-Za-z_][A-Za-z0-9_]*+|\\{[A-Za-z_][A-Za-z0-9_]*+(?::?-[A-Za-z0-9_.-]*+)?\\}))(?:[A-Za-z0-9_.-]|\\$(?:[A-Za-z_][A-Za-z0-9_]*+|\\{[A-Za-z_][A-Za-z0-9_]*+(?::?-[A-Za-z0-9_.-]*+)?\\}))*\\z/"
   },
   "shared_validation_rules": {},
   "request_gates": [
@@ -8931,7 +9367,7 @@
       "controller": "ApplicationsController",
       "action": "delete_by_uuid",
       "middleware": [
-        "api.ability:write"
+        "api.ability:delete"
       ]
     },
     {
@@ -8985,7 +9421,43 @@
       "controller": "ApplicationsController",
       "action": "remove_destination",
       "middleware": [
+        "api.ability:delete"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/applications/{uuid}/dns",
+      "controller": "DnsController",
+      "action": "applicationStatus",
+      "middleware": [
+        "api.ability:read"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/applications/{uuid}/dns",
+      "controller": "DnsController",
+      "action": "createApplicationRecord",
+      "middleware": [
         "api.ability:write"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/applications/{uuid}/dns/replace",
+      "controller": "DnsController",
+      "action": "replaceApplicationRecord",
+      "middleware": [
+        "api.ability:write"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/applications/{uuid}/dns/{hostname}",
+      "controller": "DnsController",
+      "action": "releaseApplicationRecord",
+      "middleware": [
+        "api.ability:delete"
       ]
     },
     {
@@ -9030,7 +9502,7 @@
       "controller": "ApplicationsController",
       "action": "delete_env_by_uuid",
       "middleware": [
-        "api.ability:write"
+        "api.ability:delete"
       ]
     },
     {
@@ -9084,7 +9556,7 @@
       "controller": "ApplicationsController",
       "action": "delete_preview_by_pull_request_id",
       "middleware": [
-        "api.ability:write"
+        "api.ability:delete"
       ]
     },
     {
@@ -9174,7 +9646,7 @@
       "controller": "ScheduledTasksController",
       "action": "delete_scheduled_task_by_application_uuid",
       "middleware": [
-        "api.ability:write"
+        "api.ability:delete"
       ]
     },
     {
@@ -9192,7 +9664,7 @@
       "controller": "ScheduledTasksController",
       "action": "execute_scheduled_task_by_application_uuid",
       "middleware": [
-        "api.ability:write"
+        "api.ability:deploy"
       ]
     },
     {
@@ -9202,15 +9674,6 @@
       "action": "executions_by_application_uuid",
       "middleware": [
         "api.ability:read"
-      ]
-    },
-    {
-      "method": "PATCH",
-      "path": "/applications/{uuid}/secret-manager",
-      "controller": "ApplicationSecretManagerController",
-      "action": "update",
-      "middleware": [
-        "api.ability:write"
       ]
     },
     {
@@ -9282,7 +9745,7 @@
       "controller": "ApplicationsController",
       "action": "delete_storage",
       "middleware": [
-        "api.ability:write"
+        "api.ability:delete"
       ]
     },
     {
@@ -9330,7 +9793,7 @@
       "controller": "ApplicationsController",
       "action": "delete_tag",
       "middleware": [
-        "api.ability:write"
+        "api.ability:delete"
       ]
     },
     {
@@ -9366,7 +9829,7 @@
       "controller": "CloudInitScriptsController",
       "action": "destroy",
       "middleware": [
-        "api.ability:write"
+        "api.ability:delete"
       ]
     },
     {
@@ -9411,7 +9874,7 @@
       "controller": "CloudProviderTokensController",
       "action": "destroy",
       "middleware": [
-        "api.ability:write"
+        "api.ability:delete"
       ]
     },
     {
@@ -9537,7 +10000,7 @@
       "controller": "DatabasesController",
       "action": "delete_by_uuid",
       "middleware": [
-        "api.ability:write"
+        "api.ability:delete"
       ]
     },
     {
@@ -9582,7 +10045,7 @@
       "controller": "DatabasesController",
       "action": "delete_backup_by_uuid",
       "middleware": [
-        "api.ability:write"
+        "api.ability:delete"
       ]
     },
     {
@@ -9609,7 +10072,7 @@
       "controller": "DatabasesController",
       "action": "delete_execution_by_uuid",
       "middleware": [
-        "api.ability:write"
+        "api.ability:delete"
       ]
     },
     {
@@ -9663,7 +10126,7 @@
       "controller": "DatabasesController",
       "action": "delete_env_by_uuid",
       "middleware": [
-        "api.ability:write"
+        "api.ability:delete"
       ]
     },
     {
@@ -9807,7 +10270,7 @@
       "controller": "DatabasesController",
       "action": "delete_storage",
       "middleware": [
-        "api.ability:write"
+        "api.ability:delete"
       ]
     },
     {
@@ -9855,7 +10318,7 @@
       "controller": "DatabasesController",
       "action": "delete_tag",
       "middleware": [
-        "api.ability:write"
+        "api.ability:delete"
       ]
     },
     {
@@ -9927,7 +10390,7 @@
       "controller": "DestinationsController",
       "action": "delete",
       "middleware": [
-        "api.ability:write"
+        "api.ability:delete"
       ]
     },
     {
@@ -10000,17 +10463,12 @@
     },
     {
       "method": "GET",
-      "path": "/enable",
-      "controller": "OtherController",
-      "action": "post_required",
-      "middleware": []
-    },
-    {
-      "method": "POST",
-      "path": "/enable",
-      "controller": "OtherController",
-      "action": "enable_api",
-      "middleware": []
+      "path": "/dns/zones",
+      "controller": "DnsController",
+      "action": "zones",
+      "middleware": [
+        "api.ability:read"
+      ]
     },
     {
       "method": "POST",
@@ -10043,7 +10501,7 @@
       "controller": "GithubController",
       "action": "delete_github_app",
       "middleware": [
-        "api.ability:write"
+        "api.ability:delete"
       ]
     },
     {
@@ -10097,7 +10555,7 @@
       "controller": "GitlabController",
       "action": "delete_gitlab_app",
       "middleware": [
-        "api.ability:write"
+        "api.ability:delete"
       ]
     },
     {
@@ -10173,6 +10631,51 @@
       "path": "/hetzner/ssh-keys",
       "controller": "HetznerController",
       "action": "sshKeys",
+      "middleware": [
+        "api.ability:read"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/hostinger/catalog",
+      "controller": "HostingerController",
+      "action": "catalog",
+      "middleware": [
+        "api.ability:read"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/hostinger/data-centers",
+      "controller": "HostingerController",
+      "action": "dataCenters",
+      "middleware": [
+        "api.ability:read"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/hostinger/post-install-scripts",
+      "controller": "HostingerController",
+      "action": "postInstallScripts",
+      "middleware": [
+        "api.ability:read"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/hostinger/ssh-keys",
+      "controller": "HostingerController",
+      "action": "sshKeys",
+      "middleware": [
+        "api.ability:read"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/hostinger/templates",
+      "controller": "HostingerController",
+      "action": "templates",
       "middleware": [
         "api.ability:read"
       ]
@@ -10323,7 +10826,7 @@
       "controller": "ProjectController",
       "action": "delete_project",
       "middleware": [
-        "api.ability:write"
+        "api.ability:delete"
       ]
     },
     {
@@ -10368,7 +10871,7 @@
       "controller": "ProjectController",
       "action": "delete_environment",
       "middleware": [
-        "api.ability:write"
+        "api.ability:delete"
       ]
     },
     {
@@ -10404,7 +10907,7 @@
       "controller": "SharedEnvironmentVariablesController",
       "action": "environment_delete_env",
       "middleware": [
-        "api.ability:write"
+        "api.ability:delete"
       ]
     },
     {
@@ -10440,7 +10943,7 @@
       "controller": "SharedEnvironmentVariablesController",
       "action": "project_delete_env",
       "middleware": [
-        "api.ability:write"
+        "api.ability:delete"
       ]
     },
     {
@@ -10494,7 +10997,7 @@
       "controller": "S3StoragesController",
       "action": "destroy",
       "middleware": [
-        "api.ability:write"
+        "api.ability:delete"
       ]
     },
     {
@@ -10525,10 +11028,55 @@
       ]
     },
     {
+      "method": "GET",
+      "path": "/security/integration-tokens",
+      "controller": "IntegrationTokensController",
+      "action": "index",
+      "middleware": [
+        "api.ability:read"
+      ]
+    },
+    {
       "method": "POST",
       "path": "/security/integration-tokens",
       "controller": "IntegrationTokensController",
       "action": "store",
+      "middleware": [
+        "api.ability:write"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/security/integration-tokens/{uuid}",
+      "controller": "IntegrationTokensController",
+      "action": "destroy",
+      "middleware": [
+        "api.ability:delete"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/security/integration-tokens/{uuid}",
+      "controller": "IntegrationTokensController",
+      "action": "show",
+      "middleware": [
+        "api.ability:read"
+      ]
+    },
+    {
+      "method": "PATCH",
+      "path": "/security/integration-tokens/{uuid}",
+      "controller": "IntegrationTokensController",
+      "action": "update",
+      "middleware": [
+        "api.ability:write"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/security/integration-tokens/{uuid}/sync-zones",
+      "controller": "IntegrationTokensController",
+      "action": "syncZones",
       "middleware": [
         "api.ability:write"
       ]
@@ -10557,7 +11105,7 @@
       "controller": "SecurityController",
       "action": "delete_key",
       "middleware": [
-        "api.ability:write"
+        "api.ability:delete"
       ]
     },
     {
@@ -10623,11 +11171,31 @@
     },
     {
       "method": "POST",
+      "path": "/servers/hostinger",
+      "controller": "HostingerController",
+      "action": "createServer",
+      "middleware": [
+        "api.ability:write"
+      ]
+    },
+    {
+      "method": "POST",
       "path": "/servers/import",
       "controller": "ServerTransferController",
       "action": "import",
       "middleware": [
-        "api.ability:write"
+        "api.ability:write",
+        "api.ability:deploy"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/servers/import/check",
+      "controller": "ServerTransferController",
+      "action": "check",
+      "middleware": [
+        "api.ability:write",
+        "api.ability:deploy"
       ]
     },
     {
@@ -10663,7 +11231,7 @@
       "controller": "ServersController",
       "action": "delete_server",
       "middleware": [
-        "api.ability:write"
+        "api.ability:delete"
       ]
     },
     {
@@ -10753,7 +11321,8 @@
       "controller": "ServerDockerCleanupController",
       "action": "run",
       "middleware": [
-        "api.ability:write"
+        "api.ability:write",
+        "api.ability:deploy"
       ]
     },
     {
@@ -10789,7 +11358,7 @@
       "controller": "SharedEnvironmentVariablesController",
       "action": "server_delete_env",
       "middleware": [
-        "api.ability:write"
+        "api.ability:delete"
       ]
     },
     {
@@ -10797,24 +11366,6 @@
       "path": "/servers/{uuid}/envs/{env_id}",
       "controller": "SharedEnvironmentVariablesController",
       "action": "server_update_env",
-      "middleware": [
-        "api.ability:write"
-      ]
-    },
-    {
-      "method": "GET",
-      "path": "/servers/{uuid}/export",
-      "controller": "ServerTransferController",
-      "action": "export",
-      "middleware": [
-        "api.ability:read"
-      ]
-    },
-    {
-      "method": "POST",
-      "path": "/servers/{uuid}/export/mailbox",
-      "controller": "ServerTransferController",
-      "action": "writeMailbox",
       "middleware": [
         "api.ability:write"
       ]
@@ -10834,7 +11385,8 @@
       "controller": "ServerLogDrainsController",
       "action": "update",
       "middleware": [
-        "api.ability:write"
+        "api.ability:write",
+        "api.ability:deploy"
       ]
     },
     {
@@ -10879,7 +11431,7 @@
       "controller": "ServerProxyController",
       "action": "restart",
       "middleware": [
-        "api.ability:write"
+        "api.ability:deploy"
       ]
     },
     {
@@ -10897,7 +11449,8 @@
       "controller": "ServerDockerRegistriesController",
       "action": "login",
       "middleware": [
-        "api.ability:write"
+        "api.ability:write",
+        "api.ability:deploy"
       ]
     },
     {
@@ -10906,7 +11459,7 @@
       "controller": "ServerDockerRegistriesController",
       "action": "logout",
       "middleware": [
-        "api.ability:write"
+        "api.ability:delete"
       ]
     },
     {
@@ -10915,7 +11468,8 @@
       "controller": "ServerDockerRegistriesController",
       "action": "check",
       "middleware": [
-        "api.ability:write"
+        "api.ability:write",
+        "api.ability:deploy"
       ]
     },
     {
@@ -10942,7 +11496,18 @@
       "controller": "ServerSentinelController",
       "action": "update",
       "middleware": [
-        "api.ability:write"
+        "api.ability:write",
+        "api.ability:deploy"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/servers/{uuid}/transfer",
+      "controller": "ServerTransferController",
+      "action": "status",
+      "middleware": [
+        "api.ability:read",
+        "write"
       ]
     },
     {
@@ -10996,7 +11561,7 @@
       "controller": "ServicesController",
       "action": "delete_by_uuid",
       "middleware": [
-        "api.ability:write"
+        "api.ability:delete"
       ]
     },
     {
@@ -11217,6 +11782,42 @@
     },
     {
       "method": "GET",
+      "path": "/services/{uuid}/dns",
+      "controller": "DnsController",
+      "action": "serviceStatus",
+      "middleware": [
+        "api.ability:read"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/services/{uuid}/dns",
+      "controller": "DnsController",
+      "action": "createServiceRecord",
+      "middleware": [
+        "api.ability:write"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/services/{uuid}/dns/replace",
+      "controller": "DnsController",
+      "action": "replaceServiceRecord",
+      "middleware": [
+        "api.ability:write"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/services/{uuid}/dns/{hostname}",
+      "controller": "DnsController",
+      "action": "releaseServiceRecord",
+      "middleware": [
+        "api.ability:delete"
+      ]
+    },
+    {
+      "method": "GET",
       "path": "/services/{uuid}/envs",
       "controller": "ServicesController",
       "action": "envs",
@@ -11257,7 +11858,7 @@
       "controller": "ServicesController",
       "action": "delete_env_by_uuid",
       "middleware": [
-        "api.ability:write"
+        "api.ability:delete"
       ]
     },
     {
@@ -11329,7 +11930,7 @@
       "controller": "ScheduledTasksController",
       "action": "delete_scheduled_task_by_service_uuid",
       "middleware": [
-        "api.ability:write"
+        "api.ability:delete"
       ]
     },
     {
@@ -11347,7 +11948,7 @@
       "controller": "ScheduledTasksController",
       "action": "execute_scheduled_task_by_service_uuid",
       "middleware": [
-        "api.ability:write"
+        "api.ability:deploy"
       ]
     },
     {
@@ -11428,7 +12029,7 @@
       "controller": "ServicesController",
       "action": "delete_storage",
       "middleware": [
-        "api.ability:write"
+        "api.ability:delete"
       ]
     },
     {
@@ -11476,7 +12077,7 @@
       "controller": "ServicesController",
       "action": "delete_tag",
       "middleware": [
-        "api.ability:write"
+        "api.ability:delete"
       ]
     },
     {
@@ -11521,7 +12122,7 @@
       "controller": "TagsController",
       "action": "delete",
       "middleware": [
-        "api.ability:write"
+        "api.ability:delete"
       ]
     },
     {
@@ -11575,7 +12176,7 @@
       "controller": "SharedEnvironmentVariablesController",
       "action": "team_delete_env",
       "middleware": [
-        "api.ability:write"
+        "api.ability:delete"
       ]
     },
     {
@@ -11684,6 +12285,60 @@
       "action": "sshKeys",
       "middleware": [
         "api.ability:read"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/{resource_type}/{uuid}/secret-manager",
+      "controller": "SecretManagerController",
+      "action": "destroy",
+      "middleware": [
+        "api.ability:delete"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/{resource_type}/{uuid}/secret-manager",
+      "controller": "SecretManagerController",
+      "action": "show",
+      "middleware": [
+        "api.ability:read"
+      ]
+    },
+    {
+      "method": "PATCH",
+      "path": "/{resource_type}/{uuid}/secret-manager",
+      "controller": "SecretManagerController",
+      "action": "update",
+      "middleware": [
+        "api.ability:write"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/{resource_type}/{uuid}/secret-manager/import",
+      "controller": "SecretManagerController",
+      "action": "import",
+      "middleware": [
+        "api.ability:write"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/{resource_type}/{uuid}/secret-manager/keys",
+      "controller": "SecretManagerController",
+      "action": "keys",
+      "middleware": [
+        "api.ability:write"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/{resource_type}/{uuid}/secret-manager/references",
+      "controller": "SecretManagerController",
+      "action": "addReference",
+      "middleware": [
+        "api.ability:write"
       ]
     }
   ]

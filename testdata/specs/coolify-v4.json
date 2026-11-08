@@ -13153,6 +13153,15 @@
                         "nullable": true,
                         "description": "Git full URL."
                     },
+                    "git_https_password": {
+                        "type": "string",
+                        "description": "Git https password."
+                    },
+                    "git_https_username": {
+                        "type": "string",
+                        "description": "Git https username.",
+                        "maxLength": 255
+                    },
                     "git_repository": {
                         "type": "string",
                         "description": "Git repository URL."
@@ -13252,6 +13261,25 @@
                         ],
                         "default": "http"
                     },
+                    "http_basic_auth_argon2id_memory_cost": {
+                        "type": "integer",
+                        "description": "Http basic auth argon2id memory cost.",
+                        "default": 65536
+                    },
+                    "http_basic_auth_argon2id_time_cost": {
+                        "type": "string",
+                        "description": "Http basic auth argon2id time cost."
+                    },
+                    "http_basic_auth_bcrypt_cost": {
+                        "type": "string",
+                        "description": "Http basic auth bcrypt cost."
+                    },
+                    "http_basic_auth_hash_algorithm": {
+                        "type": "string",
+                        "description": "Http basic auth hash algorithm.",
+                        "default": "bcrypt",
+                        "maxLength": 255
+                    },
                     "http_basic_auth_password": {
                         "type": "string",
                         "nullable": true,
@@ -13265,6 +13293,10 @@
                     "id": {
                         "type": "integer",
                         "description": "The application identifier in the database."
+                    },
+                    "include_coolify_default_variables": {
+                        "type": "string",
+                        "description": "Include coolify default variables."
                     },
                     "include_source_commit_in_build": {
                         "type": "boolean",
@@ -13373,6 +13405,11 @@
                     "is_log_drain_enabled": {
                         "type": "boolean",
                         "description": "Is log drain enabled.",
+                        "default": false
+                    },
+                    "is_permanent_redirect_enabled": {
+                        "type": "boolean",
+                        "description": "Is permanent redirect enabled.",
                         "default": false
                     },
                     "is_pr_deployments_public_enabled": {
@@ -13546,6 +13583,11 @@
                         "type": "string",
                         "description": "Publish directory."
                     },
+                    "redact_all_env_values_in_logs": {
+                        "type": "boolean",
+                        "description": "Redact all env values in logs.",
+                        "default": true
+                    },
                     "redirect": {
                         "type": "string",
                         "nullable": true,
@@ -13571,6 +13613,11 @@
                         "type": "boolean",
                         "description": "Restart limit reached.",
                         "default": false
+                    },
+                    "rolling_update_drain_seconds": {
+                        "type": "integer",
+                        "description": "Rolling update drain seconds.",
+                        "default": 5
                     },
                     "source_id": {
                         "type": "integer",
@@ -13609,6 +13656,11 @@
                         "nullable": true,
                         "description": "Swarm replicas. Only used for swarm deployments.",
                         "default": 1
+                    },
+                    "traefik_certificate_resolver": {
+                        "type": "string",
+                        "description": "Traefik certificate resolver.",
+                        "maxLength": 255
                     },
                     "updated_at": {
                         "type": "string",
@@ -13718,6 +13770,10 @@
             "Environment": {
                 "description": "Environment model",
                 "properties": {
+                    "canvas_positions": {
+                        "type": "object",
+                        "description": "Canvas positions."
+                    },
                     "created_at": {
                         "type": "string"
                     },
@@ -13797,6 +13853,11 @@
                         "type": "integer",
                         "description": "Order."
                     },
+                    "preserve_compose_null": {
+                        "type": "boolean",
+                        "description": "Preserve compose null.",
+                        "default": false
+                    },
                     "real_value": {
                         "type": "string"
                     },
@@ -13808,6 +13869,11 @@
                     },
                     "updated_at": {
                         "type": "string"
+                    },
+                    "uses_legacy_escaping": {
+                        "type": "boolean",
+                        "description": "Uses legacy escaping.",
+                        "default": false
                     },
                     "uuid": {
                         "type": "string"
@@ -13868,6 +13934,10 @@
             "Project": {
                 "description": "Project model",
                 "properties": {
+                    "canvas_position": {
+                        "type": "object",
+                        "description": "Canvas position."
+                    },
                     "description": {
                         "type": "string"
                     },
@@ -14014,6 +14084,10 @@
             "Server": {
                 "description": "Server model",
                 "properties": {
+                    "canvas_position": {
+                        "type": "object",
+                        "description": "Canvas position."
+                    },
                     "cloud_provider_token_id": {
                         "type": "integer",
                         "description": "Cloud provider token id."
@@ -14049,6 +14123,15 @@
                         "type": "boolean",
                         "description": "The flag to indicate if the high disk usage notification has been sent.",
                         "default": false
+                    },
+                    "hostinger_virtual_machine_id": {
+                        "type": "integer",
+                        "description": "Hostinger virtual machine id."
+                    },
+                    "hostinger_virtual_machine_status": {
+                        "type": "string",
+                        "description": "Hostinger virtual machine status.",
+                        "maxLength": 255
                     },
                     "id": {
                         "type": "integer",
@@ -14089,6 +14172,10 @@
                     "proxy": {
                         "type": "object",
                         "description": "The proxy configuration."
+                    },
+                    "proxy_error_page": {
+                        "type": "string",
+                        "description": "Proxy error page."
                     },
                     "proxy_type": {
                         "type": "string",
@@ -14162,9 +14249,29 @@
             "ServerSetting": {
                 "description": "Server Settings model",
                 "properties": {
+                    "auto_security_updates_time": {
+                        "type": "string",
+                        "description": "Auto security updates time.",
+                        "default": "03:00",
+                        "maxLength": 255
+                    },
                     "backup_compression_cpu_percentage": {
                         "type": "string",
                         "description": "Backup compression cpu percentage."
+                    },
+                    "cloudflare_tunnel_account_id": {
+                        "type": "string",
+                        "description": "Cloudflare tunnel account id.",
+                        "maxLength": 255
+                    },
+                    "cloudflare_tunnel_id": {
+                        "type": "string",
+                        "description": "Cloudflare tunnel id.",
+                        "maxLength": 255
+                    },
+                    "cloudflare_tunnel_integration_token_id": {
+                        "type": "integer",
+                        "description": "Cloudflare tunnel integration token id."
                     },
                     "compose_version": {
                         "type": "string",
@@ -14258,6 +14365,11 @@
                     "id": {
                         "type": "integer"
                     },
+                    "is_auto_security_updates_enabled": {
+                        "type": "boolean",
+                        "description": "Is auto security updates enabled.",
+                        "default": false
+                    },
                     "is_build_server": {
                         "type": "boolean",
                         "default": false
@@ -14277,6 +14389,11 @@
                     },
                     "is_logdrain_axiom_enabled": {
                         "type": "boolean",
+                        "default": false
+                    },
+                    "is_logdrain_cloudwatch_enabled": {
+                        "type": "boolean",
+                        "description": "Is logdrain cloudwatch enabled.",
                         "default": false
                     },
                     "is_logdrain_custom_enabled": {
@@ -14339,6 +14456,27 @@
                     "logdrain_axiom_dataset_name": {
                         "type": "string"
                     },
+                    "logdrain_axiom_domain": {
+                        "type": "string",
+                        "description": "Logdrain axiom domain.",
+                        "default": "us-east-1.aws.edge.axiom.co",
+                        "maxLength": 255
+                    },
+                    "logdrain_cloudwatch_group": {
+                        "type": "string",
+                        "description": "Logdrain cloudwatch group.",
+                        "maxLength": 512
+                    },
+                    "logdrain_cloudwatch_region": {
+                        "type": "string",
+                        "description": "Logdrain cloudwatch region.",
+                        "maxLength": 255
+                    },
+                    "logdrain_cloudwatch_stream_prefix": {
+                        "type": "string",
+                        "description": "Logdrain cloudwatch stream prefix.",
+                        "maxLength": 255
+                    },
                     "logdrain_custom_config": {
                         "type": "string"
                     },
@@ -14353,6 +14491,24 @@
                     },
                     "logdrain_newrelic_license_key": {
                         "type": "string"
+                    },
+                    "patch_check_error": {
+                        "type": "string",
+                        "description": "Patch check error."
+                    },
+                    "patch_check_frequency": {
+                        "type": "string",
+                        "description": "Patch check frequency.",
+                        "maxLength": 255
+                    },
+                    "patch_check_result": {
+                        "type": "object",
+                        "description": "Patch check result."
+                    },
+                    "patch_checked_at": {
+                        "type": "string",
+                        "description": "Patch checked at.",
+                        "format": "date-time"
                     },
                     "sentinel_custom_url": {
                         "type": "string",
@@ -14404,6 +14560,12 @@
                         "type": "string",
                         "description": "Server timezone.",
                         "default": "UTC",
+                        "maxLength": 255
+                    },
+                    "traefik_certificate_resolver": {
+                        "type": "string",
+                        "description": "Traefik certificate resolver.",
+                        "default": "letsencrypt",
                         "maxLength": 255
                     },
                     "traffic_ip_mode": {
@@ -14507,6 +14669,11 @@
                     "name": {
                         "type": "string",
                         "description": "The name of the service."
+                    },
+                    "redact_all_env_values_in_logs": {
+                        "type": "boolean",
+                        "description": "Redact all env values in logs.",
+                        "default": true
                     },
                     "server_id": {
                         "type": "integer",
@@ -14689,8 +14856,9 @@
                         "format": "date-time"
                     },
                     "missing_backup_notification_days": {
-                        "type": "string",
-                        "description": "Missing backup notification days."
+                        "type": "integer",
+                        "description": "Missing backup notification days.",
+                        "default": 0
                     },
                     "missing_backup_notification_sent_at": {
                         "type": "string",
@@ -16544,6 +16712,11 @@
                         "type": "boolean",
                         "description": "Unusable email sent.",
                         "default": false
+                    },
+                    "use_path_style_endpoint": {
+                        "type": "boolean",
+                        "description": "Use path style endpoint.",
+                        "default": true
                     },
                     "uuid": {
                         "type": "string",
