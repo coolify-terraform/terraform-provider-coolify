@@ -38,6 +38,11 @@ var applicationSettingsSchemaRegistry = []SchemaCoverageEntry{
 	{ContractField: "is_consistent_container_name_enabled", SchemaAttribute: "is_consistent_container_name_enabled", Status: StatusCovered},
 	// Writable on Coolify >= v4.5.1. The v4.4.2 pin allow list omits it.
 	{ContractField: "is_container_label_readonly_enabled", SchemaAttribute: "is_container_label_readonly_enabled", Status: StatusCovered, Notes: "public write on Coolify >= v4.5.1; withheld on older instances"},
+	{ContractField: "include_coolify_default_variables", SchemaAttribute: "include_coolify_default_variables", Status: StatusCovered, Notes: "Coolify >= v4.5.1"},
+	{ContractField: "is_permanent_redirect_enabled", SchemaAttribute: "is_permanent_redirect_enabled", Status: StatusCovered, Notes: "Coolify >= v4.5.0"},
+	{ContractField: "redact_all_env_values_in_logs", SchemaAttribute: "redact_all_env_values_in_logs", Status: StatusCovered, Notes: "Coolify >= v4.5.0"},
+	{ContractField: "rolling_update_drain_seconds", SchemaAttribute: "rolling_update_drain_seconds", Status: StatusCovered, Notes: "Coolify >= v4.5.1"},
+	{ContractField: "traefik_certificate_resolver", SchemaAttribute: "traefik_certificate_resolver", Status: StatusCovered},
 	{ContractField: "is_debug_enabled", Status: SkipNA, Notes: "not in ApplicationsController APPLICATION_SETTING_FIELDS public allow-list"},
 	{ContractField: "is_env_sorting_enabled", SchemaAttribute: "is_env_sorting_enabled", Status: StatusCovered},
 	{ContractField: "is_git_lfs_enabled", SchemaAttribute: "is_git_lfs_enabled", Status: StatusCovered},

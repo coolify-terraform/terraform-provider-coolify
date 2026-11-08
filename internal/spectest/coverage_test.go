@@ -22,20 +22,15 @@ var registryExtrasNotInContract = map[string]bool{
 	// Removed from the public route list in Coolify v4.4.0. Kept so older
 	// extracts still have a classification.
 	"POST /servers/{uuid}/claim": true,
-	// Coolify 4.5.0 Hostinger routes. The pin contract is still v4.4.2.
-	"GET /hostinger/catalog":              true,
-	"GET /hostinger/data-centers":         true,
-	"GET /hostinger/post-install-scripts": true,
-	"GET /hostinger/ssh-keys":             true,
-	"GET /hostinger/templates":            true,
-	"POST /servers/hostinger":             true,
-	// Coolify 4.6.0 integration token read, update, and delete. The pin
-	// contract is still v4.4.2 and only lists the create route.
-	"GET /security/integration-tokens":                    true,
-	"DELETE /security/integration-tokens/{uuid}":          true,
-	"GET /security/integration-tokens/{uuid}":             true,
-	"PATCH /security/integration-tokens/{uuid}":           true,
-	"POST /security/integration-tokens/{uuid}/sync-zones": true,
+	// Coolify 4.5.0 removed the instance API enable routes. The provider
+	// still calls them on older instances.
+	"GET /enable":  true,
+	"POST /enable": true,
+	// Coolify 4.6.0 replaced the application secret-manager alias and the
+	// server export routes with other paths. Older instances still have these.
+	"PATCH /applications/{uuid}/secret-manager": true,
+	"GET /servers/{uuid}/export":                true,
+	"POST /servers/{uuid}/export/mailbox":       true,
 }
 
 // coveredEndpoints returns the provider's route coverage registry.
@@ -115,6 +110,21 @@ func coveredEndpoints() map[string]coverageStatus {
 		"GET /applications/{uuid}/previews/{pull_request_id}":             skipped(skipOperator),
 		"POST /applications/{uuid}/previews":                              skipped(skipOperator),
 		"PATCH /applications/{uuid}/secret-manager":                       skipped(skipOperator),
+		"DELETE /applications/{uuid}/dns/{hostname}":                      skipped(skipOperator),
+		"GET /applications/{uuid}/dns":                                    skipped(skipOperator),
+		"POST /applications/{uuid}/dns":                                   skipped(skipOperator),
+		"POST /applications/{uuid}/dns/replace":                           skipped(skipOperator),
+		"GET /dns/zones":                                                  skipped(skipOperator),
+		"DELETE /services/{uuid}/dns/{hostname}":                          skipped(skipOperator),
+		"GET /services/{uuid}/dns":                                        skipped(skipOperator),
+		"POST /services/{uuid}/dns":                                       skipped(skipOperator),
+		"POST /services/{uuid}/dns/replace":                               skipped(skipOperator),
+		"DELETE /{resource_type}/{uuid}/secret-manager":                   skipped(skipOperator),
+		"GET /{resource_type}/{uuid}/secret-manager":                      skipped(skipOperator),
+		"GET /{resource_type}/{uuid}/secret-manager/keys":                 skipped(skipOperator),
+		"PATCH /{resource_type}/{uuid}/secret-manager":                    skipped(skipOperator),
+		"POST /{resource_type}/{uuid}/secret-manager/import":              skipped(skipOperator),
+		"POST /{resource_type}/{uuid}/secret-manager/references":          skipped(skipOperator),
 
 		// ── Databases ──
 		"GET /databases":                                                   covered("data.coolify_databases", "v0.1.0"),
@@ -289,6 +299,8 @@ func coveredEndpoints() map[string]coverageStatus {
 		"GET /servers/{uuid}/docker-cleanup/executions":                                 skipped(skipControlPlane),
 		"GET /servers/{uuid}/envs":                                                      covered("coolify_shared_environment_variable", "v0.1.15"),
 		"GET /servers/{uuid}/export":                                                    skipped(skipControlPlane),
+		"GET /servers/import/check":                                                     skipped(skipControlPlane),
+		"GET /servers/{uuid}/transfer":                                                  skipped(skipControlPlane),
 		"GET /servers/{uuid}/log-drains":                                                covered("coolify_server_log_drain", "v0.1.15"),
 		"GET /servers/{uuid}/proxy":                                                     covered("coolify_server_proxy", "v0.1.15"),
 		"GET /servers/{uuid}/sentinel":                                                  covered("coolify_server_sentinel", "v0.1.15"),

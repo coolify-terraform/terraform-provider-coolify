@@ -42,7 +42,6 @@ var applicationFieldSkips = skipMap(
 	// ...self::APPLICATION_SETTING_FIELDS (extractor expands spreads, #661);
 	// they must not be skipInternal.
 	skipInternal("application_id", "settings FK"),
-	skipInternal("is_container_label_readonly_enabled", "settings UI-only; not in APPLICATION_SETTING_FIELDS"),
 	skipInternal("is_custom_ssl", "settings UI-only; not in APPLICATION_SETTING_FIELDS"),
 	skipInternal("is_debug_enabled", "settings UI-only; not in APPLICATION_SETTING_FIELDS"),
 	skipInternal("is_dual_cert", "settings UI-only; not in APPLICATION_SETTING_FIELDS"),
@@ -171,6 +170,25 @@ var serverSettingCoverageSkips = skipMap(
 	skipNA("sentinel_push_interval_in_seconds", "old contract name; superseded by sentinel_push_interval_seconds"),
 	// Remaining settings fields covered on client.ServerSettings + read-only server schema.
 	// backup_compression_cpu_percentage is computed on server resources/data sources.
+	// These columns are fillable on the model but are not on
+	// ServersController::update_server. Tunnel ids are stored beside
+	// is_cloudflare_tunnel; the public tunnel PATCH only accepts that flag.
+	// Log drain and proxy columns are written by their own resources.
+	skipInternal("cloudflare_tunnel_id", "not on ServersController allow list; tunnel PATCH accepts only is_cloudflare_tunnel"),
+	skipInternal("cloudflare_tunnel_account_id", "not on ServersController allow list; tunnel PATCH accepts only is_cloudflare_tunnel"),
+	skipInternal("cloudflare_tunnel_integration_token_id", "not on ServersController allow list; tunnel PATCH accepts only is_cloudflare_tunnel"),
+	skipInternal("is_auto_security_updates_enabled", "model column; no public controller allow list"),
+	skipInternal("auto_security_updates_time", "model column; no public controller allow list"),
+	skipInternal("patch_check_error", "Coolify patch probe result; not on update_server"),
+	skipInternal("patch_check_frequency", "Coolify patch probe result; not on update_server"),
+	skipInternal("patch_check_result", "Coolify patch probe result; not on update_server"),
+	skipInternal("patch_checked_at", "Coolify patch probe result; not on update_server"),
+	skipInternal("is_logdrain_cloudwatch_enabled", "written by coolify_server_log_drain, not server PATCH"),
+	skipInternal("logdrain_axiom_domain", "written by coolify_server_log_drain, not server PATCH"),
+	skipInternal("logdrain_cloudwatch_group", "written by coolify_server_log_drain, not server PATCH"),
+	skipInternal("logdrain_cloudwatch_region", "written by coolify_server_log_drain, not server PATCH"),
+	skipInternal("logdrain_cloudwatch_stream_prefix", "written by coolify_server_log_drain, not server PATCH"),
+	skipInternal("traefik_certificate_resolver", "written by coolify_server_proxy, not server PATCH"),
 )
 
 var environmentCoverageSkips = skipMap(

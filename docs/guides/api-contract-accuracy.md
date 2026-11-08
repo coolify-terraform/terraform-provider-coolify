@@ -13,18 +13,18 @@ Coolify contract extracted from the real application code.
 > `reviewed drift` means the pinned spec and source contract disagree on nullability, but the provider already handles the field safely and no runtime fix is needed.
 > `mapped` means the field name appears in the provider's internal client JSON structs. It does not guarantee Terraform schema exposure, read-after-write round trips, or full CRUD behavior.
 
-Contract version: `v4.4.2` | Extracted from: `coollabsio/coolify@v4.4.2`
+Contract version: `v4.6.0` | Extracted from: `coollabsio/coolify@v4.6.0`
 
 ## Summary
 
 | Metric | Count |
 |--------|------:|
-| Public schema fields compared | 334 |
-| Public schema type matches | 334/334 |
-| Public schema nullable matches | 264/334 |
-| Public schema client JSON mappings | 263/334 |
+| Public schema fields compared | 369 |
+| Public schema type matches | 369/369 |
+| Public schema nullable matches | 279/369 |
+| Public schema client JSON mappings | 286/369 |
 | Reusable public schemas compared | 10 |
-| Contract-only / inline-only models documented | 12 |
+| Contract-only / inline-only models documented | 13 |
 
 ---
 
@@ -32,7 +32,7 @@ Contract version: `v4.4.2` | Extracted from: `coollabsio/coolify@v4.4.2`
 
 ## Application
 
-Fields: 140 | Type matches: 140/140 | Nullable matches: 120/140 | Client JSON mappings: 111/140
+Fields: 151 | Type matches: 151/151 | Nullable matches: 128/151 | Client JSON mappings: 123/151
 
 | Field | Contract Type | Spec Type | Type Match | Nullable Match | Default | Client JSON Mapping |
 |-------|:---:|:---:|:---:|:---:|---------|:---:|
@@ -75,6 +75,8 @@ Fields: 140 | Type matches: 140/140 | Nullable matches: 120/140 | Client JSON ma
 | git_branch | string | string | yes | yes | - | mapped |
 | git_commit_sha | string | string | yes | yes | HEAD | mapped |
 | git_full_url | string | string | yes | yes | - | n/a |
+| git_https_password | string | string | yes | **WRONG** | - | mapped |
+| git_https_username | string | string | yes | **WRONG** | - | mapped |
 | git_repository | string | string | yes | yes | - | mapped |
 | gpu_count | string | string | yes | **WRONG** | - | mapped |
 | gpu_device_ids | string | string | yes | **WRONG** | - | mapped |
@@ -94,8 +96,13 @@ Fields: 140 | Type matches: 140/140 | Nullable matches: 120/140 | Client JSON ma
 | health_check_start_period | integer | integer | yes | yes | 5 | mapped |
 | health_check_timeout | integer | integer | yes | yes | 5 | mapped |
 | health_check_type | string | string | yes | yes | http | mapped |
+| http_basic_auth_argon2id_memory_cost | integer | integer | yes | yes | 65536 | mapped |
+| http_basic_auth_argon2id_time_cost | string | string | yes | yes | - | mapped |
+| http_basic_auth_bcrypt_cost | string | string | yes | yes | - | mapped |
+| http_basic_auth_hash_algorithm | string | string | yes | yes | bcrypt | mapped |
 | http_basic_auth_password | string | string | yes | yes | - | mapped |
 | http_basic_auth_username | string | string | yes | yes | - | mapped |
+| include_coolify_default_variables | string | string | yes | yes | - | mapped |
 | include_source_commit_in_build | boolean | boolean | yes | yes | false | mapped |
 | inject_build_args_to_dockerfile | boolean | boolean | yes | yes | true | mapped |
 | install_command | string | string | yes | reviewed drift | - | mapped |
@@ -118,6 +125,7 @@ Fields: 140 | Type matches: 140/140 | Nullable matches: 120/140 | Client JSON ma
 | is_http_basic_auth_enabled | boolean | boolean | yes | yes | false | mapped |
 | is_include_timestamps | boolean | boolean | yes | yes | false | mapped |
 | is_log_drain_enabled | boolean | boolean | yes | yes | false | mapped |
+| is_permanent_redirect_enabled | boolean | boolean | yes | yes | false | mapped |
 | is_pr_deployments_public_enabled | boolean | boolean | yes | yes | false | mapped |
 | is_preserve_repository_enabled | boolean | boolean | yes | yes | false | mapped |
 | is_preview_deployments_enabled | boolean | boolean | yes | yes | false | mapped |
@@ -153,10 +161,12 @@ Fields: 140 | Type matches: 140/140 | Nullable matches: 120/140 | Client JSON ma
 | preview_url_template | string | string | yes | yes | { {pr_id} }.{ {domain} } | mapped |
 | private_key_id | integer | integer | yes | yes | - | n/a |
 | publish_directory | string | string | yes | reviewed drift | - | mapped |
+| redact_all_env_values_in_logs | boolean | boolean | yes | yes | true | mapped |
 | redirect | string | string | yes | reviewed drift | both | mapped |
 | repository_project_id | integer | integer | yes | yes | - | n/a |
 | restart_count | integer | integer | yes | yes | 0 | n/a |
 | restart_limit_reached | boolean | boolean | yes | yes | false | mapped |
+| rolling_update_drain_seconds | integer | integer | yes | yes | 5 | mapped |
 | source_id | integer | integer | yes | yes | - | n/a |
 | source_type | string | string | yes | **WRONG** | - | n/a |
 | start_command | string | string | yes | reviewed drift | - | mapped |
@@ -165,6 +175,7 @@ Fields: 140 | Type matches: 140/140 | Nullable matches: 120/140 | Client JSON ma
 | stop_grace_period | integer | integer | yes | **WRONG** | - | mapped |
 | swarm_placement_constraints | string | string | yes | yes | - | n/a |
 | swarm_replicas | integer | integer | yes | **WRONG** | 1 | n/a |
+| traefik_certificate_resolver | string | string | yes | **WRONG** | - | mapped |
 | use_build_secrets | boolean | boolean | yes | yes | false | mapped |
 | use_build_server | string | string | yes | yes | - | mapped |
 | uuid | string | string | yes | yes | - | mapped |
@@ -179,10 +190,11 @@ Fields: 140 | Type matches: 140/140 | Nullable matches: 120/140 | Client JSON ma
 
 ## Environment
 
-Fields: 7 | Type matches: 7/7 | Nullable matches: 5/7 | Client JSON mappings: 6/7
+Fields: 8 | Type matches: 8/8 | Nullable matches: 5/8 | Client JSON mappings: 6/8
 
 | Field | Contract Type | Spec Type | Type Match | Nullable Match | Default | Client JSON Mapping |
 |-------|:---:|:---:|:---:|:---:|---------|:---:|
+| canvas_positions | object | object | yes | **WRONG** | - | n/a |
 | description | string | string | yes | **WRONG** | - | mapped |
 | name | string | string | yes | yes | - | mapped |
 | project_id | integer | integer | yes | yes | - | n/a |
@@ -193,7 +205,7 @@ Fields: 7 | Type matches: 7/7 | Nullable matches: 5/7 | Client JSON mappings: 6/
 
 ## EnvironmentVariable
 
-Fields: 20 | Type matches: 20/20 | Nullable matches: 16/20 | Client JSON mappings: 13/20
+Fields: 22 | Type matches: 22/22 | Nullable matches: 18/22 | Client JSON mappings: 13/22
 
 | Field | Contract Type | Spec Type | Type Match | Nullable Match | Default | Client JSON Mapping |
 |-------|:---:|:---:|:---:|:---:|---------|:---:|
@@ -208,8 +220,10 @@ Fields: 20 | Type matches: 20/20 | Nullable matches: 16/20 | Client JSON mapping
 | is_shown_once | boolean | boolean | yes | yes | false | mapped |
 | key | string | string | yes | yes | - | mapped |
 | order | integer | integer | yes | **WRONG** | - | n/a |
+| preserve_compose_null | boolean | boolean | yes | yes | false | n/a |
 | resourceable_id | integer | integer | yes | **WRONG** | - | n/a |
 | resourceable_type | string | string | yes | **WRONG** | - | n/a |
+| uses_legacy_escaping | boolean | boolean | yes | yes | false | n/a |
 | uuid | string | string | yes | **WRONG** | - | mapped |
 | value | string | string | yes | reviewed drift | - | mapped |
 | version | string | string | yes | yes | 4.0.0-beta.239 | n/a |
@@ -238,10 +252,11 @@ Fields: 11 | Type matches: 11/11 | Nullable matches: 10/11 | Client JSON mapping
 
 ## Project
 
-Fields: 7 | Type matches: 7/7 | Nullable matches: 4/7 | Client JSON mappings: 6/7
+Fields: 8 | Type matches: 8/8 | Nullable matches: 4/8 | Client JSON mappings: 6/8
 
 | Field | Contract Type | Spec Type | Type Match | Nullable Match | Default | Client JSON Mapping |
 |-------|:---:|:---:|:---:|:---:|---------|:---:|
+| canvas_position | object | object | yes | **WRONG** | - | n/a |
 | description | string | string | yes | reviewed drift | - | mapped |
 | icon_path | string | string | yes | **WRONG** | - | mapped |
 | icon_s3_storage_id | integer | integer | yes | **WRONG** | - | n/a |
@@ -275,7 +290,7 @@ Fields: 22 | Type matches: 22/22 | Nullable matches: 21/22 | Client JSON mapping
 | enabled | boolean | boolean | yes | yes | true | mapped |
 | frequency | string | string | yes | yes | - | mapped |
 | last_execution_at | string | string | yes | **WRONG** | - | mapped |
-| missing_backup_notification_days | string | string | yes | yes | - | mapped |
+| missing_backup_notification_days | integer | integer | yes | yes | 0 | mapped |
 | number_of_backups_locally | integer | integer | yes | yes | 7 | n/a |
 | s3_storage_id | integer | integer | yes | yes | - | n/a |
 | save_s3 | boolean | boolean | yes | yes | true | mapped |
@@ -304,10 +319,11 @@ Fields: 12 | Type matches: 12/12 | Nullable matches: 10/12 | Client JSON mapping
 
 ## Server
 
-Fields: 31 | Type matches: 31/31 | Nullable matches: 17/31 | Client JSON mappings: 14/31
+Fields: 35 | Type matches: 35/35 | Nullable matches: 17/35 | Client JSON mappings: 17/35
 
 | Field | Contract Type | Spec Type | Type Match | Nullable Match | Default | Client JSON Mapping |
 |-------|:---:|:---:|:---:|:---:|---------|:---:|
+| canvas_position | object | object | yes | **WRONG** | - | n/a |
 | cloud_provider_token_id | integer | integer | yes | **WRONG** | - | n/a |
 | description | string | string | yes | reviewed drift | - | mapped |
 | detected_traefik_version | string | string | yes | **WRONG** | - | n/a |
@@ -316,6 +332,8 @@ Fields: 31 | Type matches: 31/31 | Nullable matches: 17/31 | Client JSON mapping
 | hetzner_server_id | integer | integer | yes | **WRONG** | - | n/a |
 | hetzner_server_status | string | string | yes | **WRONG** | - | n/a |
 | high_disk_usage_notification_sent | boolean | boolean | yes | yes | false | n/a |
+| hostinger_virtual_machine_id | integer | integer | yes | **WRONG** | - | mapped |
+| hostinger_virtual_machine_status | string | string | yes | **WRONG** | - | mapped |
 | ip | string | string | yes | yes | - | mapped |
 | ip_previous | string | string | yes | **WRONG** | - | n/a |
 | is_validating | boolean | boolean | yes | yes | false | n/a |
@@ -323,6 +341,7 @@ Fields: 31 | Type matches: 31/31 | Nullable matches: 17/31 | Client JSON mapping
 | name | string | string | yes | yes | - | mapped |
 | port | integer | integer | yes | yes | 22 | mapped |
 | private_key_id | integer | integer | yes | yes | - | n/a |
+| proxy_error_page | string | string | yes | **WRONG** | - | mapped |
 | sentinel_waiting_since | string | string | yes | **WRONG** | - | n/a |
 | server_metadata | object | object | yes | **WRONG** | - | n/a |
 | swarm_cluster | integer | integer | yes | **WRONG** | - | n/a |
@@ -342,11 +361,15 @@ Fields: 31 | Type matches: 31/31 | Nullable matches: 17/31 | Client JSON mapping
 
 ## ServerSetting
 
-Fields: 65 | Type matches: 65/65 | Nullable matches: 49/65 | Client JSON mappings: 62/65
+Fields: 80 | Type matches: 80/80 | Nullable matches: 53/80 | Client JSON mappings: 68/80
 
 | Field | Contract Type | Spec Type | Type Match | Nullable Match | Default | Client JSON Mapping |
 |-------|:---:|:---:|:---:|:---:|---------|:---:|
+| auto_security_updates_time | string | string | yes | yes | 03:00 | n/a |
 | backup_compression_cpu_percentage | string | string | yes | yes | - | mapped |
+| cloudflare_tunnel_account_id | string | string | yes | **WRONG** | - | n/a |
+| cloudflare_tunnel_id | string | string | yes | **WRONG** | - | n/a |
+| cloudflare_tunnel_integration_token_id | integer | integer | yes | **WRONG** | - | n/a |
 | compose_version | string | string | yes | **WRONG** | - | mapped |
 | compose_version_checked_at | string | string | yes | **WRONG** | - | mapped |
 | concurrent_builds | integer | integer | yes | yes | 2 | mapped |
@@ -365,13 +388,14 @@ Fields: 65 | Type matches: 65/65 | Nullable matches: 49/65 | Client JSON mapping
 | generate_exact_labels | boolean | boolean | yes | yes | false | mapped |
 | geoip_maxmind_license_key | string | string | yes | **WRONG** | - | mapped |
 | geoip_refresh_days | integer | integer | yes | yes | 30 | mapped |
+| is_auto_security_updates_enabled | boolean | boolean | yes | yes | false | n/a |
 | is_build_server | boolean | boolean | yes | yes | false | mapped |
 | is_cloudflare_tunnel | boolean | boolean | yes | yes | false | mapped |
 | is_geoip_enabled | boolean | boolean | yes | yes | true | mapped |
 | is_jump_server | boolean | boolean | yes | yes | false | mapped |
 | is_logdrain_axiom_enabled | boolean | boolean | yes | yes | false | mapped |
+| is_logdrain_cloudwatch_enabled | boolean | boolean | yes | yes | false | mapped |
 | is_logdrain_custom_enabled | boolean | boolean | yes | yes | false | mapped |
-| is_logdrain_highlight_enabled | boolean | boolean | yes | yes | false | mapped |
 | is_logdrain_newrelic_enabled | boolean | boolean | yes | yes | false | mapped |
 | is_metrics_enabled | boolean | boolean | yes | yes | false | mapped |
 | is_part_of_swarm | boolean | boolean | yes | yes | false | n/a |
@@ -385,11 +409,18 @@ Fields: 65 | Type matches: 65/65 | Nullable matches: 49/65 | Client JSON mapping
 | is_usable | boolean | boolean | yes | yes | false | mapped |
 | logdrain_axiom_api_key | string | string | yes | **WRONG** | - | mapped |
 | logdrain_axiom_dataset_name | string | string | yes | **WRONG** | - | mapped |
+| logdrain_axiom_domain | string | string | yes | **WRONG** | us-east-1.aws.edge.axiom.co | mapped |
+| logdrain_cloudwatch_group | string | string | yes | **WRONG** | - | mapped |
+| logdrain_cloudwatch_region | string | string | yes | **WRONG** | - | mapped |
+| logdrain_cloudwatch_stream_prefix | string | string | yes | **WRONG** | - | mapped |
 | logdrain_custom_config | string | string | yes | **WRONG** | - | mapped |
 | logdrain_custom_config_parser | string | string | yes | **WRONG** | - | mapped |
-| logdrain_highlight_project_id | string | string | yes | **WRONG** | - | mapped |
 | logdrain_newrelic_base_uri | string | string | yes | **WRONG** | - | mapped |
 | logdrain_newrelic_license_key | string | string | yes | **WRONG** | - | mapped |
+| patch_check_error | string | string | yes | **WRONG** | - | n/a |
+| patch_check_frequency | string | string | yes | **WRONG** | - | n/a |
+| patch_check_result | object | object | yes | **WRONG** | - | n/a |
+| patch_checked_at | string | string | yes | **WRONG** | - | n/a |
 | sentinel_custom_url | string | string | yes | **WRONG** | - | mapped |
 | sentinel_metrics_history_days | integer | integer | yes | yes | 7 | mapped |
 | sentinel_metrics_refresh_rate_seconds | integer | integer | yes | yes | 10 | mapped |
@@ -401,6 +432,7 @@ Fields: 65 | Type matches: 65/65 | Nullable matches: 49/65 | Client JSON mapping
 | server_id | integer | integer | yes | yes | - | n/a |
 | server_role | string | string | yes | **WRONG** | ServerRole::BOTH->value | mapped |
 | server_timezone | string | string | yes | yes | UTC | mapped |
+| traefik_certificate_resolver | string | string | yes | **WRONG** | letsencrypt | mapped |
 | traffic_ip_mode | string | string | yes | yes | full | mapped |
 | traffic_retention_1d_days | integer | integer | yes | yes | 395 | mapped |
 | traffic_retention_1h_days | integer | integer | yes | yes | 30 | mapped |
@@ -410,11 +442,13 @@ Fields: 65 | Type matches: 65/65 | Nullable matches: 49/65 | Client JSON mapping
 | created_at | - | string | - | - | - | mapped |
 | force_server_cleanup | - | boolean | - | - | - | n/a |
 | id | - | integer | - | - | - | mapped |
+| is_logdrain_highlight_enabled | - | boolean | - | - | - | mapped |
+| logdrain_highlight_project_id | - | string | - | - | - | mapped |
 | updated_at | - | string | - | - | - | mapped |
 
 ## Service
 
-Fields: 19 | Type matches: 19/19 | Nullable matches: 12/19 | Client JSON mappings: 11/19
+Fields: 20 | Type matches: 20/20 | Nullable matches: 13/20 | Client JSON mappings: 13/20
 
 | Field | Contract Type | Spec Type | Type Match | Nullable Match | Default | Client JSON Mapping |
 |-------|:---:|:---:|:---:|:---:|---------|:---:|
@@ -429,6 +463,7 @@ Fields: 19 | Type matches: 19/19 | Nullable matches: 12/19 | Client JSON mapping
 | environment_id | integer | integer | yes | yes | - | n/a |
 | is_container_label_escape_enabled | boolean | boolean | yes | yes | true | mapped |
 | name | string | string | yes | yes | - | mapped |
+| redact_all_env_values_in_logs | boolean | boolean | yes | yes | true | mapped |
 | server_id | integer | integer | yes | **WRONG** | - | n/a |
 | service_type | string | string | yes | **WRONG** | - | n/a |
 | uuid | string | string | yes | yes | - | mapped |
@@ -462,7 +497,7 @@ Fields: 5 | Type matches: 5/5 | Nullable matches: 5/5 | Client JSON mappings: 5/
 This model exists in the extracted source contract but not as a reusable public OpenAPI schema.
 Treat it as implementation detail coverage, not proof of a standalone public API surface.
 
-Fields: 23 | Type matches: 23/23 | Nullable matches: 23/23 | Client JSON mappings: 18/23
+Fields: 23 | Type matches: 23/23 | Nullable matches: 23/23 | Client JSON mappings: 19/23
 
 | Field | Contract Type | Spec Type | Type Match | Nullable Match | Default | Client JSON Mapping |
 |-------|:---:|:---:|:---:|:---:|---------|:---:|
@@ -479,7 +514,7 @@ Fields: 23 | Type matches: 23/23 | Nullable matches: 23/23 | Client JSON mapping
 | installation_id | integer | - | - | - | - | mapped |
 | is_public | boolean | - | - | - | false | mapped |
 | is_system_wide | boolean | - | - | - | false | mapped |
-| metadata | string | - | - | - | - | n/a |
+| metadata | string | - | - | - | - | mapped |
 | name | string | - | - | - | - | mapped |
 | organization | string | - | - | - | - | mapped |
 | organization_self_hosted_runners | string | - | - | - | - | mapped |
@@ -509,7 +544,7 @@ Fields: 10 | Type matches: 10/10 | Nullable matches: 10/10 | Client JSON mapping
 
 ## S3Storage
 
-Fields: 10 | Type matches: 10/10 | Nullable matches: 10/10 | Client JSON mappings: 9/10
+Fields: 11 | Type matches: 11/11 | Nullable matches: 11/11 | Client JSON mappings: 10/11
 
 | Field | Contract Type | Spec Type | Type Match | Nullable Match | Default | Client JSON Mapping |
 |-------|:---:|:---:|:---:|:---:|---------|:---:|
@@ -522,6 +557,31 @@ Fields: 10 | Type matches: 10/10 | Nullable matches: 10/10 | Client JSON mapping
 | region | string | - | - | - | us-east-1 | mapped |
 | secret | string | - | - | - | - | mapped |
 | unusable_email_sent | boolean | - | - | - | false | n/a |
+| use_path_style_endpoint | boolean | - | - | - | true | mapped |
+| uuid | string | - | - | - | - | mapped |
+
+## ScheduledVolumeBackup
+
+Fields: 17 | Type matches: 17/17 | Nullable matches: 17/17 | Client JSON mappings: 14/17
+
+| Field | Contract Type | Spec Type | Type Match | Nullable Match | Default | Client JSON Mapping |
+|-------|:---:|:---:|:---:|:---:|---------|:---:|
+| backupable_id | integer | - | - | - | - | n/a |
+| backupable_type | string | - | - | - | - | n/a |
+| disable_local_backup | boolean | - | - | - | false | mapped |
+| enabled | boolean | - | - | - | true | mapped |
+| frequency | string | - | - | - | - | mapped |
+| missing_backup_notification_days | integer | - | - | - | 0 | mapped |
+| retention_amount_locally | integer | - | - | - | 7 | mapped |
+| retention_amount_s3 | integer | - | - | - | 7 | mapped |
+| retention_days_locally | integer | - | - | - | 0 | mapped |
+| retention_days_s3 | integer | - | - | - | 0 | mapped |
+| retention_max_storage_locally | string | - | - | - | - | mapped |
+| retention_max_storage_s3 | string | - | - | - | - | mapped |
+| s3_storage_id | integer | - | - | - | - | n/a |
+| save_s3 | boolean | - | - | - | false | mapped |
+| stop_during_backup | boolean | - | - | - | false | mapped |
+| timeout | integer | - | - | - | 36000 | mapped |
 | uuid | string | - | - | - | - | mapped |
 
 ## StandaloneClickhouse

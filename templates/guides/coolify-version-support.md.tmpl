@@ -2,7 +2,7 @@
 page_title: "Coolify Version Support"
 subcategory: "Getting Started"
 description: |-
-  What works on Coolify 4.1, 4.2, 4.3, 4.4, and 4.5 with this provider: resources, fields, and version-gate behavior.
+  What works on Coolify 4.1, 4.2, 4.3, 4.4, 4.5, and 4.6 with this provider: resources, fields, and version-gate behavior.
 ---
 
 # Coolify Version Support
@@ -43,10 +43,13 @@ output "coolify_version" {
 | **≥ 4.3.18** | `missing_backup_notification_days` on `coolify_database_backup` (0 disables alerts). GET-only `last_execution_at` and `missing_backup_notification_sent_at`. |
 | **≥ 4.5.0** | `POST /api/v1/enable` is gone. `coolify_api_settings` with `enabled = true` leaves the API unchanged. `enabled = false` still disables it. Turn the API back on in the Coolify UI. Destroy does not re-enable the API. `coolify_server_hostinger` and the Hostinger catalog data sources require this version. `coolify_service_application` can send `is_permanent_redirect_enabled` and `traefik_certificate_resolver`. |
 | **≥ 4.5.1** | `coolify_s3_storage.use_path_style_endpoint`, `coolify_server_log_drain.logdrain_axiom_domain`, and application `rolling_update_drain_seconds` are sent. Older instances keep those values in state and do not send them. Highlight log drain columns are gone, so the read-only server attributes are null. Also sent from this version: application `include_coolify_default_variables` and `is_container_label_readonly_enabled`, service `include_coolify_default_variables`, service application `redirect`, server proxy `proxy_error_page`, database backup `disable_local_backup`, and server `wildcard_domain`, `server_timezone`, and `backup_compression_cpu_percentage`. |
+| **≥ 4.6.0** | Application `git_https_username` and `git_https_password` are sent. `coolify_integration_token` can read, update, and delete tokens. v4.6-rc.1 does not accept those writes. |
 
-Pinned API contract today: Coolify **v4.4.2** (`testdata/contracts/coolify-v4.json`).
-Tag extracts `coolify-v4.4.0.json`, `coolify-v4.4.1.json`, and `coolify-v4.4.2.json` match those git
-tags. Tag v4.5.0 removed `POST /api/v1/enable`. The contract pin stays on v4.4.2. This provider still configures against Coolify 4.1.0 and later.
+Pinned API contract today: Coolify **v4.6.0** (`testdata/contracts/coolify-v4.json`).
+Tag extracts through `coolify-v4.6.0.json` match those git tags. Tag v4.5.0 removed
+`POST /api/v1/enable`. The provider still calls that route on older instances, and it
+still configures against Coolify 4.1.0 and later. Writes that landed after 4.4.2 stay
+version-gated, so an older instance does not receive keys it rejects.
 Coolify 4.3.6 and 4.3.7 match 4.3.5. From 4.3.8, nested compose service apps
 accept `is_force_https_enabled` on `PATCH /services/{uuid}/applications/{app_uuid}`.
 `coolify_service_application` configures that application and omits

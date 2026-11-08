@@ -96,10 +96,10 @@ alerts need **≥ v4.4.1**. Hostinger purchase needs **≥ v4.5.0**.
 `rolling_update_drain_seconds` are sent on **≥ v4.5.1**. On an older
 instance those values stay in state and are not sent. Removing one of
 them from configuration later does not clear a value Coolify already
-stored. The pinned API contract is Coolify **v4.4.2**
+stored. The pinned API contract is Coolify **v4.6.0**
 (extract provenance), not a new feature floor.
 
-For a full resource and attribute matrix (what works on 4.1, 4.2, 4.3, 4.4, and 4.5,
+For a full resource and attribute matrix (what works on 4.1, 4.2, 4.3, 4.4, 4.5, and 4.6,
 and how version gates behave), see
 **[Coolify Version Support](coolify-version-support)**.
 

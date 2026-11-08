@@ -138,6 +138,18 @@ var applicationAllowListSchemaRegistry = []SchemaCoverageEntry{
 	{ContractField: "is_consistent_container_name_enabled", SchemaAttribute: "is_consistent_container_name_enabled", Status: StatusCovered},
 	{ContractField: "custom_container_name_prefix", SchemaAttribute: "custom_container_name_prefix", Status: StatusCovered},
 	{ContractField: "custom_internal_name", SchemaAttribute: "custom_internal_name", Status: StatusCovered},
+	{ContractField: "git_https_username", SchemaAttribute: "git_https_username", Status: StatusCovered, Notes: "Coolify >= v4.6.0"},
+	{ContractField: "git_https_password", SchemaAttribute: "git_https_password", Status: StatusCovered, Notes: "Coolify >= v4.6.0"},
+	{ContractField: "http_basic_auth_hash_algorithm", SchemaAttribute: "http_basic_auth_hash_algorithm", Status: StatusCovered, Notes: "Coolify >= v4.5.0"},
+	{ContractField: "http_basic_auth_argon2id_memory_cost", SchemaAttribute: "http_basic_auth_argon2id_memory_cost", Status: StatusCovered, Notes: "Coolify >= v4.5.0"},
+	{ContractField: "http_basic_auth_argon2id_time_cost", SchemaAttribute: "http_basic_auth_argon2id_time_cost", Status: StatusCovered, Notes: "Coolify >= v4.5.0"},
+	{ContractField: "http_basic_auth_bcrypt_cost", SchemaAttribute: "http_basic_auth_bcrypt_cost", Status: StatusCovered, Notes: "Coolify >= v4.5.0"},
+	{ContractField: "include_coolify_default_variables", SchemaAttribute: "include_coolify_default_variables", Status: StatusCovered, Notes: "Coolify >= v4.5.1"},
+	{ContractField: "is_container_label_readonly_enabled", SchemaAttribute: "is_container_label_readonly_enabled", Status: StatusCovered, Notes: "Coolify >= v4.5.1"},
+	{ContractField: "is_permanent_redirect_enabled", SchemaAttribute: "is_permanent_redirect_enabled", Status: StatusCovered, Notes: "Coolify >= v4.5.0"},
+	{ContractField: "redact_all_env_values_in_logs", SchemaAttribute: "redact_all_env_values_in_logs", Status: StatusCovered, Notes: "Coolify >= v4.5.0"},
+	{ContractField: "rolling_update_drain_seconds", SchemaAttribute: "rolling_update_drain_seconds", Status: StatusCovered, Notes: "Coolify >= v4.5.1"},
+	{ContractField: "traefik_certificate_resolver", SchemaAttribute: "traefik_certificate_resolver", Status: StatusCovered},
 
 	// Wrong surface
 	{ContractField: "tags", Status: SkipNA, Notes: "managed by coolify_tag / application-tag attach, not application write schema"},
