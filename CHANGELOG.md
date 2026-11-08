@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.31](https://github.com/coolify-terraform/terraform-provider-coolify/compare/v0.1.30...v0.1.31) (2026-11-08)
+
+
+### Features
+
+* pin the Coolify API contract to v4.6.0 ([#1048](https://github.com/coolify-terraform/terraform-provider-coolify/issues/1048)) ([c41aa32](https://github.com/coolify-terraform/terraform-provider-coolify/commit/c41aa326c84119ed531e9952fbf441f809175c42))
+
+
+### Bug Fixes
+
+* keep every channel title on the alpha line ([#1050](https://github.com/coolify-terraform/terraform-provider-coolify/issues/1050)) ([70f5158](https://github.com/coolify-terraform/terraform-provider-coolify/commit/70f5158fe7e7c0f633c43a14d1b5e2d9099b341d))
+* keep the channel watch alive when versions.json changes shape ([#1046](https://github.com/coolify-terraform/terraform-provider-coolify/issues/1046)) ([0c267e1](https://github.com/coolify-terraform/terraform-provider-coolify/commit/0c267e13aaf19bb81b297d585d7c844ab2864854))
+* read current Coolify CDN channel versions ([#1044](https://github.com/coolify-terraform/terraform-provider-coolify/issues/1044)) ([58d9ce3](https://github.com/coolify-terraform/terraform-provider-coolify/commit/58d9ce320252ce7dfa7297d19c5c8395d4b246e1))
+
 ## [0.1.30](https://github.com/coolify-terraform/terraform-provider-coolify/compare/v0.1.29...v0.1.30) (2026-11-03)
 
 
