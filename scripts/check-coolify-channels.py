@@ -578,17 +578,30 @@ def decide(
         if shown and (not target or version_lt(target, shown)):
             target = shown
 
+    # Every title uses the alpha line, not the dated CDN stamp.
+    # A later publish of the same line must update the open issue.
+    nightly_shown = title_version(nightly)
+    stable_shown = title_version(stable)
     if needs_support_work:
         title = f"coolify-channel: support Coolify {target} (pin is {pin})"
         action = "open"
     elif watch_next_line:
-        title = f"coolify-channel: nightly {nightly} ahead of stable {stable} (pin {pin})"
+        title = (
+            f"coolify-channel: nightly {nightly_shown} ahead of stable "
+            f"{stable_shown} (pin {pin})"
+        )
         action = "open"
     elif channels_changed:
-        title = f"coolify-channel: channels updated (stable {stable}, nightly {nightly})"
+        title = (
+            f"coolify-channel: channels updated "
+            f"(stable {stable_shown}, nightly {nightly_shown})"
+        )
         action = "update"
     else:
-        title = f"coolify-channel: stable {stable}, nightly {nightly}, pin {pin}"
+        title = (
+            f"coolify-channel: stable {stable_shown}, "
+            f"nightly {nightly_shown}, pin {pin}"
+        )
         action = "none"
 
     if existing_title and action != "none":

@@ -183,12 +183,12 @@ var serverSettingCoverageSkips = skipMap(
 	skipInternal("patch_check_frequency", "Coolify patch probe result; not on update_server"),
 	skipInternal("patch_check_result", "Coolify patch probe result; not on update_server"),
 	skipInternal("patch_checked_at", "Coolify patch probe result; not on update_server"),
-	skipInternal("is_logdrain_cloudwatch_enabled", "written by coolify_server_log_drain, not server PATCH"),
-	skipInternal("logdrain_axiom_domain", "written by coolify_server_log_drain, not server PATCH"),
-	skipInternal("logdrain_cloudwatch_group", "written by coolify_server_log_drain, not server PATCH"),
-	skipInternal("logdrain_cloudwatch_region", "written by coolify_server_log_drain, not server PATCH"),
-	skipInternal("logdrain_cloudwatch_stream_prefix", "written by coolify_server_log_drain, not server PATCH"),
-	skipInternal("traefik_certificate_resolver", "written by coolify_server_proxy, not server PATCH"),
+	skipNA("is_logdrain_cloudwatch_enabled", "written by coolify_server_log_drain, not server PATCH"),
+	skipNA("logdrain_axiom_domain", "written by coolify_server_log_drain, not server PATCH"),
+	skipNA("logdrain_cloudwatch_group", "written by coolify_server_log_drain, not server PATCH"),
+	skipNA("logdrain_cloudwatch_region", "written by coolify_server_log_drain, not server PATCH"),
+	skipNA("logdrain_cloudwatch_stream_prefix", "written by coolify_server_log_drain, not server PATCH"),
+	skipNA("traefik_certificate_resolver", "written by coolify_server_proxy, not server PATCH"),
 )
 
 var environmentCoverageSkips = skipMap(
