@@ -106,7 +106,11 @@ func TestSkipTaxonomy_NoInternalOnAllowedFields(t *testing.T) {
 		{"projectCoverageSkips", projectCoverageSkips, []string{"ProjectController::", "ProjectsController::"}},
 		{"environmentCoverageSkips", environmentCoverageSkips, []string{"ProjectController::", "ProjectsController::"}},
 		{"privateKeyCoverageSkips", privateKeyCoverageSkips, []string{"SecurityController::", "PrivateKeysController::"}},
-		{"serverSettingCoverageSkips", serverSettingCoverageSkips, []string{"ServersController::"}},
+		{"serverSettingCoverageSkips", serverSettingCoverageSkips, []string{
+			"ServersController::",
+			"ServerLogDrainsController::",
+			"ServerProxyController::",
+		}},
 	}
 
 	var violations []string

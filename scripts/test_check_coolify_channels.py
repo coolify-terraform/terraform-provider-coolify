@@ -369,6 +369,63 @@ class TestDecide(unittest.TestCase):
         )
         self.assertEqual(again.action, "update")
 
+    def test_dated_nightly_ahead_title_stays_when_pin_is_release(self):
+        # Pin already is the final release. Nightly is still a dated
+        # alpha ahead of stable, so the title is the watch form.
+        def snap(nightly):
+            return cc.ChannelSnapshot(
+                stable="4.6.0",
+                nightly=nightly,
+                pin="4.7.0",
+                latest_release="4.7.0",
+                tip_version="4.7.0",
+            )
+
+        first = cc.decide(snap("4.7.0-alpha.0.20261106.1"))
+        second = cc.decide(snap("4.7.0-alpha.0.20261107.1"))
+        self.assertIn("ahead of stable", first.title)
+        self.assertEqual(first.title, second.title)
+        self.assertIn("4.7.0-alpha.0", first.title)
+        self.assertNotIn("20261106", first.title)
+        self.assertIn("4.7.0-alpha.0.20261107.1", second.body)
+        again = cc.decide(
+            snap("4.7.0-alpha.0.20261107.1"),
+            existing_title=first.title,
+        )
+        self.assertEqual(again.action, "update")
+
+    def test_dated_channels_updated_title_stays(self):
+        # A dated alpha behind stable uses the channels-updated title.
+        def snap(nightly):
+            return cc.ChannelSnapshot(
+                stable="4.7.0",
+                nightly=nightly,
+                pin="4.7.0",
+                latest_release="4.7.0",
+                tip_version="4.7.0",
+            )
+
+        previous = {
+            "stable": "4.7.0",
+            "nightly": "4.7.0-alpha.0.20261105.1",
+            "pin": "4.7.0",
+            "prereleases": [],
+        }
+        first = cc.decide(snap("4.7.0-alpha.0.20261106.1"), previous=previous)
+        second_prev = dict(previous)
+        second_prev["nightly"] = "4.7.0-alpha.0.20261106.1"
+        second = cc.decide(snap("4.7.0-alpha.0.20261107.1"), previous=second_prev)
+        self.assertEqual(first.action, "update")
+        self.assertIn("channels updated", first.title)
+        self.assertEqual(first.title, second.title)
+        self.assertNotIn("20261106", first.title)
+        again = cc.decide(
+            snap("4.7.0-alpha.0.20261107.1"),
+            previous=second_prev,
+            existing_title=first.title,
+        )
+        self.assertEqual(again.action, "update")
+
     def test_same_title_updates_existing_issue(self):
         snap = cc.ChannelSnapshot(
             stable="4.1.2", nightly="4.2.0", pin="4.1.2", prereleases=["4.2.0"]
