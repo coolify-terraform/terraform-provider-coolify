@@ -39,6 +39,10 @@ type s3StorageItemModel struct {
 	Region               types.String `tfsdk:"region"`
 	UsePathStyleEndpoint types.Bool   `tfsdk:"use_path_style_endpoint"`
 	IsUsable             types.Bool   `tfsdk:"is_usable"`
+	Type                 types.String `tfsdk:"type"`
+	SkipTLSVerification  types.Bool   `tfsdk:"skip_tls_verification"`
+	PrivateKeyUUID       types.String `tfsdk:"private_key_uuid"`
+	SFTPHostKey          types.String `tfsdk:"sftp_host_key"`
 }
 
 // NewListDataSource returns a new S3 storages list data source instance.
@@ -91,6 +95,23 @@ func (d *s3StorageListDataSource) Schema(_ context.Context, _ datasource.SchemaR
 							MarkdownDescription: "Whether Coolify marks this storage as usable.",
 							Computed:            true,
 						},
+						"type": schema.StringAttribute{
+							MarkdownDescription: "Storage type (`s3` or `sftp`). Null when the instance is older than v4.7.0.",
+							Computed:            true,
+						},
+						"skip_tls_verification": schema.BoolAttribute{
+							MarkdownDescription: "Whether S3 TLS verification is skipped. Null when the instance does not return the field.",
+							Computed:            true,
+						},
+						"private_key_uuid": schema.StringAttribute{
+							MarkdownDescription: "SFTP private key UUID. Null when absent.",
+							Computed:            true,
+						},
+						"sftp_host_key": schema.StringAttribute{
+							MarkdownDescription: "SFTP host key recorded by Coolify. Sensitive. Null when absent.",
+							Computed:            true,
+							Sensitive:           true,
+						},
 					},
 				},
 			},
@@ -99,6 +120,85 @@ func (d *s3StorageListDataSource) Schema(_ context.Context, _ datasource.SchemaR
 			"filter": filter.Block(),
 		},
 	}
+}
+
+func s3StorageFilterField(s client.S3Storage, field string) (string, bool) {
+	switch field {
+	case "uuid":
+		return s.UUID, true
+	case "name":
+		return s.Name, true
+	case "endpoint":
+		return s.Endpoint, true
+	case "bucket":
+		return s.Bucket, true
+	case "region":
+		return s.Region, true
+	case "use_path_style_endpoint":
+		if s.UsePathStyleEndpoint == nil {
+			return "", false
+		}
+		return filter.BoolToString(*s.UsePathStyleEndpoint), true
+	case "is_usable":
+		usable := false
+		if s.IsUsable != nil {
+			usable = *s.IsUsable
+		}
+		return filter.BoolToString(usable), true
+	case "type":
+		return s.Type, s.Type != ""
+	case "skip_tls_verification":
+		if s.SkipTLSVerification == nil {
+			return "", false
+		}
+		return filter.BoolToString(*s.SkipTLSVerification), true
+	case "private_key_uuid":
+		return s.PrivateKeyUUID, s.PrivateKeyUUID != ""
+	default:
+		return "", false
+	}
+}
+
+func s3StorageListItem(s client.S3Storage) s3StorageItemModel {
+	item := s3StorageItemModel{
+		UUID:        types.StringValue(s.UUID),
+		Name:        types.StringValue(s.Name),
+		Description: flex.StringToFramework(s.Description),
+		Endpoint:    types.StringValue(s.Endpoint),
+		Bucket:      types.StringValue(s.Bucket),
+		Region:      types.StringValue(s.Region),
+	}
+	if s.UsePathStyleEndpoint != nil {
+		item.UsePathStyleEndpoint = types.BoolValue(*s.UsePathStyleEndpoint)
+	} else {
+		item.UsePathStyleEndpoint = types.BoolNull()
+	}
+	if s.IsUsable != nil {
+		item.IsUsable = types.BoolValue(*s.IsUsable)
+	} else {
+		item.IsUsable = types.BoolValue(false)
+	}
+	if s.Type != "" {
+		item.Type = types.StringValue(s.Type)
+	} else {
+		item.Type = types.StringNull()
+	}
+	if s.SkipTLSVerification != nil {
+		item.SkipTLSVerification = types.BoolValue(*s.SkipTLSVerification)
+	} else {
+		item.SkipTLSVerification = types.BoolNull()
+	}
+	if s.PrivateKeyUUID != "" {
+		item.PrivateKeyUUID = types.StringValue(s.PrivateKeyUUID)
+	} else {
+		item.PrivateKeyUUID = types.StringNull()
+	}
+	if s.SFTPHostKey != "" {
+		item.SFTPHostKey = types.StringValue(s.SFTPHostKey)
+	} else {
+		item.SFTPHostKey = types.StringNull()
+	}
+	return item
 }
 
 func (d *s3StorageListDataSource) Configure(_ context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
@@ -120,56 +220,12 @@ func (d *s3StorageListDataSource) Read(ctx context.Context, req datasource.ReadR
 		return
 	}
 
-	storages = filter.Apply(ctx, storages, config.Filters, func(s client.S3Storage, field string) (string, bool) {
-		switch field {
-		case "uuid":
-			return s.UUID, true
-		case "name":
-			return s.Name, true
-		case "endpoint":
-			return s.Endpoint, true
-		case "bucket":
-			return s.Bucket, true
-		case "region":
-			return s.Region, true
-		case "use_path_style_endpoint":
-			if s.UsePathStyleEndpoint == nil {
-				return "", false
-			}
-			return filter.BoolToString(*s.UsePathStyleEndpoint), true
-		case "is_usable":
-			usable := false
-			if s.IsUsable != nil {
-				usable = *s.IsUsable
-			}
-			return filter.BoolToString(usable), true
-		default:
-			return "", false
-		}
-	})
+	storages = filter.Apply(ctx, storages, config.Filters, s3StorageFilterField)
 
 	var state s3StorageListDataSourceModel
 	state.Filters = config.Filters
 	for _, s := range storages {
-		item := s3StorageItemModel{
-			UUID:        types.StringValue(s.UUID),
-			Name:        types.StringValue(s.Name),
-			Description: flex.StringToFramework(s.Description),
-			Endpoint:    types.StringValue(s.Endpoint),
-			Bucket:      types.StringValue(s.Bucket),
-			Region:      types.StringValue(s.Region),
-		}
-		if s.UsePathStyleEndpoint != nil {
-			item.UsePathStyleEndpoint = types.BoolValue(*s.UsePathStyleEndpoint)
-		} else {
-			item.UsePathStyleEndpoint = types.BoolNull()
-		}
-		if s.IsUsable != nil {
-			item.IsUsable = types.BoolValue(*s.IsUsable)
-		} else {
-			item.IsUsable = types.BoolValue(false)
-		}
-		state.S3Storages = append(state.S3Storages, item)
+		state.S3Storages = append(state.S3Storages, s3StorageListItem(s))
 	}
 
 	if state.S3Storages == nil {

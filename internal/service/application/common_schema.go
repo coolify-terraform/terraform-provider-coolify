@@ -647,6 +647,9 @@ func applicationSettingAttrs() map[string]schema.Attribute {
 	for k, v := range applicationSettingAttrsV46() {
 		attrs[k] = v
 	}
+	for k, v := range applicationSettingAttrsV47() {
+		attrs[k] = v
+	}
 	return attrs
 }
 
@@ -670,6 +673,45 @@ func applicationSettingAttrsV451() map[string]schema.Attribute {
 		},
 		"is_container_label_readonly_enabled": schema.BoolAttribute{
 			MarkdownDescription: "Mark generated container labels read-only. Coolify's stored default is true. " + needs451,
+			Optional:            true,
+			Computed:            true,
+			PlanModifiers:       []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
+		},
+	}
+}
+
+// applicationSettingAttrsV47 is the Coolify >= v4.7.0 write set. No Default:
+// older servers reject the keys, and a default would send them after import.
+func applicationSettingAttrsV47() map[string]schema.Attribute {
+	const needs47 = "Requires Coolify >= v4.7.0. On older instances, including 4.7 pre-releases, the provider keeps the value in state and does not send it."
+	return map[string]schema.Attribute{
+		"gitea_app_uuid": schema.StringAttribute{
+			MarkdownDescription: "UUID of the Gitea app that clones this repository. Coolify accepts it on create and on update for a public Git repository or a Git app. Docker image, Dockerfile, and private deploy-key applications reject it. Do not set it together with `github_app_uuid`. " + needs47,
+			Optional:            true,
+			Computed:            true,
+			PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+			Validators:          []validator.String{validate.UUID()},
+		},
+		"include_network_hosts_in_build": schema.BoolAttribute{
+			MarkdownDescription: "Add containers on the destination network as build hosts (`--add-host`). Coolify's stored default is true. Turn it off to keep the build cache when those containers change. " + needs47,
+			Optional:            true,
+			Computed:            true,
+			PlanModifiers:       []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
+		},
+		"is_auto_cancel_queued_deployments_enabled": schema.BoolAttribute{
+			MarkdownDescription: "Cancel queued deployments of this application when a newer one is requested. Coolify's stored default is true. " + needs47,
+			Optional:            true,
+			Computed:            true,
+			PlanModifiers:       []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
+		},
+		"is_auto_cancel_building_deployments_enabled": schema.BoolAttribute{
+			MarkdownDescription: "Cancel a deployment that is already building when a newer one is requested. Coolify's stored default is false. " + needs47,
+			Optional:            true,
+			Computed:            true,
+			PlanModifiers:       []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
+		},
+		"is_image_scan_enabled": schema.BoolAttribute{
+			MarkdownDescription: "Scan this application's images for vulnerabilities. Coolify's stored default is true. " + needs47,
 			Optional:            true,
 			Computed:            true,
 			PlanModifiers:       []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},

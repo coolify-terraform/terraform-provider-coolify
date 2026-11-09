@@ -9,13 +9,17 @@ import (
 
 // ScheduledTask represents a scheduled task on an application or service.
 type ScheduledTask struct {
-	UUID      string `json:"uuid"`
-	Name      string `json:"name"`
-	Command   string `json:"command"`
-	Frequency string `json:"frequency"`
-	Enabled   bool   `json:"enabled"`
-	Container string `json:"container,omitempty"`
-	Timeout   *int64 `json:"timeout,omitempty"`
+	UUID                string `json:"uuid"`
+	Name                string `json:"name"`
+	Command             string `json:"command"`
+	Frequency           string `json:"frequency"`
+	Enabled             bool   `json:"enabled"`
+	Container           string `json:"container,omitempty"`
+	Timeout             *int64 `json:"timeout,omitempty"`
+	UseShell            *bool  `json:"use_shell,omitempty"`
+	ConsecutiveFailures *int64 `json:"consecutive_failures,omitempty"`
+	DisabledReason      string `json:"disabled_reason,omitempty"`
+	FailingSince        string `json:"failing_since,omitempty"`
 }
 
 // CreateScheduledTaskInput holds the fields required to create a scheduled task.
@@ -26,6 +30,7 @@ type CreateScheduledTaskInput struct {
 	Enabled   bool   `json:"enabled"`
 	Container string `json:"container,omitempty"`
 	Timeout   *int64 `json:"timeout,omitempty"`
+	UseShell  *bool  `json:"use_shell,omitempty"`
 }
 
 // UpdateScheduledTaskInput holds the fields that can be updated on a scheduled task.
@@ -36,6 +41,7 @@ type UpdateScheduledTaskInput struct {
 	Enabled   *bool   `json:"enabled,omitempty"`
 	Container *string `json:"container,omitempty"`
 	Timeout   *int64  `json:"timeout,omitempty"`
+	UseShell  *bool   `json:"use_shell,omitempty"`
 }
 
 type createScheduledTaskResponse struct {
@@ -62,6 +68,9 @@ func (c *Client) CreateScheduledTask(ctx context.Context, parentType, parentUUID
 	if err := validateParentType(parentType); err != nil {
 		return "", fmt.Errorf("creating scheduled task for %s %s: %w", parentType, parentUUID, err)
 	}
+	if c != nil && !c.SupportsCoolify47() {
+		input.UseShell = nil
+	}
 	var resp createScheduledTaskResponse
 	listPath := fmt.Sprintf("/api/v1/%s/%s/scheduled-tasks", parentType, url.PathEscape(parentUUID))
 	if err := c.doWithStatus(ctx, http.MethodPost, listPath, input, &resp, http.StatusCreated); err != nil {
@@ -76,6 +85,9 @@ func (c *Client) CreateScheduledTask(ctx context.Context, parentType, parentUUID
 func (c *Client) UpdateScheduledTask(ctx context.Context, parentType, parentUUID, taskUUID string, input UpdateScheduledTaskInput) error {
 	if err := validateParentType(parentType); err != nil {
 		return fmt.Errorf("updating scheduled task %s for %s %s: %w", taskUUID, parentType, parentUUID, err)
+	}
+	if c != nil && !c.SupportsCoolify47() {
+		input.UseShell = nil
 	}
 	if err := c.do(ctx, http.MethodPatch, fmt.Sprintf("/api/v1/%s/%s/scheduled-tasks/%s", parentType, url.PathEscape(parentUUID), url.PathEscape(taskUUID)), input, nil); err != nil {
 		return fmt.Errorf("updating scheduled task %s for %s %s: %w", taskUUID, parentType, parentUUID, err)

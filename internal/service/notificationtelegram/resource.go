@@ -78,7 +78,7 @@ func (r *telegramResource) Create(ctx context.Context, req resource.CreateReques
 		resp.Diagnostics.AddError("Error configuring Telegram notifications", err.Error())
 		return
 	}
-	if err := flatten(updated, &plan); err != nil {
+	if err := flatten(r.client, updated, &plan); err != nil {
 		resp.Diagnostics.AddError("Error mapping notification settings", err.Error())
 		return
 	}
@@ -101,7 +101,7 @@ func (r *telegramResource) Read(ctx context.Context, req resource.ReadRequest, r
 		resp.Diagnostics.AddError("Error reading Telegram notifications", err.Error())
 		return
 	}
-	if err := flatten(got, &state); err != nil {
+	if err := flatten(r.client, got, &state); err != nil {
 		resp.Diagnostics.AddError("Error mapping notification settings", err.Error())
 		return
 	}
@@ -130,7 +130,7 @@ func (r *telegramResource) Update(ctx context.Context, req resource.UpdateReques
 		resp.Diagnostics.AddError("Error updating Telegram notifications", err.Error())
 		return
 	}
-	if err := flatten(updated, &plan); err != nil {
+	if err := flatten(r.client, updated, &plan); err != nil {
 		resp.Diagnostics.AddError("Error mapping notification settings", err.Error())
 		return
 	}
@@ -195,7 +195,9 @@ func updateInputFromPlan(plan, state model) (client.UpdateTelegramNotificationIn
 	return in, nil
 }
 
-func flatten(api *client.TelegramNotificationSettings, m *model) error {
+func flatten(c *client.Client, api *client.TelegramNotificationSettings, m *model) error {
+	priorImage := m.ImageVulnerabilities
+	priorThread := m.ThreadImageVulnerabilities
 	ev, err := client.EventsFrom(api)
 	if err != nil {
 		return err
@@ -206,6 +208,10 @@ func flatten(api *client.TelegramNotificationSettings, m *model) error {
 		return err
 	}
 	m.FlattenThreads(th)
+	if c == nil || !c.SupportsCoolify47() {
+		m.RestoreImageVulnerabilities(priorImage)
+		m.RestoreThreadImageVulnerabilities(priorThread)
+	}
 	m.ID = types.StringValue(notificationcommon.ImportIDCurrent)
 	m.Enabled = types.BoolValue(api.Enabled)
 	flex.SetStringPreserveEmpty(&m.Token, api.Token)

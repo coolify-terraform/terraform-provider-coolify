@@ -54,7 +54,8 @@ func (r *applicationResource) Schema(ctx context.Context, _ resource.SchemaReque
 			"(for example `fatal: could not read Username for 'https://github.com'`).\n\n" +
 			"For private sources, use:\n" +
 			"- [`coolify_application_private_git`](../resources/application_private_git) with an SSH deploy key\n" +
-			"- [`coolify_application_github_app`](../resources/application_github_app) with a GitHub App\n\n" +
+			"- [`coolify_application_github_app`](../resources/application_github_app) with a GitHub App\n" +
+			"- [`coolify_application_gitea_app`](../resources/application_gitea_app) with a Gitea app\n\n" +
 			"See the [Which application resource do I use?](../guides/choosing-application-type) guide.",
 		Attributes: gitAppAttrs(ctx, "The public Git repository URL for the application source code.", nil),
 	}

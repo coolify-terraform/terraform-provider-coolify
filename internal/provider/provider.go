@@ -60,6 +60,7 @@ import (
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/server"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/servercftunnel"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/serverdockercleanup"
+	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/serverimagescan"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/serverlogdrain"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/serverproxy"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/serverregistry"
@@ -71,6 +72,7 @@ import (
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/storage"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/tag"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/team"
+	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/teamsettings"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/version"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/volumebackup"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/vultr"
@@ -280,6 +282,7 @@ func (p *coolifyProvider) Resources(_ context.Context) []func() resource.Resourc
 		application.NewDockerResource,
 		application.NewDockerfileResource,
 		application.NewGitHubAppResource,
+		application.NewGiteaAppResource,
 		application.NewPrivateGitResource,
 		// Databases (sorted alphabetically).
 		clickhouse.NewResource,
@@ -329,6 +332,7 @@ func (p *coolifyProvider) Resources(_ context.Context) []func() resource.Resourc
 		serverregistry.NewResource,         // coolify_server_docker_registry
 		hetzner.NewResource,                // coolify_server_hetzner
 		hostinger.NewResource,              // coolify_server_hostinger
+		serverimagescan.NewResource,        // coolify_server_image_scanning
 		serverlogdrain.NewResource,         // coolify_server_log_drain
 		serverproxy.NewResource,            // coolify_server_proxy
 		serversentinel.NewResource,         // coolify_server_sentinel
@@ -340,6 +344,7 @@ func (p *coolifyProvider) Resources(_ context.Context) []func() resource.Resourc
 		storage.NewResource,                // coolify_storage
 		volumebackup.NewResource,           // coolify_storage_backup
 		tag.NewResource,                    // coolify_tag
+		teamsettings.NewResource,           // coolify_team_settings
 	}
 }
 

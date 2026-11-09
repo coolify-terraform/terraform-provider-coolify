@@ -11,9 +11,9 @@ It is a **route inventory** against Coolify source (`testdata/contracts/coolify-
 - **Resource and attribute docs:** [docs/](docs/) (also on the Terraform Registry)
 - **Field-level gaps** (numeric FKs, UI-only columns on an existing GET) live in `internal/spectest/contract_skips.go`, not in this route list.
 
-**Coverage**: 265 covered / 346 registry entries (76.6%)  
-**Planned**: 0 | **Skipped**: 81  
-**Registry size**: 346 (contract routes + allowlisted extras)
+**Coverage**: 270 covered / 350 registry entries (77.1%)  
+**Planned**: 0 | **Skipped**: 80  
+**Registry size**: 350 (contract routes + allowlisted extras)
 
 ## What Terraform does not wrap
 
@@ -196,7 +196,6 @@ Preview list, get, and create are owned by Coolify when a pull request opens. Au
 | `GET /{resource_type}/{uuid}/secret-manager` |
 | `GET /{resource_type}/{uuid}/secret-manager/keys` |
 | `PATCH /applications/{uuid}/secret-manager` |
-| `PATCH /team` |
 | `PATCH /{resource_type}/{uuid}/secret-manager` |
 | `POST /applications/{uuid}/dns` |
 | `POST /applications/{uuid}/dns/replace` |
@@ -316,6 +315,12 @@ A row here means the provider calls that Coolify route. `client.*` helpers are u
 | Route | Since |
 |-------|-------|
 | `POST /applications/dockerfile` | v0.2.0 |
+
+### `coolify_application_gitea_app`
+
+| Route | Since |
+|-------|-------|
+| `POST /applications/private-gitea-app` | v0.1.32 |
 
 ### `coolify_application_github_app`
 
@@ -602,6 +607,7 @@ A row here means the provider calls that Coolify route. `client.*` helpers are u
 | `DELETE /servers/{uuid}` | v0.1.0 |
 | `PATCH /servers/{uuid}` | v0.1.0 |
 | `POST /servers` | v0.1.0 |
+| `POST /servers/{uuid}/host-key/reset` | v0.1.32 |
 
 ### `coolify_server_cloudflare_tunnel`
 
@@ -642,6 +648,13 @@ A row here means the provider calls that Coolify route. `client.*` helpers are u
 | Route | Since |
 |-------|-------|
 | `POST /servers/hostinger` | v0.1.28 |
+
+### `coolify_server_image_scanning`
+
+| Route | Since |
+|-------|-------|
+| `GET /servers/{uuid}/image-scanning` | v0.1.32 |
+| `PATCH /servers/{uuid}/image-scanning` | v0.1.32 |
 
 ### `coolify_server_log_drain`
 
@@ -755,6 +768,12 @@ A row here means the provider calls that Coolify route. `client.*` helpers are u
 | `POST /databases/{uuid}/tags` | v0.1.15 |
 | `POST /services/{uuid}/tags` | v0.1.15 |
 | `POST /tags` | v0.1.15 |
+
+### `coolify_team_settings`
+
+| Route | Since |
+|-------|-------|
+| `PATCH /team` | v0.1.32 |
 
 ### `data.coolify_application`
 
@@ -1271,6 +1290,7 @@ Completeness tests use this list. Sorted by `METHOD /path`.
 | `GET /servers/{uuid}/domains` | covered | `data.coolify_server_domains` |
 | `GET /servers/{uuid}/envs` | covered | `coolify_shared_environment_variable` |
 | `GET /servers/{uuid}/export` | skipped | `control-plane` |
+| `GET /servers/{uuid}/image-scanning` | covered | `coolify_server_image_scanning` |
 | `GET /servers/{uuid}/log-drains` | covered | `coolify_server_log_drain` |
 | `GET /servers/{uuid}/proxy` | covered | `coolify_server_proxy` |
 | `GET /servers/{uuid}/registries` | covered | `coolify_server_docker_registry` |
@@ -1351,6 +1371,7 @@ Completeness tests use this list. Sorted by `METHOD /path`.
 | `PATCH /servers/{uuid}/cloudflare-tunnel` | covered | `coolify_server_cloudflare_tunnel` |
 | `PATCH /servers/{uuid}/docker-cleanup` | covered | `coolify_server_docker_cleanup` |
 | `PATCH /servers/{uuid}/envs/{env_id}` | covered | `coolify_shared_environment_variable` |
+| `PATCH /servers/{uuid}/image-scanning` | covered | `coolify_server_image_scanning` |
 | `PATCH /servers/{uuid}/log-drains` | covered | `coolify_server_log_drain` |
 | `PATCH /servers/{uuid}/proxy` | covered | `coolify_server_proxy` |
 | `PATCH /servers/{uuid}/sentinel` | covered | `coolify_server_sentinel` |
@@ -1363,13 +1384,14 @@ Completeness tests use this list. Sorted by `METHOD /path`.
 | `PATCH /services/{uuid}/storages` | covered | `coolify_storage` |
 | `PATCH /settings/email` | covered | `coolify_instance_email_settings` |
 | `PATCH /tags/{uuid}` | covered | `coolify_tag + coolify_resource_tag` |
-| `PATCH /team` | skipped | `operator` |
+| `PATCH /team` | covered | `coolify_team_settings` |
 | `PATCH /team/envs/{env_id}` | covered | `coolify_shared_environment_variable` |
 | `PATCH /{resource_type}/{uuid}/secret-manager` | skipped | `operator` |
 | `POST /applications/dockercompose` | skipped | `deprecated` |
 | `POST /applications/dockerfile` | covered | `coolify_application_dockerfile` |
 | `POST /applications/dockerimage` | covered | `coolify_application_docker_image` |
 | `POST /applications/private-deploy-key` | covered | `coolify_application_private_git` |
+| `POST /applications/private-gitea-app` | covered | `coolify_application_gitea_app` |
 | `POST /applications/private-github-app` | covered | `coolify_application_github_app` |
 | `POST /applications/public` | covered | `coolify_application` |
 | `POST /applications/{uuid}/clone` | skipped | `clone-move` |
@@ -1446,6 +1468,7 @@ Completeness tests use this list. Sorted by `METHOD /path`.
 | `POST /servers/{uuid}/docker-cleanup/run` | skipped | `control-plane` |
 | `POST /servers/{uuid}/envs` | covered | `coolify_shared_environment_variable` |
 | `POST /servers/{uuid}/export/mailbox` | skipped | `control-plane` |
+| `POST /servers/{uuid}/host-key/reset` | covered | `coolify_server` |
 | `POST /servers/{uuid}/migrate` | skipped | `clone-move` |
 | `POST /servers/{uuid}/proxy/restart` | skipped | `control-plane` |
 | `POST /servers/{uuid}/registries` | covered | `coolify_server_docker_registry` |

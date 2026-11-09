@@ -210,6 +210,7 @@ func warnUnsupportedApplicationSettingsWrites(c *client.Client, f commonAppField
 		}
 	}
 	warnUnsupportedCoolify46Writes(c, f, diags, ver)
+	warnUnsupportedCoolify47Writes(c, f, diags, ver)
 }
 
 func warnUnsupportedCoolify46Writes(c *client.Client, f commonAppFields, diags *diag.Diagnostics, ver string) {
@@ -270,6 +271,44 @@ func configuredVersionGatedV451WriteAttrs(f commonAppFields) []string {
 	if f.IsContainerLabelReadonlyEnabled != nil && !f.IsContainerLabelReadonlyEnabled.IsNull() && !f.IsContainerLabelReadonlyEnabled.IsUnknown() {
 		names = append(names, "is_container_label_readonly_enabled")
 	}
+	return names
+}
+
+func warnUnsupportedCoolify47Writes(c *client.Client, f commonAppFields, diags *diag.Diagnostics, ver string) {
+	if c.SupportsCoolify47() {
+		return
+	}
+	names := configuredVersionGatedV47WriteAttrs(f)
+	if len(names) == 0 {
+		return
+	}
+	diags.AddWarning(
+		versionGatedWriteAttrSummary,
+		fmt.Sprintf(
+			"This Coolify instance (%s) is older than v4.7.0, which is required to write: %s. "+
+				"The provider will keep these values in Terraform state but will not send them to the Coolify API. "+
+				"Upgrade Coolify to v4.7.0 or later, or remove these attributes from configuration.",
+			ver,
+			strings.Join(names, ", "),
+		),
+	)
+}
+
+func configuredVersionGatedV47WriteAttrs(f commonAppFields) []string {
+	var names []string
+	appendBool := func(name string, v *types.Bool) {
+		if v != nil && !v.IsNull() && !v.IsUnknown() {
+			names = append(names, name)
+		}
+	}
+	if f.GiteaAppUUID != nil && !f.GiteaAppUUID.IsNull() && !f.GiteaAppUUID.IsUnknown() {
+		names = append(names, "gitea_app_uuid")
+	}
+	appendBool("include_network_hosts_in_build", f.IncludeNetworkHostsInBuild)
+	appendBool("is_auto_cancel_queued_deployments_enabled", f.IsAutoCancelQueuedDeploymentsEnabled)
+	appendBool("is_auto_cancel_building_deployments_enabled", f.IsAutoCancelBuildingDeploymentsEnabled)
+	appendBool("is_image_scan_enabled", f.IsImageScanEnabled)
+	sort.Strings(names)
 	return names
 }
 

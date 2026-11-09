@@ -57,8 +57,12 @@ func (d *instanceEmailDataSource) Schema(_ context.Context, _ datasource.SchemaR
 				MarkdownDescription: "Hostname sent with SMTP EHLO. Requires Coolify >= v4.3.10.",
 				Computed:            true,
 			},
-			"resend_enabled": notificationcommon.BoolComputed("Whether instance Resend delivery is enabled."),
-			"resend_api_key": sens("Resend API key."),
+			"resend_enabled":            notificationcommon.BoolComputed("Whether instance Resend delivery is enabled."),
+			"resend_api_key":            sens("Resend API key."),
+			"notification_from_address": sens("From address for Coolify's own notification mail. Requires Coolify >= v4.7.0."),
+			"notification_from_name":    sens("Display name for Coolify's own notification mail. Requires Coolify >= v4.7.0."),
+			"resend_from_address":       sens("From address used when Resend sends mail. Requires Coolify >= v4.7.0."),
+			"resend_from_name":          sens("Display name used when Resend sends mail. Requires Coolify >= v4.7.0."),
 		},
 	}
 }

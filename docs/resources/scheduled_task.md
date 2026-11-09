@@ -55,9 +55,13 @@ resource "coolify_scheduled_task" "health_check" {
 - `enabled` (Boolean) Whether the scheduled task is enabled (defaults to `true`).
 - `service_uuid` (String) The UUID of the service to create the scheduled task on. Exactly one of `application_uuid` or `service_uuid` must be provided. Changing this forces a new resource.
 - `timeout` (Number) Maximum run time for the task in seconds. Coolify defaults to `300` when omitted on create.
+- `use_shell` (Boolean) Run the command with `sh -c`. Set false for a container without a shell. Coolify's stored default is true. Requires Coolify >= v4.7.0. On older instances the provider keeps the value in state and does not send it.
 
 ### Read-Only
 
+- `consecutive_failures` (Number) Failed runs since the last success. Coolify sets this. Requires Coolify >= v4.7.0.
+- `disabled_reason` (String) Why Coolify disabled the task after repeated failures. Empty when the task is not auto-disabled.
+- `failing_since` (String) When the current run of failures started, as returned by Coolify.
 - `uuid` (String) The unique identifier of the scheduled task.
 
 ## Import

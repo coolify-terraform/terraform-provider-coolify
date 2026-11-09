@@ -38,6 +38,9 @@ func EventDataSourceAttrs(channel string) map[string]schema.Attribute {
 		if e.attr == "restart_limit_reached" {
 			desc += " Requires Coolify >= v4.3.15 (not in tag v4.3.14)."
 		}
+		if e.attr == "image_vulnerabilities" {
+			desc += " Requires Coolify >= v4.7.0."
+		}
 		attrs[e.attr] = BoolComputed(desc)
 	}
 	return attrs

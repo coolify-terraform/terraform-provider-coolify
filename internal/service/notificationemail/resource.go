@@ -50,6 +50,8 @@ type model struct {
 	DeploymentCommitDetails types.Bool   `tfsdk:"deployment_commit_details_email_notifications"`
 	ResendEnabled           types.Bool   `tfsdk:"resend_enabled"`
 	ResendAPIKey            types.String `tfsdk:"resend_api_key"`
+	ResendFromAddress       types.String `tfsdk:"resend_from_address"`
+	ResendFromName          types.String `tfsdk:"resend_from_name"`
 	UseInstanceEmail        types.Bool   `tfsdk:"use_instance_email_settings"`
 
 	notificationcommon.EventModel
@@ -144,6 +146,15 @@ func (r *emailResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 			Default:             booldefault.StaticBool(false),
 		},
 		"resend_api_key": notificationcommon.StringSensitiveOmit("Resend API key."),
+		"resend_from_address": schema.StringAttribute{
+			MarkdownDescription: "From address used when Resend sends team mail." + notificationcommon.SensitiveOmitSuffix + " Must be a valid email address. Requires Coolify >= v4.7.0. On older instances the provider keeps the value in state and does not send it.",
+			Optional:            true,
+			Computed:            true,
+			Sensitive:           true,
+			Validators:          []validator.String{validate.Email()},
+			PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+		},
+		"resend_from_name": notificationcommon.StringSensitiveOmit("Display name used when Resend sends team mail. Requires Coolify >= v4.7.0. On older instances the provider keeps the value in state and does not send it."),
 		"deployment_commit_details_email_notifications": schema.BoolAttribute{
 			MarkdownDescription: "Include git commit details in deployment emails. " +
 				"Requires Coolify >= v4.5.0. On older instances the provider keeps the value in state and does not send it.",
@@ -192,7 +203,7 @@ func (r *emailResource) Create(ctx context.Context, req resource.CreateRequest, 
 	}
 	warnUnsupportedSMTPEhloDomain(r.client, plan, &resp.Diagnostics)
 	warnUnsupportedDeploymentCommitDetails(r.client, plan, &resp.Diagnostics)
-	if err := flatten(updated, &plan); err != nil {
+	if err := flatten(r.client, updated, &plan); err != nil {
 		resp.Diagnostics.AddError("Error mapping notification settings", err.Error())
 		return
 	}
@@ -215,7 +226,7 @@ func (r *emailResource) Read(ctx context.Context, req resource.ReadRequest, resp
 		resp.Diagnostics.AddError("Error reading email notifications", err.Error())
 		return
 	}
-	if err := flatten(got, &state); err != nil {
+	if err := flatten(r.client, got, &state); err != nil {
 		resp.Diagnostics.AddError("Error mapping notification settings", err.Error())
 		return
 	}
@@ -246,7 +257,7 @@ func (r *emailResource) Update(ctx context.Context, req resource.UpdateRequest, 
 	}
 	warnUnsupportedSMTPEhloDomain(r.client, plan, &resp.Diagnostics)
 	warnUnsupportedDeploymentCommitDetails(r.client, plan, &resp.Diagnostics)
-	if err := flatten(updated, &plan); err != nil {
+	if err := flatten(r.client, updated, &plan); err != nil {
 		resp.Diagnostics.AddError("Error mapping notification settings", err.Error())
 		return
 	}
@@ -298,6 +309,8 @@ func createInputFromPlan(plan model) (client.UpdateEmailNotificationInput, error
 	setStr(plan.SMTPEhloDomain, &in.SMTPEhloDomain)
 	in.DeploymentCommitDetails = flex.BoolValueOrNull(plan.DeploymentCommitDetails)
 	setStr(plan.ResendAPIKey, &in.ResendAPIKey)
+	setStr(plan.ResendFromAddress, &in.ResendFromAddress)
+	setStr(plan.ResendFromName, &in.ResendFromName)
 	if !plan.SMTPPort.IsNull() && !plan.SMTPPort.IsUnknown() {
 		v := int(plan.SMTPPort.ValueInt64())
 		in.SMTPPort = &v
@@ -346,20 +359,30 @@ func updateInputFromPlan(plan, state model) (client.UpdateEmailNotificationInput
 	if w := flex.StringIfChanged(plan.ResendAPIKey, state.ResendAPIKey); w != nil {
 		in.ResendAPIKey = w
 	}
+	if w := flex.StringIfChanged(plan.ResendFromAddress, state.ResendFromAddress); w != nil {
+		in.ResendFromAddress = w
+	}
+	if w := flex.StringIfChanged(plan.ResendFromName, state.ResendFromName); w != nil {
+		in.ResendFromName = w
+	}
 	in.SMTPPort = flex.IntIfChanged(plan.SMTPPort, state.SMTPPort)
 	in.SMTPTimeout = flex.IntIfChanged(plan.SMTPTimeout, state.SMTPTimeout)
 	return in, nil
 }
 
-func flatten(api *client.EmailNotificationSettings, m *model) error {
+func flatten(c *client.Client, api *client.EmailNotificationSettings, m *model) error {
 	if api == nil || m == nil {
 		return fmt.Errorf("mapping notification settings: empty API response")
 	}
+	priorImage := m.ImageVulnerabilities
 	ev, err := client.EventsFrom(api)
 	if err != nil {
 		return err
 	}
 	m.FlattenEvents(ev)
+	if c == nil || !c.SupportsCoolify47() {
+		m.RestoreImageVulnerabilities(priorImage)
+	}
 	m.ID = types.StringValue(notificationcommon.ImportIDCurrent)
 	m.SMTPEnabled = types.BoolValue(api.SMTPEnabled)
 	m.ResendEnabled = types.BoolValue(api.ResendEnabled)
@@ -385,6 +408,8 @@ func flatten(api *client.EmailNotificationSettings, m *model) error {
 		m.DeploymentCommitDetails = types.BoolNull()
 	}
 	flex.SetStringPreserveEmpty(&m.ResendAPIKey, api.ResendAPIKey)
+	flex.SetStringPreserveEmpty(&m.ResendFromAddress, api.ResendFromAddress)
+	flex.SetStringPreserveEmpty(&m.ResendFromName, api.ResendFromName)
 	if api.SMTPPort != nil {
 		m.SMTPPort = types.Int64Value(int64(*api.SMTPPort))
 	} else if m.SMTPPort.IsNull() || m.SMTPPort.IsUnknown() {

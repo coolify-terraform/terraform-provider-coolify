@@ -55,8 +55,11 @@ resource "coolify_notification_email" "main" {
 - `deployment_success` (Boolean) Whether to send email notifications for deployment success events.
 - `docker_cleanup_failure` (Boolean) Whether to send email notifications for Docker cleanup failure events.
 - `docker_cleanup_success` (Boolean) Whether to send email notifications for Docker cleanup success events.
+- `image_vulnerabilities` (Boolean) Whether to send email notifications for image vulnerabilities events. Requires Coolify >= v4.7.0. On older instances the provider keeps the value in state and does not send it.
 - `resend_api_key` (String, Sensitive) Resend API key. Sensitive; Coolify may omit it on read unless the API token can read sensitive fields (`read:sensitive` or root). Preserve after import.
 - `resend_enabled` (Boolean) Whether Resend delivery is enabled.
+- `resend_from_address` (String, Sensitive) From address used when Resend sends team mail. Sensitive; Coolify may omit it on read unless the API token can read sensitive fields (`read:sensitive` or root). Preserve after import. Must be a valid email address. Requires Coolify >= v4.7.0. On older instances the provider keeps the value in state and does not send it.
+- `resend_from_name` (String, Sensitive) Display name used when Resend sends team mail. Requires Coolify >= v4.7.0. On older instances the provider keeps the value in state and does not send it. Sensitive; Coolify may omit it on read unless the API token can read sensitive fields (`read:sensitive` or root). Preserve after import.
 - `restart_limit_reached` (Boolean) Whether to send email notifications for restart limit reached events. Requires Coolify >= v4.3.15 (not in tag v4.3.14). Omit on older instances; the API rejects the field with HTTP 422.
 - `scheduled_task_failure` (Boolean) Whether to send email notifications for scheduled task failure events.
 - `scheduled_task_success` (Boolean) Whether to send email notifications for scheduled task success events.

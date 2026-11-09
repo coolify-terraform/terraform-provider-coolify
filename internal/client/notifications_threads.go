@@ -19,6 +19,7 @@ type NotificationThreads struct {
 	ThreadServerUnreachable    string
 	ThreadServerPatch          string
 	ThreadTraefikOutdated      string
+	ThreadImageVulnerabilities string
 }
 
 // NotificationThreadUpdate is the PATCH form of NotificationThreads (nil = omit).
@@ -38,6 +39,7 @@ type NotificationThreadUpdate struct {
 	ThreadServerUnreachable    *string
 	ThreadServerPatch          *string
 	ThreadTraefikOutdated      *string
+	ThreadImageVulnerabilities *string
 }
 
 // ApplyThreadUpdate copies Telegram thread-id pointers onto an update input.

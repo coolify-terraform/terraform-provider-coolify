@@ -28,7 +28,7 @@ func TestEventStore_PutSnapshotAndApplyBody(t *testing.T) {
 
 	out := map[string]interface{}{"id": 1}
 	e.PutSnapshot(out, "webhook")
-	require.Len(t, out, 1+15)
+	require.Len(t, out, 1+16)
 	assert.Equal(t, true, out["deployment_failure_webhook_notifications"])
 	assert.Equal(t, false, out["deployment_success_webhook_notifications"])
 	assert.Equal(t, true, out["server_disk_usage_webhook_notifications"])
@@ -47,7 +47,7 @@ func TestEventStore_PutSnapshotAndApplyBody(t *testing.T) {
 func TestEventAllowedFields_AllEvents(t *testing.T) {
 	t.Parallel()
 	allowed := notificationcommon.EventAllowedFields("email")
-	require.Len(t, allowed, 15)
+	require.Len(t, allowed, 16)
 	for _, name := range notificationcommon.EventAttributeNames() {
 		key := notificationcommon.EventJSONKey("email", name)
 		assert.True(t, allowed[key], "missing %s", key)
@@ -59,7 +59,7 @@ func TestEventAllowedFields_AllEvents(t *testing.T) {
 func TestEventStore_AlignsWithEventAttributeNames(t *testing.T) {
 	t.Parallel()
 	names := notificationcommon.EventAttributeNames()
-	require.Len(t, names, 15)
+	require.Len(t, names, 16)
 
 	var e notificationcommon.EventStore
 	// Flip every field so the snapshot is not all-false noise.
@@ -78,6 +78,7 @@ func TestEventStore_AlignsWithEventAttributeNames(t *testing.T) {
 	e.ServerUnreachable = true
 	e.ServerPatch = true
 	e.TraefikOutdated = true
+	e.ImageVulnerabilities = true
 
 	out := map[string]interface{}{}
 	e.PutSnapshot(out, "discord")
@@ -114,7 +115,7 @@ func TestThreadJSONKey(t *testing.T) {
 func TestThreadAllowedFields_AllThreads(t *testing.T) {
 	t.Parallel()
 	allowed := notificationcommon.ThreadAllowedFields("telegram")
-	require.Len(t, allowed, 15)
+	require.Len(t, allowed, 16)
 	for _, name := range notificationcommon.EventAttributeNames() {
 		key := notificationcommon.ThreadJSONKey("telegram", name)
 		assert.True(t, allowed[key], "missing %s", key)
@@ -127,7 +128,7 @@ func TestMergeAllowedMaps(t *testing.T) {
 		notificationcommon.EventAllowedFields("telegram"),
 		notificationcommon.ThreadAllowedFields("telegram"),
 	)
-	require.Len(t, merged, 30)
+	require.Len(t, merged, 32)
 	assert.True(t, merged[notificationcommon.EventJSONKey("telegram", "backup_failure")])
 	assert.True(t, merged[notificationcommon.ThreadJSONKey("telegram", "backup_failure")])
 }

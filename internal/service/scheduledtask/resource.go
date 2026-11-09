@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
@@ -35,15 +36,19 @@ type scheduledTaskResource struct {
 
 // scheduledTaskResourceModel maps the resource schema to Go types.
 type scheduledTaskResourceModel struct {
-	UUID            types.String `tfsdk:"uuid"`
-	ApplicationUUID types.String `tfsdk:"application_uuid"`
-	ServiceUUID     types.String `tfsdk:"service_uuid"`
-	Name            types.String `tfsdk:"name"`
-	Command         types.String `tfsdk:"command"`
-	Frequency       types.String `tfsdk:"frequency"`
-	Enabled         types.Bool   `tfsdk:"enabled"`
-	Container       types.String `tfsdk:"container"`
-	Timeout         types.Int64  `tfsdk:"timeout"`
+	UUID                types.String `tfsdk:"uuid"`
+	ApplicationUUID     types.String `tfsdk:"application_uuid"`
+	ServiceUUID         types.String `tfsdk:"service_uuid"`
+	Name                types.String `tfsdk:"name"`
+	Command             types.String `tfsdk:"command"`
+	Frequency           types.String `tfsdk:"frequency"`
+	Enabled             types.Bool   `tfsdk:"enabled"`
+	Container           types.String `tfsdk:"container"`
+	Timeout             types.Int64  `tfsdk:"timeout"`
+	UseShell            types.Bool   `tfsdk:"use_shell"`
+	ConsecutiveFailures types.Int64  `tfsdk:"consecutive_failures"`
+	DisabledReason      types.String `tfsdk:"disabled_reason"`
+	FailingSince        types.String `tfsdk:"failing_since"`
 }
 
 // NewResource returns a new scheduledTaskResource instance.
@@ -123,6 +128,24 @@ func (r *scheduledTaskResource) Schema(_ context.Context, _ resource.SchemaReque
 				Default:             int64default.StaticInt64(300),
 				Validators:          []validator.Int64{int64validator.AtLeast(1)},
 			},
+			"use_shell": schema.BoolAttribute{
+				MarkdownDescription: "Run the command with `sh -c`. Set false for a container without a shell. Coolify's stored default is true. Requires Coolify >= v4.7.0. On older instances the provider keeps the value in state and does not send it.",
+				Optional:            true,
+				Computed:            true,
+				PlanModifiers:       []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
+			},
+			"consecutive_failures": schema.Int64Attribute{
+				MarkdownDescription: "Failed runs since the last success. Coolify sets this. Requires Coolify >= v4.7.0.",
+				Computed:            true,
+			},
+			"disabled_reason": schema.StringAttribute{
+				MarkdownDescription: "Why Coolify disabled the task after repeated failures. Empty when the task is not auto-disabled.",
+				Computed:            true,
+			},
+			"failing_since": schema.StringAttribute{
+				MarkdownDescription: "When the current run of failures started, as returned by Coolify.",
+				Computed:            true,
+			},
 		},
 	}
 }
@@ -173,6 +196,10 @@ func (r *scheduledTaskResource) Create(ctx context.Context, req resource.CreateR
 	if !plan.Timeout.IsNull() && !plan.Timeout.IsUnknown() {
 		to := plan.Timeout.ValueInt64()
 		input.Timeout = &to
+	}
+	if !plan.UseShell.IsNull() && !plan.UseShell.IsUnknown() {
+		shell := plan.UseShell.ValueBool()
+		input.UseShell = &shell
 	}
 
 	taskUUID, err := r.client.CreateScheduledTask(ctx, parentType, parentUUID, input)
@@ -249,6 +276,7 @@ func (r *scheduledTaskResource) Update(ctx context.Context, req resource.UpdateR
 		Enabled:   flex.BoolIfChanged(plan.Enabled, state.Enabled),
 		Container: flex.StringIfChanged(plan.Container, state.Container),
 		Timeout:   flex.Int64IfChanged(plan.Timeout, state.Timeout),
+		UseShell:  flex.BoolIfChanged(plan.UseShell, state.UseShell),
 	}
 
 	if err := r.client.UpdateScheduledTask(ctx, parentType, parentUUID, plan.UUID.ValueString(), input); err != nil {
@@ -291,21 +319,45 @@ func (r *scheduledTaskResource) Delete(ctx context.Context, req resource.DeleteR
 // and updates the state model. Returns false if not found.
 func flattenScheduledTaskFromList(tasks []client.ScheduledTask, state *scheduledTaskResourceModel) bool {
 	for _, t := range tasks {
-		if t.UUID == state.UUID.ValueString() {
-			state.Name = types.StringValue(t.Name)
-			state.Command = types.StringValue(t.Command)
-			state.Frequency = types.StringValue(t.Frequency)
-			state.Enabled = types.BoolValue(t.Enabled)
-			state.Container = types.StringValue(t.Container)
-			if t.Timeout != nil {
-				state.Timeout = types.Int64Value(*t.Timeout)
-			} else if state.Timeout.IsNull() || state.Timeout.IsUnknown() {
-				state.Timeout = types.Int64Value(300)
-			}
-			return true
+		if t.UUID != state.UUID.ValueString() {
+			continue
 		}
+		applyScheduledTask(t, state)
+		return true
 	}
 	return false
+}
+
+func applyScheduledTask(t client.ScheduledTask, state *scheduledTaskResourceModel) {
+	state.Name = types.StringValue(t.Name)
+	state.Command = types.StringValue(t.Command)
+	state.Frequency = types.StringValue(t.Frequency)
+	state.Enabled = types.BoolValue(t.Enabled)
+	state.Container = types.StringValue(t.Container)
+	if t.Timeout != nil {
+		state.Timeout = types.Int64Value(*t.Timeout)
+	} else if state.Timeout.IsNull() || state.Timeout.IsUnknown() {
+		state.Timeout = types.Int64Value(300)
+	}
+	if t.UseShell != nil {
+		state.UseShell = types.BoolValue(*t.UseShell)
+	} else if state.UseShell.IsNull() || state.UseShell.IsUnknown() {
+		state.UseShell = types.BoolNull()
+	}
+	if t.ConsecutiveFailures != nil {
+		state.ConsecutiveFailures = types.Int64Value(*t.ConsecutiveFailures)
+	} else if state.ConsecutiveFailures.IsNull() || state.ConsecutiveFailures.IsUnknown() {
+		state.ConsecutiveFailures = types.Int64Null()
+	}
+	state.DisabledReason = stringOrNull(t.DisabledReason)
+	state.FailingSince = stringOrNull(t.FailingSince)
+}
+
+func stringOrNull(v string) types.String {
+	if v == "" {
+		return types.StringNull()
+	}
+	return types.StringValue(v)
 }
 
 func (r *scheduledTaskResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {

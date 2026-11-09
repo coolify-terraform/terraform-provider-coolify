@@ -26,7 +26,8 @@ Start here: What do you have?
 │  └─ Private repository
 │     │
 │     ├─ SSH deploy key ────────► coolify_application_private_git
-│     └─ GitHub App installed ──► coolify_application_github_app
+│     ├─ GitHub App installed ──► coolify_application_github_app
+│     └─ Gitea app connected ───► coolify_application_gitea_app
 │
 ├─ A Dockerfile (no Git repo) ──► coolify_application_dockerfile
 │
@@ -47,6 +48,7 @@ Set `docker_compose_domains` only after the first successful deployment
 | [`coolify_application`](/docs/resources/application) | Public Git repo | None | nixpacks, dockerfile, buildpacks | Open-source apps, public repos |
 | [`coolify_application_private_git`](/docs/resources/application_private_git) | Private Git repo | SSH key (`coolify_private_key`) | nixpacks, dockerfile, buildpacks | Private repos without GitHub Apps |
 | [`coolify_application_github_app`](/docs/resources/application_github_app) | GitHub repo | GitHub App (`coolify_github_app`) | nixpacks, dockerfile, buildpacks | GitHub-hosted repos with fine-grained permissions |
+| [`coolify_application_gitea_app`](/docs/resources/application_gitea_app) | Gitea repo | Gitea app UUID | nixpacks, dockerfile, buildpacks | Repositories on a connected Gitea app. Changing the app UUID requires Coolify >= v4.7.0 |
 | [`coolify_application_dockerfile`](/docs/resources/application_dockerfile) | Inline Dockerfile | None | Dockerfile | Custom images without a Git repo, Terraform-managed Dockerfiles |
 | [`coolify_application_docker_image`](/docs/resources/application_docker_image) | Docker registry | None (public) or registry auth | None (pre-built) | Pre-built images from Docker Hub, GHCR, ECR |
 

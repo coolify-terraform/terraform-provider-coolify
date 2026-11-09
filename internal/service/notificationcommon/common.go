@@ -41,6 +41,7 @@ var eventNames = []struct {
 	{"server_unreachable", "server unreachable"},
 	{"server_patch", "server patch"},
 	{"traefik_outdated", "Traefik outdated"},
+	{"image_vulnerabilities", "image vulnerabilities"},
 }
 
 // EventAttributeNames returns the 15 shared event attribute names in stable order.
@@ -106,6 +107,9 @@ func EventSchemaAttrs(channel string) map[string]schema.Attribute {
 		if e.attr == "restart_limit_reached" {
 			desc += " Requires Coolify >= v4.3.15 (not in tag v4.3.14). Omit on older instances; the API rejects the field with HTTP 422."
 		}
+		if e.attr == "image_vulnerabilities" {
+			desc += " Requires Coolify >= v4.7.0. On older instances the provider keeps the value in state and does not send it."
+		}
 		attrs[e.attr] = BoolOptComputed(desc)
 	}
 	return attrs
@@ -117,6 +121,9 @@ func ThreadSchemaAttrs(channel string) map[string]schema.Attribute {
 	attrs := make(map[string]schema.Attribute, len(eventNames))
 	for _, e := range eventNames {
 		desc := fmt.Sprintf("%s forum thread ID for %s events. Sensitive; Coolify may omit it on read unless the API token can read sensitive fields (`read:sensitive` or root). Preserve after import.", channel, e.attr)
+		if e.attr == "image_vulnerabilities" {
+			desc += " Requires Coolify >= v4.7.0. On older instances the provider keeps the value in state and does not send it."
+		}
 		attrs["thread_"+e.attr] = StringOptComputedSensitive(desc)
 	}
 	return attrs

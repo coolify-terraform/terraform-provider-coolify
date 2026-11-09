@@ -33,19 +33,23 @@ type instanceEmailResource struct {
 }
 
 type model struct {
-	ID              types.String `tfsdk:"id"`
-	SMTPEnabled     types.Bool   `tfsdk:"smtp_enabled"`
-	SMTPFromAddress types.String `tfsdk:"smtp_from_address"`
-	SMTPFromName    types.String `tfsdk:"smtp_from_name"`
-	SMTPHost        types.String `tfsdk:"smtp_host"`
-	SMTPPort        types.Int64  `tfsdk:"smtp_port"`
-	SMTPEncryption  types.String `tfsdk:"smtp_encryption"`
-	SMTPUsername    types.String `tfsdk:"smtp_username"`
-	SMTPPassword    types.String `tfsdk:"smtp_password"`
-	SMTPTimeout     types.Int64  `tfsdk:"smtp_timeout"`
-	SMTPEhloDomain  types.String `tfsdk:"smtp_ehlo_domain"`
-	ResendEnabled   types.Bool   `tfsdk:"resend_enabled"`
-	ResendAPIKey    types.String `tfsdk:"resend_api_key"`
+	ID                      types.String `tfsdk:"id"`
+	SMTPEnabled             types.Bool   `tfsdk:"smtp_enabled"`
+	SMTPFromAddress         types.String `tfsdk:"smtp_from_address"`
+	SMTPFromName            types.String `tfsdk:"smtp_from_name"`
+	SMTPHost                types.String `tfsdk:"smtp_host"`
+	SMTPPort                types.Int64  `tfsdk:"smtp_port"`
+	SMTPEncryption          types.String `tfsdk:"smtp_encryption"`
+	SMTPUsername            types.String `tfsdk:"smtp_username"`
+	SMTPPassword            types.String `tfsdk:"smtp_password"`
+	SMTPTimeout             types.Int64  `tfsdk:"smtp_timeout"`
+	SMTPEhloDomain          types.String `tfsdk:"smtp_ehlo_domain"`
+	ResendEnabled           types.Bool   `tfsdk:"resend_enabled"`
+	ResendAPIKey            types.String `tfsdk:"resend_api_key"`
+	NotificationFromAddress types.String `tfsdk:"notification_from_address"`
+	NotificationFromName    types.String `tfsdk:"notification_from_name"`
+	ResendFromAddress       types.String `tfsdk:"resend_from_address"`
+	ResendFromName          types.String `tfsdk:"resend_from_name"`
 }
 
 func NewResource() resource.Resource {
@@ -140,6 +144,24 @@ func (r *instanceEmailResource) Schema(_ context.Context, _ resource.SchemaReque
 				Default:             booldefault.StaticBool(false),
 			},
 			"resend_api_key": notificationcommon.StringSensitiveOmit("Resend API key."),
+			"notification_from_address": schema.StringAttribute{
+				MarkdownDescription: "From address for Coolify's own notification mail." + notificationcommon.SensitiveOmitSuffix + " Must be a valid email address. Requires Coolify >= v4.7.0. On older instances the provider keeps the value in state and does not send it.",
+				Optional:            true,
+				Computed:            true,
+				Sensitive:           true,
+				Validators:          []validator.String{validate.Email()},
+				PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+			},
+			"notification_from_name": notificationcommon.StringSensitiveOmit("Display name for Coolify's own notification mail. Requires Coolify >= v4.7.0. On older instances the provider keeps the value in state and does not send it."),
+			"resend_from_address": schema.StringAttribute{
+				MarkdownDescription: "From address used when Resend sends mail." + notificationcommon.SensitiveOmitSuffix + " Must be a valid email address. Requires Coolify >= v4.7.0. On older instances the provider keeps the value in state and does not send it.",
+				Optional:            true,
+				Computed:            true,
+				Sensitive:           true,
+				Validators:          []validator.String{validate.Email()},
+				PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+			},
+			"resend_from_name": notificationcommon.StringSensitiveOmit("Display name used when Resend sends mail. Requires Coolify >= v4.7.0. On older instances the provider keeps the value in state and does not send it."),
 		},
 	}
 }
@@ -251,6 +273,10 @@ func createInputFromPlan(plan model) client.UpdateInstanceEmailInput {
 	setStr(plan.SMTPPassword, &in.SMTPPassword)
 	setStr(plan.SMTPEhloDomain, &in.SMTPEhloDomain)
 	setStr(plan.ResendAPIKey, &in.ResendAPIKey)
+	setStr(plan.NotificationFromAddress, &in.NotificationFromAddress)
+	setStr(plan.NotificationFromName, &in.NotificationFromName)
+	setStr(plan.ResendFromAddress, &in.ResendFromAddress)
+	setStr(plan.ResendFromName, &in.ResendFromName)
 	if !plan.SMTPPort.IsNull() && !plan.SMTPPort.IsUnknown() {
 		v := int(plan.SMTPPort.ValueInt64())
 		in.SMTPPort = &v
@@ -291,6 +317,18 @@ func updateInputFromPlan(plan, state model) client.UpdateInstanceEmailInput {
 	if w := flex.StringIfChanged(plan.ResendAPIKey, state.ResendAPIKey); w != nil {
 		in.ResendAPIKey = w
 	}
+	if w := flex.StringIfChanged(plan.NotificationFromAddress, state.NotificationFromAddress); w != nil {
+		in.NotificationFromAddress = w
+	}
+	if w := flex.StringIfChanged(plan.NotificationFromName, state.NotificationFromName); w != nil {
+		in.NotificationFromName = w
+	}
+	if w := flex.StringIfChanged(plan.ResendFromAddress, state.ResendFromAddress); w != nil {
+		in.ResendFromAddress = w
+	}
+	if w := flex.StringIfChanged(plan.ResendFromName, state.ResendFromName); w != nil {
+		in.ResendFromName = w
+	}
 	in.SMTPPort = flex.IntIfChanged(plan.SMTPPort, state.SMTPPort)
 	in.SMTPTimeout = flex.IntIfChanged(plan.SMTPTimeout, state.SMTPTimeout)
 	return in
@@ -318,6 +356,10 @@ func flatten(api *client.InstanceEmailSettings, m *model) {
 	}
 	flex.SetStringPreserveEmpty(&m.SMTPEhloDomain, ehlo)
 	flex.SetStringPreserveEmpty(&m.ResendAPIKey, api.ResendAPIKey)
+	flex.SetStringPreserveEmpty(&m.NotificationFromAddress, api.NotificationFromAddress)
+	flex.SetStringPreserveEmpty(&m.NotificationFromName, api.NotificationFromName)
+	flex.SetStringPreserveEmpty(&m.ResendFromAddress, api.ResendFromAddress)
+	flex.SetStringPreserveEmpty(&m.ResendFromName, api.ResendFromName)
 	if api.SMTPPort != nil {
 		m.SMTPPort = types.Int64Value(int64(*api.SMTPPort))
 	} else if m.SMTPPort.IsNull() || m.SMTPPort.IsUnknown() {

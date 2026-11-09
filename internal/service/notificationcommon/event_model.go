@@ -24,6 +24,7 @@ type EventModel struct {
 	ServerUnreachable    types.Bool `tfsdk:"server_unreachable"`
 	ServerPatch          types.Bool `tfsdk:"server_patch"`
 	TraefikOutdated      types.Bool `tfsdk:"traefik_outdated"`
+	ImageVulnerabilities types.Bool `tfsdk:"image_vulnerabilities"`
 }
 
 // CreateUpdate returns PATCH event pointers for every known plan value.
@@ -44,6 +45,7 @@ func (e EventModel) CreateUpdate() client.NotificationEventUpdate {
 		ServerUnreachable:    flex.BoolValueOrNull(e.ServerUnreachable),
 		ServerPatch:          flex.BoolValueOrNull(e.ServerPatch),
 		TraefikOutdated:      flex.BoolValueOrNull(e.TraefikOutdated),
+		ImageVulnerabilities: flex.BoolValueOrNull(e.ImageVulnerabilities),
 	}
 }
 
@@ -65,6 +67,7 @@ func (e EventModel) DiffUpdate(state EventModel) client.NotificationEventUpdate 
 		ServerUnreachable:    flex.BoolIfChanged(e.ServerUnreachable, state.ServerUnreachable),
 		ServerPatch:          flex.BoolIfChanged(e.ServerPatch, state.ServerPatch),
 		TraefikOutdated:      flex.BoolIfChanged(e.TraefikOutdated, state.TraefikOutdated),
+		ImageVulnerabilities: flex.BoolIfChanged(e.ImageVulnerabilities, state.ImageVulnerabilities),
 	}
 }
 
@@ -85,4 +88,15 @@ func (e *EventModel) FlattenEvents(src client.NotificationEvents) {
 	e.ServerUnreachable = types.BoolValue(src.ServerUnreachable)
 	e.ServerPatch = types.BoolValue(src.ServerPatch)
 	e.TraefikOutdated = types.BoolValue(src.TraefikOutdated)
+	e.ImageVulnerabilities = types.BoolValue(src.ImageVulnerabilities)
+}
+
+// RestoreImageVulnerabilities keeps a configured value when Coolify omitted
+// the v4.7 flag. A null or unknown prior becomes null, not false.
+func (e *EventModel) RestoreImageVulnerabilities(prior types.Bool) {
+	if !prior.IsNull() && !prior.IsUnknown() {
+		e.ImageVulnerabilities = prior
+		return
+	}
+	e.ImageVulnerabilities = types.BoolNull()
 }

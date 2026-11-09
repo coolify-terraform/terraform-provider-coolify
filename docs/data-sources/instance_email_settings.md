@@ -28,8 +28,12 @@ output "instance_smtp_enabled" {
 ### Read-Only
 
 - `id` (String) Identifier. Always `current` (team is implied by the API token).
+- `notification_from_address` (String, Sensitive) From address for Coolify's own notification mail. Requires Coolify >= v4.7.0. Coolify may omit this unless the API token can read sensitive fields (`read:sensitive` or root).
+- `notification_from_name` (String, Sensitive) Display name for Coolify's own notification mail. Requires Coolify >= v4.7.0. Coolify may omit this unless the API token can read sensitive fields (`read:sensitive` or root).
 - `resend_api_key` (String, Sensitive) Resend API key. Coolify may omit this unless the API token can read sensitive fields (`read:sensitive` or root).
 - `resend_enabled` (Boolean) Whether instance Resend delivery is enabled.
+- `resend_from_address` (String, Sensitive) From address used when Resend sends mail. Requires Coolify >= v4.7.0. Coolify may omit this unless the API token can read sensitive fields (`read:sensitive` or root).
+- `resend_from_name` (String, Sensitive) Display name used when Resend sends mail. Requires Coolify >= v4.7.0. Coolify may omit this unless the API token can read sensitive fields (`read:sensitive` or root).
 - `smtp_ehlo_domain` (String) Hostname sent with SMTP EHLO. Requires Coolify >= v4.3.10.
 - `smtp_enabled` (Boolean) Whether instance SMTP delivery is enabled.
 - `smtp_encryption` (String) SMTP encryption (`starttls`, `tls`, or `none`).

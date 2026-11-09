@@ -155,6 +155,13 @@ type Application struct {
 	// Username is null when unset. The password stays hidden on GET.
 	GitHTTPSUsername *string `json:"git_https_username,omitempty"`
 	GitHTTPSPassword *string `json:"git_https_password,omitempty"`
+	// Coolify >= v4.7.0 settings. Omitted on older GET responses.
+	IncludeNetworkHostsInBuild             *bool `json:"include_network_hosts_in_build,omitempty"`
+	IsAutoCancelQueuedDeploymentsEnabled   *bool `json:"is_auto_cancel_queued_deployments_enabled,omitempty"`
+	IsAutoCancelBuildingDeploymentsEnabled *bool `json:"is_auto_cancel_building_deployments_enabled,omitempty"`
+	IsImageScanEnabled                     *bool `json:"is_image_scan_enabled,omitempty"`
+	// GiteaAppUUID is the Gitea source on create and on update (Coolify >= v4.7.0).
+	GiteaAppUUID *string `json:"gitea_app_uuid,omitempty"`
 	// NoindexDomains is the subset of domains served with X-Robots-Tag noindex
 	// (Coolify >= v4.3.0). JSON array on the wire; empty means none.
 	NoindexDomains  []string `json:"noindex_domains,omitempty"`
@@ -293,21 +300,25 @@ type ApplicationSettings struct {
 	IsStripprefixEnabled          *bool  `json:"is_stripprefix_enabled,omitempty"`
 	IsRawComposeDeploymentEnabled *bool  `json:"is_raw_compose_deployment_enabled,omitempty"`
 	// Coolify >= v4.3.0 APPLICATION_SETTING_FIELDS additions.
-	IsLogDrainEnabled                *bool  `json:"is_log_drain_enabled,omitempty"`
-	IsGpuEnabled                     *bool  `json:"is_gpu_enabled,omitempty"`
-	GpuDriver                        string `json:"gpu_driver,omitempty"`
-	GpuCount                         string `json:"gpu_count,omitempty"`
-	GpuDeviceIds                     string `json:"gpu_device_ids,omitempty"`
-	GpuOptions                       string `json:"gpu_options,omitempty"`
-	IsConsistentContainerNameEnabled *bool  `json:"is_consistent_container_name_enabled,omitempty"`
-	CustomInternalName               string `json:"custom_internal_name,omitempty"`
-	CustomContainerNamePrefix        string `json:"custom_container_name_prefix,omitempty"`
-	TraefikCertificateResolver       string `json:"traefik_certificate_resolver,omitempty"`
-	IsPermanentRedirectEnabled       *bool  `json:"is_permanent_redirect_enabled,omitempty"`
-	RedactAllEnvValuesInLogs         *bool  `json:"redact_all_env_values_in_logs,omitempty"`
-	RollingUpdateDrainSeconds        *int64 `json:"rolling_update_drain_seconds,omitempty"`
-	IncludeCoolifyDefaultVariables   *bool  `json:"include_coolify_default_variables,omitempty"`
-	IsContainerLabelReadonlyEnabled  *bool  `json:"is_container_label_readonly_enabled,omitempty"`
+	IsLogDrainEnabled                      *bool  `json:"is_log_drain_enabled,omitempty"`
+	IsGpuEnabled                           *bool  `json:"is_gpu_enabled,omitempty"`
+	GpuDriver                              string `json:"gpu_driver,omitempty"`
+	GpuCount                               string `json:"gpu_count,omitempty"`
+	GpuDeviceIds                           string `json:"gpu_device_ids,omitempty"`
+	GpuOptions                             string `json:"gpu_options,omitempty"`
+	IsConsistentContainerNameEnabled       *bool  `json:"is_consistent_container_name_enabled,omitempty"`
+	CustomInternalName                     string `json:"custom_internal_name,omitempty"`
+	CustomContainerNamePrefix              string `json:"custom_container_name_prefix,omitempty"`
+	TraefikCertificateResolver             string `json:"traefik_certificate_resolver,omitempty"`
+	IsPermanentRedirectEnabled             *bool  `json:"is_permanent_redirect_enabled,omitempty"`
+	RedactAllEnvValuesInLogs               *bool  `json:"redact_all_env_values_in_logs,omitempty"`
+	RollingUpdateDrainSeconds              *int64 `json:"rolling_update_drain_seconds,omitempty"`
+	IncludeCoolifyDefaultVariables         *bool  `json:"include_coolify_default_variables,omitempty"`
+	IsContainerLabelReadonlyEnabled        *bool  `json:"is_container_label_readonly_enabled,omitempty"`
+	IncludeNetworkHostsInBuild             *bool  `json:"include_network_hosts_in_build,omitempty"`
+	IsAutoCancelQueuedDeploymentsEnabled   *bool  `json:"is_auto_cancel_queued_deployments_enabled,omitempty"`
+	IsAutoCancelBuildingDeploymentsEnabled *bool  `json:"is_auto_cancel_building_deployments_enabled,omitempty"`
+	IsImageScanEnabled                     *bool  `json:"is_image_scan_enabled,omitempty"`
 }
 
 // PromoteSettings copies nested settings onto top-level Application fields when unset.
@@ -363,6 +374,10 @@ func (a *Application) PromoteSettings() {
 	promoteInt64(&a.RollingUpdateDrainSeconds, s.RollingUpdateDrainSeconds)
 	promoteBool(&a.IncludeCoolifyDefaultVariables, s.IncludeCoolifyDefaultVariables)
 	promoteBool(&a.IsContainerLabelReadonlyEnabled, s.IsContainerLabelReadonlyEnabled)
+	promoteBool(&a.IncludeNetworkHostsInBuild, s.IncludeNetworkHostsInBuild)
+	promoteBool(&a.IsAutoCancelQueuedDeploymentsEnabled, s.IsAutoCancelQueuedDeploymentsEnabled)
+	promoteBool(&a.IsAutoCancelBuildingDeploymentsEnabled, s.IsAutoCancelBuildingDeploymentsEnabled)
+	promoteBool(&a.IsImageScanEnabled, s.IsImageScanEnabled)
 }
 
 func promoteBool(dst **bool, src *bool) {
@@ -469,21 +484,26 @@ type UpdateApplicationInput struct {
 	IsStatic    *bool   `json:"is_static,omitempty"`
 	IsSPA       *bool   `json:"is_spa,omitempty"`
 	// Security & Auth
-	IsForceHTTPSEnabled             *bool   `json:"is_force_https_enabled,omitempty"`
-	IsHTTPBasicAuthEnabled          *bool   `json:"is_http_basic_auth_enabled,omitempty"`
-	HTTPBasicAuthUsername           *string `json:"http_basic_auth_username,omitempty"`
-	HTTPBasicAuthPassword           *string `json:"http_basic_auth_password,omitempty"`
-	HTTPBasicAuthHashAlgorithm      *string `json:"http_basic_auth_hash_algorithm,omitempty"`
-	HTTPBasicAuthArgon2idMemoryCost *int64  `json:"http_basic_auth_argon2id_memory_cost,omitempty"`
-	HTTPBasicAuthArgon2idTimeCost   *string `json:"http_basic_auth_argon2id_time_cost,omitempty"`
-	HTTPBasicAuthBcryptCost         *string `json:"http_basic_auth_bcrypt_cost,omitempty"`
-	IsPermanentRedirectEnabled      *bool   `json:"is_permanent_redirect_enabled,omitempty"`
-	RedactAllEnvValuesInLogs        *bool   `json:"redact_all_env_values_in_logs,omitempty"`
-	RollingUpdateDrainSeconds       *int64  `json:"rolling_update_drain_seconds,omitempty"`
-	IncludeCoolifyDefaultVariables  *bool   `json:"include_coolify_default_variables,omitempty"`
-	IsContainerLabelReadonlyEnabled *bool   `json:"is_container_label_readonly_enabled,omitempty"`
-	GitHTTPSUsername                *string `json:"git_https_username,omitempty"`
-	GitHTTPSPassword                *string `json:"git_https_password,omitempty"`
+	IsForceHTTPSEnabled                    *bool   `json:"is_force_https_enabled,omitempty"`
+	IsHTTPBasicAuthEnabled                 *bool   `json:"is_http_basic_auth_enabled,omitempty"`
+	HTTPBasicAuthUsername                  *string `json:"http_basic_auth_username,omitempty"`
+	HTTPBasicAuthPassword                  *string `json:"http_basic_auth_password,omitempty"`
+	HTTPBasicAuthHashAlgorithm             *string `json:"http_basic_auth_hash_algorithm,omitempty"`
+	HTTPBasicAuthArgon2idMemoryCost        *int64  `json:"http_basic_auth_argon2id_memory_cost,omitempty"`
+	HTTPBasicAuthArgon2idTimeCost          *string `json:"http_basic_auth_argon2id_time_cost,omitempty"`
+	HTTPBasicAuthBcryptCost                *string `json:"http_basic_auth_bcrypt_cost,omitempty"`
+	IsPermanentRedirectEnabled             *bool   `json:"is_permanent_redirect_enabled,omitempty"`
+	RedactAllEnvValuesInLogs               *bool   `json:"redact_all_env_values_in_logs,omitempty"`
+	RollingUpdateDrainSeconds              *int64  `json:"rolling_update_drain_seconds,omitempty"`
+	IncludeCoolifyDefaultVariables         *bool   `json:"include_coolify_default_variables,omitempty"`
+	IsContainerLabelReadonlyEnabled        *bool   `json:"is_container_label_readonly_enabled,omitempty"`
+	GitHTTPSUsername                       *string `json:"git_https_username,omitempty"`
+	GitHTTPSPassword                       *string `json:"git_https_password,omitempty"`
+	GiteaAppUUID                           *string `json:"gitea_app_uuid,omitempty"`
+	IncludeNetworkHostsInBuild             *bool   `json:"include_network_hosts_in_build,omitempty"`
+	IsAutoCancelQueuedDeploymentsEnabled   *bool   `json:"is_auto_cancel_queued_deployments_enabled,omitempty"`
+	IsAutoCancelBuildingDeploymentsEnabled *bool   `json:"is_auto_cancel_building_deployments_enabled,omitempty"`
+	IsImageScanEnabled                     *bool   `json:"is_image_scan_enabled,omitempty"`
 	// Extended health checks
 	HealthCheckCommand      *string `json:"health_check_command,omitempty"`
 	HealthCheckHost         *string `json:"health_check_host,omitempty"`
@@ -643,6 +663,9 @@ func (c *Client) UpdateApplication(ctx context.Context, uuid string, input Updat
 	if !c.SupportsCoolify46() {
 		input.clearApplicationSettingsV46()
 	}
+	if !c.SupportsCoolify47() {
+		input.clearApplicationSettingsV47()
+	}
 	// github_app_uuid is create-only. Coolify 4.5.0 lists it on update,
 	// but changing the app still replaces the application.
 	input.GitHubAppUUID = nil
@@ -763,6 +786,15 @@ func (i *UpdateApplicationInput) clearApplicationSettingsV451() {
 func (i *UpdateApplicationInput) clearApplicationSettingsV46() {
 	i.GitHTTPSUsername = nil
 	i.GitHTTPSPassword = nil
+}
+
+// clearApplicationSettingsV47 drops Coolify >= v4.7.0 write keys.
+func (i *UpdateApplicationInput) clearApplicationSettingsV47() {
+	i.GiteaAppUUID = nil
+	i.IncludeNetworkHostsInBuild = nil
+	i.IsAutoCancelQueuedDeploymentsEnabled = nil
+	i.IsAutoCancelBuildingDeploymentsEnabled = nil
+	i.IsImageScanEnabled = nil
 }
 
 // HasOnlyApplicationSettings reports whether the payload would be empty once
@@ -970,6 +1002,45 @@ type CreateGitHubAppInput struct {
 	// Coolify refuses domains another resource already carries unless the
 	// create request itself sets this; a follow-up PATCH never runs.
 	ForceDomainOverride *bool `json:"force_domain_override,omitempty"`
+}
+
+type CreateGiteaAppInput struct {
+	ProjectUUID                     string `json:"project_uuid"`
+	ServerUUID                      string `json:"server_uuid"`
+	DestinationUUID                 string `json:"destination_uuid,omitempty"`
+	EnvironmentName                 string `json:"environment_name,omitempty"`
+	EnvironmentUUID                 string `json:"environment_uuid,omitempty"`
+	GiteaAppUUID                    string `json:"gitea_app_uuid"`
+	GitRepository                   string `json:"git_repository"`
+	GitBranch                       string `json:"git_branch"`
+	BuildPack                       string `json:"build_pack"`
+	PortsExposes                    string `json:"ports_exposes"`
+	Name                            string `json:"name,omitempty"`
+	Description                     string `json:"description,omitempty"`
+	Domains                         string `json:"domains,omitempty"`
+	DockerfileLocation              string `json:"dockerfile_location,omitempty"`
+	DockerComposeLocation           string `json:"docker_compose_location,omitempty"`
+	DockerComposeCustomStartCommand string `json:"docker_compose_custom_start_command,omitempty"`
+	DockerComposeCustomBuildCommand string `json:"docker_compose_custom_build_command,omitempty"`
+	Dockerfile                      string `json:"dockerfile,omitempty"`
+	InstallCommand                  string `json:"install_command,omitempty"`
+	BuildCommand                    string `json:"build_command,omitempty"`
+	StartCommand                    string `json:"start_command,omitempty"`
+	InstantDeploy                   *bool  `json:"instant_deploy,omitempty"`
+	AutogenerateDomain              *bool  `json:"autogenerate_domain,omitempty"`
+	ForceDomainOverride             *bool  `json:"force_domain_override,omitempty"`
+}
+
+func (c *Client) CreateGiteaAppApplication(ctx context.Context, input CreateGiteaAppInput) (*Application, error) {
+	return c.createApplicationWithDestRetry(
+		ctx,
+		"/api/v1/applications/private-gitea-app",
+		&input,
+		input.ServerUUID,
+		input.DestinationUUID,
+		func(dest string) { input.DestinationUUID = dest },
+		"creating gitea application",
+	)
 }
 
 func (c *Client) CreateGitHubAppApplication(ctx context.Context, input CreateGitHubAppInput) (*Application, error) {

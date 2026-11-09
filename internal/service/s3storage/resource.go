@@ -7,6 +7,7 @@ import (
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/flex"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/validate"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -15,6 +16,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
@@ -42,6 +44,10 @@ type s3StorageResourceModel struct {
 	Secret               types.String `tfsdk:"secret"`
 	UsePathStyleEndpoint types.Bool   `tfsdk:"use_path_style_endpoint"`
 	IsUsable             types.Bool   `tfsdk:"is_usable"`
+	Type                 types.String `tfsdk:"type"`
+	SkipTLSVerification  types.Bool   `tfsdk:"skip_tls_verification"`
+	PrivateKeyUUID       types.String `tfsdk:"private_key_uuid"`
+	SFTPHostKey          types.String `tfsdk:"sftp_host_key"`
 }
 
 // NewResource returns a new S3 storage resource instance.
@@ -107,6 +113,31 @@ func (r *s3StorageResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 				Computed:            true,
 				PlanModifiers:       []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},
+			"type": schema.StringAttribute{
+				MarkdownDescription: "Storage type. `s3` (default when omitted) or `sftp`. Requires Coolify >= v4.7.0. On older instances the provider keeps the value in state and does not send it.",
+				Optional:            true,
+				Computed:            true,
+				PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+				Validators:          []validator.String{stringvalidator.OneOf("s3", "sftp")},
+			},
+			"skip_tls_verification": schema.BoolAttribute{
+				MarkdownDescription: "S3 only. Do not check the endpoint TLS certificate. Use only for a self-signed or private CA. Requires Coolify >= v4.7.0. On older instances the provider keeps the value in state and does not send it.",
+				Optional:            true,
+				Computed:            true,
+				PlanModifiers:       []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
+			},
+			"private_key_uuid": schema.StringAttribute{
+				MarkdownDescription: "SFTP only. UUID of a team private key used to log in. Requires Coolify >= v4.7.0. On older instances the provider keeps the value in state and does not send it.",
+				Optional:            true,
+				Computed:            true,
+				PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+				Validators:          []validator.String{validate.UUID()},
+			},
+			"sftp_host_key": schema.StringAttribute{
+				MarkdownDescription: "SFTP host key recorded by Coolify. Read-only.",
+				Computed:            true,
+				Sensitive:           true,
+			},
 			"is_usable": schema.BoolAttribute{
 				MarkdownDescription: "Whether Coolify marks this storage as usable. Defaults to `false`. Connection validation can update this on the server.",
 				Optional:            true,
@@ -141,6 +172,9 @@ func (r *s3StorageResource) Create(ctx context.Context, req resource.CreateReque
 		Secret:               plan.Secret.ValueString(),
 		UsePathStyleEndpoint: flex.BoolValueOrNull(plan.UsePathStyleEndpoint),
 		IsUsable:             flex.BoolValueOrNull(plan.IsUsable),
+		Type:                 plan.Type.ValueString(),
+		SkipTLSVerification:  flex.BoolValueOrNull(plan.SkipTLSVerification),
+		PrivateKeyUUID:       plan.PrivateKeyUUID.ValueString(),
 	}
 
 	created, err := r.client.CreateS3Storage(ctx, input)
@@ -223,6 +257,9 @@ func (r *s3StorageResource) Update(ctx context.Context, req resource.UpdateReque
 		Secret:               flex.StringIfChanged(plan.Secret, state.Secret),
 		UsePathStyleEndpoint: flex.BoolIfChanged(plan.UsePathStyleEndpoint, state.UsePathStyleEndpoint),
 		IsUsable:             flex.BoolIfChanged(plan.IsUsable, state.IsUsable),
+		Type:                 flex.StringIfChanged(plan.Type, state.Type),
+		SkipTLSVerification:  flex.BoolIfChanged(plan.SkipTLSVerification, state.SkipTLSVerification),
+		PrivateKeyUUID:       flex.StringIfChanged(plan.PrivateKeyUUID, state.PrivateKeyUUID),
 	}
 
 	_, err := r.client.UpdateS3Storage(ctx, state.UUID.ValueString(), input)
@@ -318,5 +355,25 @@ func flattenS3Storage(s *client.S3Storage, m *s3StorageResourceModel) {
 		m.IsUsable = types.BoolValue(*s.IsUsable)
 	} else if m.IsUsable.IsNull() || m.IsUsable.IsUnknown() {
 		m.IsUsable = types.BoolValue(false)
+	}
+	if s.Type != "" {
+		m.Type = types.StringValue(s.Type)
+	} else if m.Type.IsUnknown() {
+		m.Type = types.StringNull()
+	}
+	if s.SkipTLSVerification != nil {
+		m.SkipTLSVerification = types.BoolValue(*s.SkipTLSVerification)
+	} else if m.SkipTLSVerification.IsUnknown() {
+		m.SkipTLSVerification = types.BoolNull()
+	}
+	if s.PrivateKeyUUID != "" {
+		m.PrivateKeyUUID = types.StringValue(s.PrivateKeyUUID)
+	} else if m.PrivateKeyUUID.IsUnknown() {
+		m.PrivateKeyUUID = types.StringNull()
+	}
+	if s.SFTPHostKey != "" {
+		m.SFTPHostKey = types.StringValue(s.SFTPHostKey)
+	} else if m.SFTPHostKey.IsNull() || m.SFTPHostKey.IsUnknown() {
+		m.SFTPHostKey = types.StringNull()
 	}
 }
