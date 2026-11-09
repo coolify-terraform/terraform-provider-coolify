@@ -96,7 +96,7 @@ func (d *s3StorageListDataSource) Schema(_ context.Context, _ datasource.SchemaR
 							Computed:            true,
 						},
 						"type": schema.StringAttribute{
-							MarkdownDescription: "Storage type (`s3` or `sftp`). Null when the instance is older than v4.7.0.",
+							MarkdownDescription: "Storage type (`s3`, `sftp`, `ftps`, or `webdav`). Null when the instance is older than v4.7.0.",
 							Computed:            true,
 						},
 						"skip_tls_verification": schema.BoolAttribute{
