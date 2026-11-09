@@ -33,8 +33,8 @@ type CreateS3StorageInput struct {
 	Name                 string `json:"name"`
 	Description          string `json:"description,omitempty"`
 	Endpoint             string `json:"endpoint"`
-	Bucket               string `json:"bucket"`
-	Region               string `json:"region"`
+	Bucket               string `json:"bucket,omitempty"`
+	Region               string `json:"region,omitempty"`
 	Key                  string `json:"key"`
 	Secret               string `json:"secret"`
 	UsePathStyleEndpoint *bool  `json:"use_path_style_endpoint,omitempty"`
@@ -91,6 +91,8 @@ func (c *Client) CreateS3Storage(ctx context.Context, input CreateS3StorageInput
 		input.Type = ""
 		input.SkipTLSVerification = nil
 		input.PrivateKeyUUID = ""
+	} else {
+		input.restrictByType()
 	}
 	var r S3Storage
 	if err := c.doWithStatus(ctx, http.MethodPost, "/api/v1/s3-storages", input, &r, http.StatusCreated); err != nil {
@@ -109,7 +111,11 @@ func (c *Client) UpdateS3Storage(ctx context.Context, uuid string, input UpdateS
 		input.Type = nil
 		input.SkipTLSVerification = nil
 		input.PrivateKeyUUID = nil
+	} else if input.Type != nil {
+		input.restrictByType()
 	}
+	// Coolify's update allow list does not include type. Sending it is a 422.
+	input.Type = nil
 	var r S3Storage
 	if err := c.do(ctx, http.MethodPatch, fmt.Sprintf("/api/v1/s3-storages/%s", url.PathEscape(uuid)), input, &r); err != nil {
 		return nil, fmt.Errorf("updating s3 storage %s: %w", uuid, err)
@@ -124,6 +130,56 @@ func (c *Client) DeleteS3Storage(ctx context.Context, uuid string) error {
 		return fmt.Errorf("deleting s3 storage %s: %w", uuid, err)
 	}
 	return nil
+}
+
+// nonS3BackupType reports Coolify backup types whose create and update
+// bodies must not include S3 bucket, region, path-style, or skip-tls.
+func nonS3BackupType(t string) bool {
+	switch t {
+	case "sftp", "ftps", "webdav":
+		return true
+	default:
+		return false
+	}
+}
+
+func (in *CreateS3StorageInput) restrictByType() {
+	if nonS3BackupType(in.Type) {
+		in.Bucket = ""
+		in.Region = ""
+		in.UsePathStyleEndpoint = nil
+		in.SkipTLSVerification = nil
+		return
+	}
+	in.PrivateKeyUUID = ""
+}
+
+func (in *UpdateS3StorageInput) restrictByType() {
+	if in.Type == nil {
+		return
+	}
+	in.omitDisallowed(*in.Type)
+}
+
+// OmitDisallowedStorageUpdate drops JSON keys Coolify rejects for this
+// storage type. An empty type is s3. Call this with the planned type even
+// when the PATCH does not include type.
+func OmitDisallowedStorageUpdate(in *UpdateS3StorageInput, storageType string) {
+	if in == nil {
+		return
+	}
+	in.omitDisallowed(storageType)
+}
+
+func (in *UpdateS3StorageInput) omitDisallowed(storageType string) {
+	if nonS3BackupType(storageType) {
+		in.Bucket = nil
+		in.Region = nil
+		in.UsePathStyleEndpoint = nil
+		in.SkipTLSVerification = nil
+		return
+	}
+	in.PrivateKeyUUID = nil
 }
 
 // ValidateS3Storage tests the S3 connection and updates is_usable on the server.

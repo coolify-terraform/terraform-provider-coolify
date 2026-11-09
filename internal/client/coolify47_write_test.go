@@ -119,13 +119,67 @@ func TestCreateS3Storage_SendsTypeOn47(t *testing.T) {
 	c := New(srv.URL, "test-token")
 	c.CoolifyVersion = "4.7.1"
 	_, err := c.CreateS3Storage(context.Background(), CreateS3StorageInput{
-		Name: "s", Endpoint: "https://s3.example.com", Bucket: "b", Region: "us-east-1",
+		Name: "s", Endpoint: "sftp://backup.example.com/backups", Bucket: "b", Region: "us-east-1",
 		Key: "ak", Secret: "sk", Type: "sftp", SkipTLSVerification: &skip, PrivateKeyUUID: "pk-1",
 	})
 	require.NoError(t, err)
 	assert.Equal(t, "sftp", got["type"])
-	assert.Equal(t, true, got["skip_tls_verification"])
 	assert.Equal(t, "pk-1", got["private_key_uuid"])
+	for _, key := range []string{"bucket", "region", "skip_tls_verification", "use_path_style_endpoint"} {
+		_, ok := got[key]
+		assert.False(t, ok, "sftp create sent %s: %v", key, got)
+	}
+}
+
+func TestCreateS3Storage_SendsBucketOn47(t *testing.T) {
+	t.Parallel()
+	var got map[string]any
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+		require.NoError(t, json.Unmarshal(body, &got))
+		w.WriteHeader(http.StatusCreated)
+		_, _ = w.Write([]byte(`{"uuid":"s3-1"}`))
+	}))
+	t.Cleanup(srv.Close)
+
+	c := New(srv.URL, "test-token")
+	c.CoolifyVersion = "4.7.1"
+	_, err := c.CreateS3Storage(context.Background(), CreateS3StorageInput{
+		Name: "s", Endpoint: "https://s3.example.com", Bucket: "b", Region: "us-east-1",
+		Key: "ak", Secret: "sk", Type: "s3", PrivateKeyUUID: "pk-1",
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "b", got["bucket"])
+	assert.Equal(t, "us-east-1", got["region"])
+	_, ok := got["private_key_uuid"]
+	assert.False(t, ok, "s3 create sent private_key_uuid: %v", got)
+}
+
+func TestUpdateS3Storage_OmitsType(t *testing.T) {
+	t.Parallel()
+	var got map[string]any
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+		require.NoError(t, json.Unmarshal(body, &got))
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"uuid":"s3-1"}`))
+	}))
+	t.Cleanup(srv.Close)
+
+	typ := "sftp"
+	bucket := "b"
+	c := New(srv.URL, "test-token")
+	c.CoolifyVersion = "4.7.1"
+	_, err := c.UpdateS3Storage(context.Background(), "s3-1", UpdateS3StorageInput{
+		Type: &typ, Bucket: &bucket,
+	})
+	require.NoError(t, err)
+	_, ok := got["type"]
+	assert.False(t, ok, "update sent type: %v", got)
+	_, ok = got["bucket"]
+	assert.False(t, ok, "sftp update sent bucket: %v", got)
 }
 
 func TestUpdateDiscord_StripsImageVulnerabilitiesBefore47(t *testing.T) {

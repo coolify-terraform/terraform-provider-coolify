@@ -90,12 +90,16 @@ func (r *s3StorageResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 				Required: true,
 			},
 			"bucket": schema.StringAttribute{
-				MarkdownDescription: "S3 bucket name.",
-				Required:            true,
+				MarkdownDescription: "S3 bucket name. Required when type is `s3` or omitted. Do not set it for `sftp`, `ftps`, or `webdav`. Coolify rejects the field for those types.",
+				Optional:            true,
+				Computed:            true,
+				PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 			},
 			"region": schema.StringAttribute{
-				MarkdownDescription: "S3 region (e.g. `us-east-1`).",
-				Required:            true,
+				MarkdownDescription: "S3 region (for example `us-east-1`). Required when type is `s3` or omitted. Do not set it for `sftp`, `ftps`, or `webdav`. Coolify stores `us-east-1` as a placeholder for those types.",
+				Optional:            true,
+				Computed:            true,
+				PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 			},
 			"key": schema.StringAttribute{
 				MarkdownDescription: "Access key. Sensitive; Coolify may omit it on read unless the API token can read sensitive fields. Preserve the value in configuration after import.",
@@ -114,11 +118,14 @@ func (r *s3StorageResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 				PlanModifiers:       []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},
 			"type": schema.StringAttribute{
-				MarkdownDescription: "Storage type. `s3` (default when omitted) or `sftp`. Requires Coolify >= v4.7.0. On older instances the provider keeps the value in state and does not send it.",
+				MarkdownDescription: "Storage type. `s3` (default when omitted), `sftp`, `ftps`, or `webdav`. A type other than `s3` requires Coolify >= v4.7.0. Changing type replaces the storage. Coolify cannot change the protocol in place. On older instances the provider keeps the value in state and does not send it.",
 				Optional:            true,
 				Computed:            true,
-				PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
-				Validators:          []validator.String{stringvalidator.OneOf("s3", "sftp")},
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplaceIfConfigured(),
+					stringplanmodifier.UseStateForUnknown(),
+				},
+				Validators: []validator.String{stringvalidator.OneOf("s3", "sftp", "ftps", "webdav")},
 			},
 			"skip_tls_verification": schema.BoolAttribute{
 				MarkdownDescription: "S3 only. Do not check the endpoint TLS certificate. Use only for a self-signed or private CA. Requires Coolify >= v4.7.0. On older instances the provider keeps the value in state and does not send it.",
@@ -160,6 +167,10 @@ func (r *s3StorageResource) Create(ctx context.Context, req resource.CreateReque
 	}
 
 	tflog.Debug(ctx, "creating resource", map[string]interface{}{"resource_type": "coolify_s3_storage"})
+	resp.Diagnostics.Append(rejectStoragePlan(r.client, plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 	warnUnsupportedPathStyle(r.client, plan.UsePathStyleEndpoint, &resp.Diagnostics)
 
 	input := client.CreateS3StorageInput{
@@ -245,6 +256,10 @@ func (r *s3StorageResource) Update(ctx context.Context, req resource.UpdateReque
 	}
 
 	tflog.Debug(ctx, "updating resource", map[string]interface{}{"resource_type": "coolify_s3_storage", "uuid": state.UUID.ValueString()})
+	resp.Diagnostics.Append(rejectStoragePlan(r.client, plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 	warnUnsupportedPathStyle(r.client, plan.UsePathStyleEndpoint, &resp.Diagnostics)
 
 	input := client.UpdateS3StorageInput{
@@ -261,6 +276,7 @@ func (r *s3StorageResource) Update(ctx context.Context, req resource.UpdateReque
 		SkipTLSVerification:  flex.BoolIfChanged(plan.SkipTLSVerification, state.SkipTLSVerification),
 		PrivateKeyUUID:       flex.StringIfChanged(plan.PrivateKeyUUID, state.PrivateKeyUUID),
 	}
+	client.OmitDisallowedStorageUpdate(&input, plan.Type.ValueString())
 
 	_, err := r.client.UpdateS3Storage(ctx, state.UUID.ValueString(), input)
 	if err != nil {

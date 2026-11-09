@@ -54,6 +54,6 @@ Read-Only:
 - `region` (String) S3 region.
 - `sftp_host_key` (String, Sensitive) SFTP host key recorded by Coolify. Sensitive. Null when absent.
 - `skip_tls_verification` (Boolean) Whether S3 TLS verification is skipped. Null when the instance does not return the field.
-- `type` (String) Storage type (`s3` or `sftp`). Null when the instance is older than v4.7.0.
+- `type` (String) Storage type (`s3`, `sftp`, `ftps`, or `webdav`). Null when the instance is older than v4.7.0.
 - `use_path_style_endpoint` (Boolean) Whether this storage uses path-style URLs. Null when the Coolify instance is older than v4.5.1 and does not return the field.
 - `uuid` (String) The unique identifier of the S3 storage.
