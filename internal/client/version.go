@@ -301,13 +301,13 @@ func versionIs46Prerelease(ver string) bool {
 	return strings.HasPrefix(v, "4.6-rc") || strings.HasPrefix(v, "4.6.0-rc")
 }
 
-// versionIs47Prerelease reports Coolify 4.7 release candidates. Those
-// strings do not parse as 4.7.0, and IsVersionAtLeast treats an
-// unparseable version as newest. The v4.7 write fields landed on the
-// 4.7.0 tag.
+// versionIs47Prerelease reports a Coolify 4.7 tag from before the final
+// 4.7.0 release. IsVersionAtLeast strips the pre-release suffix, so
+// 4.7.0-beta compares as 4.7.0. The v4.7 write fields landed on the
+// final 4.7.0 tag, not on earlier 4.7 or 4.7.0 pre-release tags.
 func versionIs47Prerelease(ver string) bool {
 	v := strings.TrimPrefix(strings.ToLower(strings.TrimSpace(ver)), "v")
-	return strings.HasPrefix(v, "4.7-rc") || strings.HasPrefix(v, "4.7.0-rc") || strings.HasPrefix(v, "4.7.0-alpha")
+	return strings.HasPrefix(v, "4.7-") || strings.HasPrefix(v, "4.7.0-")
 }
 
 // SupportsCoolify46 reports whether the connected instance accepts Coolify
