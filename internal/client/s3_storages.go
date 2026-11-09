@@ -114,6 +114,8 @@ func (c *Client) UpdateS3Storage(ctx context.Context, uuid string, input UpdateS
 	} else if input.Type != nil {
 		input.restrictByType()
 	}
+	// Coolify's update allow list does not include type. Sending it is a 422.
+	input.Type = nil
 	var r S3Storage
 	if err := c.do(ctx, http.MethodPatch, fmt.Sprintf("/api/v1/s3-storages/%s", url.PathEscape(uuid)), input, &r); err != nil {
 		return nil, fmt.Errorf("updating s3 storage %s: %w", uuid, err)

@@ -118,11 +118,14 @@ func (r *s3StorageResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 				PlanModifiers:       []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},
 			"type": schema.StringAttribute{
-				MarkdownDescription: "Storage type. `s3` (default when omitted), `sftp`, `ftps`, or `webdav`. A type other than `s3` requires Coolify >= v4.7.0. On older instances the provider keeps the value in state and does not send it.",
+				MarkdownDescription: "Storage type. `s3` (default when omitted), `sftp`, `ftps`, or `webdav`. A type other than `s3` requires Coolify >= v4.7.0. Changing type replaces the storage. Coolify cannot change the protocol in place. On older instances the provider keeps the value in state and does not send it.",
 				Optional:            true,
 				Computed:            true,
-				PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
-				Validators:          []validator.String{stringvalidator.OneOf("s3", "sftp", "ftps", "webdav")},
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplaceIfConfigured(),
+					stringplanmodifier.UseStateForUnknown(),
+				},
+				Validators: []validator.String{stringvalidator.OneOf("s3", "sftp", "ftps", "webdav")},
 			},
 			"skip_tls_verification": schema.BoolAttribute{
 				MarkdownDescription: "S3 only. Do not check the endpoint TLS certificate. Use only for a self-signed or private CA. Requires Coolify >= v4.7.0. On older instances the provider keeps the value in state and does not send it.",

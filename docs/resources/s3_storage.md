@@ -52,7 +52,7 @@ resource "coolify_s3_storage" "example" {
 - `private_key_uuid` (String) SFTP only. UUID of a team private key used to log in. Requires Coolify >= v4.7.0. On older instances the provider keeps the value in state and does not send it.
 - `region` (String) S3 region (for example `us-east-1`). Required when type is `s3` or omitted. Do not set it for `sftp`, `ftps`, or `webdav`. Coolify stores `us-east-1` as a placeholder for those types.
 - `skip_tls_verification` (Boolean) S3 only. Do not check the endpoint TLS certificate. Use only for a self-signed or private CA. Requires Coolify >= v4.7.0. On older instances the provider keeps the value in state and does not send it.
-- `type` (String) Storage type. `s3` (default when omitted), `sftp`, `ftps`, or `webdav`. A type other than `s3` requires Coolify >= v4.7.0. On older instances the provider keeps the value in state and does not send it.
+- `type` (String) Storage type. `s3` (default when omitted), `sftp`, `ftps`, or `webdav`. A type other than `s3` requires Coolify >= v4.7.0. Changing type replaces the storage. Coolify cannot change the protocol in place. On older instances the provider keeps the value in state and does not send it.
 - `use_path_style_endpoint` (Boolean) Use path-style URLs (`endpoint/bucket`) instead of virtual-hosted-style (`bucket.endpoint`). Requires Coolify >= v4.5.1. On create, leaving it unset lets Coolify choose: false for Alibaba Cloud OSS, Tencent Cloud COS, and Volcengine TOS endpoints, and true for other endpoints. Removing the attribute later does not clear a stored value. On older instances the provider keeps the value in state and does not send it.
 
 ### Read-Only
