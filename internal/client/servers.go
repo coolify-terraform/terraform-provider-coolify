@@ -81,6 +81,10 @@ type ServerSettings struct {
 	IsTrafficAnalyticsEnabled *bool  `json:"is_traffic_analytics_enabled,omitempty"`
 	// TrafficIPMode is Coolify >= v4.4.2. Older 4.4 tags reject the key.
 	TrafficIPMode string `json:"traffic_ip_mode,omitempty"`
+	// SSH host key fingerprints are added to the settings object on GET.
+	// Coolify >= v4.7.0. Nil when the instance omits the keys.
+	SSHHostKeyFingerprints        []string `json:"ssh_host_key_fingerprints,omitempty"`
+	SSHHostKeyPendingFingerprints []string `json:"ssh_host_key_pending_fingerprints,omitempty"`
 }
 
 type Server struct {
@@ -114,6 +118,9 @@ type CreateServerInput struct {
 	IsBuildServer   *bool   `json:"is_build_server,omitempty"`
 	ServerRole      *string `json:"server_role,omitempty"`
 	InstantValidate *bool   `json:"instant_validate,omitempty"`
+	// SSHHostKey is trusted on create. Coolify >= v4.7.0. CreateServer
+	// drops it on older instances. Later changes use ResetServerHostKey.
+	SSHHostKey *string `json:"ssh_host_key,omitempty"`
 }
 
 // UpdateServerInput matches the public server PATCH contract.
@@ -152,6 +159,24 @@ func (c *Client) ListServers(ctx context.Context) ([]Server, error) {
 	}
 	return s, nil
 }
+
+// ResetServerHostKey trusts key, or clears the trusted key when key is nil.
+// POST /servers/{uuid}/host-key/reset. Coolify >= v4.7.0. Older instances
+// return nil without calling the API.
+func (c *Client) ResetServerHostKey(ctx context.Context, uuid string, key *string) error {
+	if !c.SupportsCoolify47() {
+		return nil
+	}
+	body := struct {
+		SSHHostKey *string `json:"ssh_host_key"`
+	}{SSHHostKey: key}
+	path := fmt.Sprintf("/api/v1/servers/%s/host-key/reset", url.PathEscape(uuid))
+	if err := c.do(ctx, http.MethodPost, path, body, nil); err != nil {
+		return fmt.Errorf("resetting SSH host key for server %s: %w", uuid, err)
+	}
+	return nil
+}
+
 func (c *Client) GetServer(ctx context.Context, uuid string) (*Server, error) {
 	var s Server
 	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/servers/%s", url.PathEscape(uuid)), nil, &s); err != nil {
@@ -161,6 +186,9 @@ func (c *Client) GetServer(ctx context.Context, uuid string) (*Server, error) {
 }
 func (c *Client) CreateServer(ctx context.Context, input CreateServerInput) (*Server, error) {
 	input.IsBuildServer, input.ServerRole = applyServerRoleWrite(c, input.IsBuildServer, input.ServerRole)
+	if !c.SupportsCoolify47() {
+		input.SSHHostKey = nil
+	}
 	var s Server
 	if err := c.doWithStatus(ctx, http.MethodPost, "/api/v1/servers", input, &s, http.StatusCreated); err != nil {
 		return nil, fmt.Errorf("creating server: %w", err)

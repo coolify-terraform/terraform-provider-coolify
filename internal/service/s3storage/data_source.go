@@ -35,6 +35,10 @@ type s3StorageDataSourceModel struct {
 	Region               types.String `tfsdk:"region"`
 	UsePathStyleEndpoint types.Bool   `tfsdk:"use_path_style_endpoint"`
 	IsUsable             types.Bool   `tfsdk:"is_usable"`
+	Type                 types.String `tfsdk:"type"`
+	SkipTLSVerification  types.Bool   `tfsdk:"skip_tls_verification"`
+	PrivateKeyUUID       types.String `tfsdk:"private_key_uuid"`
+	SFTPHostKey          types.String `tfsdk:"sftp_host_key"`
 }
 
 // NewDataSource returns a new S3 storage data source instance.
@@ -83,6 +87,23 @@ func (d *s3StorageDataSource) Schema(_ context.Context, _ datasource.SchemaReque
 				MarkdownDescription: "Whether Coolify marks this storage as usable.",
 				Computed:            true,
 			},
+			"type": schema.StringAttribute{
+				MarkdownDescription: "Storage type (`s3` or `sftp`). Null when the instance is older than v4.7.0 and does not return the field.",
+				Computed:            true,
+			},
+			"skip_tls_verification": schema.BoolAttribute{
+				MarkdownDescription: "Whether S3 TLS verification is skipped. Null when the instance does not return the field.",
+				Computed:            true,
+			},
+			"private_key_uuid": schema.StringAttribute{
+				MarkdownDescription: "SFTP private key UUID. Null when this storage is not SFTP or the instance does not return the field.",
+				Computed:            true,
+			},
+			"sftp_host_key": schema.StringAttribute{
+				MarkdownDescription: "SFTP host key recorded by Coolify. Sensitive. Null when absent.",
+				Computed:            true,
+				Sensitive:           true,
+			},
 		},
 	}
 }
@@ -122,6 +143,26 @@ func (d *s3StorageDataSource) Read(ctx context.Context, req datasource.ReadReque
 		config.IsUsable = types.BoolValue(*s.IsUsable)
 	} else {
 		config.IsUsable = types.BoolValue(false)
+	}
+	if s.Type != "" {
+		config.Type = types.StringValue(s.Type)
+	} else {
+		config.Type = types.StringNull()
+	}
+	if s.SkipTLSVerification != nil {
+		config.SkipTLSVerification = types.BoolValue(*s.SkipTLSVerification)
+	} else {
+		config.SkipTLSVerification = types.BoolNull()
+	}
+	if s.PrivateKeyUUID != "" {
+		config.PrivateKeyUUID = types.StringValue(s.PrivateKeyUUID)
+	} else {
+		config.PrivateKeyUUID = types.StringNull()
+	}
+	if s.SFTPHostKey != "" {
+		config.SFTPHostKey = types.StringValue(s.SFTPHostKey)
+	} else {
+		config.SFTPHostKey = types.StringNull()
 	}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &config)...)

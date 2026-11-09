@@ -6,7 +6,7 @@ description: |-
   Manages a Coolify application deployed from a public Git repository.
   This resource is for public HTTPS Git URLs only. A private repository will fail to clone (for example fatal: could not read Username for 'https://github.com').
   For private sources, use:
-  coolify_application_private_git ../resources/application_private_git with an SSH deploy keycoolify_application_github_app ../resources/application_github_app with a GitHub App
+  coolify_application_private_git ../resources/application_private_git with an SSH deploy keycoolify_application_github_app ../resources/application_github_app with a GitHub Appcoolify_application_gitea_app ../resources/application_gitea_app with a Gitea app
   See the Which application resource do I use? ../guides/choosing-application-type guide.
 ---
 
@@ -19,6 +19,7 @@ This resource is for public HTTPS Git URLs only. A private repository will fail 
 For private sources, use:
 - [`coolify_application_private_git`](../resources/application_private_git) with an SSH deploy key
 - [`coolify_application_github_app`](../resources/application_github_app) with a GitHub App
+- [`coolify_application_gitea_app`](../resources/application_gitea_app) with a Gitea app
 
 See the [Which application resource do I use?](../guides/choosing-application-type) guide.
 
@@ -100,6 +101,7 @@ resource "coolify_application" "example" {
 - `git_commit_sha` (String) The specific Git commit SHA to deploy.
 - `git_https_password` (String, Sensitive) HTTPS Git password or token. At most 2048 characters. A line break is rejected. Coolify stores it encrypted and does not return it on GET, so the provider keeps the configured value. After import the value is empty until you set it again. Requires Coolify >= v4.6.0. On older instances, including 4.6 release candidates, the provider keeps the value in state and does not send it.
 - `git_https_username` (String) HTTPS Git username for a private repository that is not a GitHub App. At most 255 characters. A colon or a line break is rejected. Requires Coolify >= v4.6.0. On older instances, including 4.6 release candidates, the provider keeps the value in state and does not send it.
+- `gitea_app_uuid` (String) UUID of the Gitea app that clones this repository. Coolify accepts it on create and on update for a public Git repository or a Git app. Docker image, Dockerfile, and private deploy-key applications reject it. Do not set it together with `github_app_uuid`. Requires Coolify >= v4.7.0. On older instances, including 4.7 pre-releases, the provider keeps the value in state and does not send it.
 - `gpu_count` (String) Number of GPUs to allocate (string form as accepted by Coolify). Requires Coolify >= v4.3.0. Against older instances the provider omits it on write and emits a plan warning if the attribute is set.
 - `gpu_device_ids` (String) Comma-separated GPU device IDs to pass to the container. Requires Coolify >= v4.3.0. Against older instances the provider omits it on write and emits a plan warning if the attribute is set.
 - `gpu_driver` (String) GPU driver for the application container (Coolify default `nvidia`). Requires Coolify >= v4.3.0. Against older instances the provider omits it on write and emits a plan warning if the attribute is set.
@@ -125,10 +127,13 @@ resource "coolify_application" "example" {
 - `http_basic_auth_password` (String, Sensitive) Password for HTTP Basic Authentication.
 - `http_basic_auth_username` (String) Username for HTTP Basic Authentication.
 - `include_coolify_default_variables` (Boolean) Include Coolify's default environment variables in this application. Requires Coolify >= v4.5.1. On older instances the provider keeps the value in state and does not send it.
+- `include_network_hosts_in_build` (Boolean) Add containers on the destination network as build hosts (`--add-host`). Coolify's stored default is true. Turn it off to keep the build cache when those containers change. Requires Coolify >= v4.7.0. On older instances, including 4.7 pre-releases, the provider keeps the value in state and does not send it.
 - `include_source_commit_in_build` (Boolean) Whether to include the source commit SHA in the build. Coolify default is `false`. Writing this requires Coolify >= v4.2.0, where it is on the application endpoints' allow list; against older instances the provider omits it on write and emits a plan warning if the attribute is set, rather than fail the whole request with 422.
 - `inject_build_args_to_dockerfile` (Boolean) Whether to inject build arguments into the Dockerfile. Coolify default is `true`. Writing this requires Coolify >= v4.2.0, where it is on the application endpoints' allow list; against older instances the provider omits it on write and emits a plan warning if the attribute is set, rather than fail the whole request with 422.
 - `install_command` (String) The command to run during the install phase. Omitting the attribute later does not clear the stored command.
 - `instant_deploy` (Boolean) Whether to immediately deploy the application after creation. When `true`, Coolify triggers a deployment right away. When `false` (default), the application is created but not deployed.
+- `is_auto_cancel_building_deployments_enabled` (Boolean) Cancel a deployment that is already building when a newer one is requested. Coolify's stored default is false. Requires Coolify >= v4.7.0. On older instances, including 4.7 pre-releases, the provider keeps the value in state and does not send it.
+- `is_auto_cancel_queued_deployments_enabled` (Boolean) Cancel queued deployments of this application when a newer one is requested. Coolify's stored default is true. Requires Coolify >= v4.7.0. On older instances, including 4.7 pre-releases, the provider keeps the value in state and does not send it.
 - `is_auto_deploy_enabled` (Boolean) Whether auto-deploy on push is enabled. Defaults to `true`. Coolify GET may omit the field; the provider treats a missing value as `true`.
 - `is_consistent_container_name_enabled` (Boolean) Whether Coolify uses a consistent container name for this application. Coolify default is `false`. Set to `true` for apps that keep an exclusive file lock on a persistent volume (SQLite, DuckDB, LMDB, BoltDB). A fixed name makes Docker refuse a second container on the same mounts, so Coolify falls back to stop-then-start instead of a rolling update that would leave the new container unable to open the store while still reporting a successful deploy. Requires Coolify >= v4.3.0. Against older instances the provider omits it on write and emits a plan warning if the attribute is set.
 - `is_container_label_escape_enabled` (Boolean) Whether container label escaping is enabled.
@@ -141,6 +146,7 @@ resource "coolify_application" "example" {
 - `is_gpu_enabled` (Boolean) Whether GPU support is enabled for this application. Coolify default is `false`. Requires Coolify >= v4.3.0. Against older instances the provider omits it on write and emits a plan warning if the attribute is set.
 - `is_gzip_enabled` (Boolean) Whether gzip compression is enabled for the application proxy. Coolify default is `true`. Writing this requires Coolify >= v4.2.0, where it is on the application endpoints' allow list; against older instances the provider omits it on write and emits a plan warning if the attribute is set, rather than fail the whole request with 422.
 - `is_http_basic_auth_enabled` (Boolean) Whether HTTP Basic Authentication is enabled.
+- `is_image_scan_enabled` (Boolean) Scan this application's images for vulnerabilities. Coolify's stored default is true. Requires Coolify >= v4.7.0. On older instances, including 4.7 pre-releases, the provider keeps the value in state and does not send it.
 - `is_log_drain_enabled` (Boolean) Whether log drain is enabled for this application. Coolify default is `false`. Requires Coolify >= v4.3.0. Against older instances the provider omits it on write and emits a plan warning if the attribute is set.
 - `is_permanent_redirect_enabled` (Boolean) Whether HTTP redirects are permanent. Requires Coolify >= v4.5.0. On older instances the provider keeps the value in state and does not send it.
 - `is_pr_deployments_public_enabled` (Boolean) Whether preview deployments from public pull requests are enabled. Coolify default is `false`. Writing this requires Coolify >= v4.2.0, where it is on the application endpoints' allow list; against older instances the provider omits it on write and emits a plan warning if the attribute is set, rather than fail the whole request with 422.

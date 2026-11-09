@@ -367,7 +367,7 @@ ImportStateVerifyIgnore: []string{"private_key", "postgres_password"},
 
 ## Acceptance Test Coverage
 
-### Resources (62 total)
+### Resources (65 total)
 
 | Resource | Acc Test | Create | Update | Import | Notes |
 |----------|----------|--------|--------|--------|-------|
@@ -390,6 +390,7 @@ ImportStateVerifyIgnore: []string{"private_key", "postgres_password"},
 | `coolify_application` | Yes | Yes | Yes | Yes | Public git with coollabsio/coolify-examples |
 | `coolify_application_private_git` | Yes | Yes | Yes | Yes | SSH URL, dummy key |
 | `coolify_application_github_app` | Yes | Yes | Yes | Yes | Requires live `COOLIFY_GITHUB_APP_*` fixture env vars with repository access |
+| `coolify_application_gitea_app` | Yes | Yes | Yes | Yes | Requires Coolify >= v4.7.0. Skips unless `COOLIFY_GITEA_APP_UUID` and `COOLIFY_GITEA_REPOSITORY` are set |
 | `coolify_github_app` | Yes | Yes | N/A | Yes | Uses a Terraform-managed private key fixture; create/update work without repository access |
 | `coolify_notification_discord` | Yes | Yes | Yes | Yes | Team singleton; requires Coolify >= v4.3.0 |
 | `coolify_notification_email` | Yes | Yes | Yes | Yes | Team singleton; requires Coolify >= v4.3.0 |
@@ -426,6 +427,8 @@ ImportStateVerifyIgnore: []string{"private_key", "postgres_password"},
 | `coolify_server_log_drain` | Unit | Yes | Yes | Yes | Requires Coolify >= v4.3.0; destroy disables drains |
 | `coolify_server_cloudflare_tunnel` | Unit | Yes | Yes | Yes | Requires Coolify >= v4.3.0 |
 | `coolify_server_sentinel` | Unit | Yes | Yes | Yes | Requires Coolify >= v4.3.0 |
+| `coolify_server_image_scanning` | Yes | Yes | Yes | Yes | Requires Coolify >= v4.7.0. Skips on older instances. Import ignores scanner progress fields |
+| `coolify_team_settings` | Yes | Yes | Yes | Yes | Requires Coolify >= v4.7.0. Team singleton; import id `current`. Skips on older instances |
 | `coolify_server_docker_cleanup` | Unit | Yes | Yes | Yes | Requires Coolify >= v4.3.0; destroy leaves schedule |
 | `coolify_server_docker_registry` | Yes | Yes | Yes | Yes | Coolify 4.4 tip only. Skips when the registry route is absent. Login steps also skip unless `COOLIFY_DOCKER_REGISTRY_USERNAME` and `COOLIFY_DOCKER_REGISTRY_PASSWORD` are set, because Coolify runs `docker login` on the server |
 | `coolify_application_destination` | Unit | Yes | N/A | Yes | Extra destination only; requires Coolify >= v4.2.0 |
@@ -509,7 +512,7 @@ ImportStateVerifyIgnore: []string{"private_key", "postgres_password"},
 
 - **Resources**: 47/47 direct acceptance coverage
 - **Data Sources**: 45/45 direct acceptance coverage
-- **Total acceptance test functions**: 159
+- **Total acceptance test functions**: 162
 
 ### Primary-field update coverage
 

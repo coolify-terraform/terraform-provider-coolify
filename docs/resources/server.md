@@ -67,6 +67,7 @@ resource "coolify_server" "example" {
 - `server_disk_usage_notification_threshold` (Number) Disk usage percentage at which a notification is sent.
 - `server_role` (String) Server role: `deployment`, `build`, or `both`. Requires Coolify >= 4.4 (not in tag v4.3.23 or v4.4-rc.1). Against older instances the provider omits it on write. When set, this value is sent instead of mapping `is_build_server`.
 - `server_timezone` (String) IANA timezone for scheduled tasks and backups on this server, for example `UTC` or `Europe/Berlin`. Coolify's stored default is `UTC`. Requires Coolify >= v4.5.1. On older instances the provider keeps a configured value in state and does not send it. Removing the attribute later does not clear a stored value.
+- `ssh_host_key` (String, Sensitive) SSH host key to trust, as public key lines (`type base64`) or known_hosts lines. Coolify does not return the raw key. Requires Coolify >= v4.7.0. On older instances the provider keeps the value in state and does not send it. Removing the value clears the trusted key so Coolify trusts the key the server sends on the next connection.
 - `timeouts` (Attributes) (see [below for nested schema](#nestedatt--timeouts))
 - `user` (String) The SSH user for connecting to the server.
 - `wildcard_domain` (String) Wildcard domain URL used to generate domains for new resources on this server (for example `https://example.com`). Null removes it. Requires Coolify >= v4.5.1. On older instances the provider keeps a configured value in state and does not send it. Removing the attribute later does not clear a stored value.
@@ -110,6 +111,8 @@ resource "coolify_server" "example" {
 - `sentinel_metrics_refresh_rate_seconds` (Number) Sentinel metrics refresh rate in seconds.
 - `sentinel_push_interval_seconds` (Number) Interval in seconds between Sentinel metric pushes.
 - `sentinel_token` (String, Sensitive) Sentinel agent token. Sensitive; only returned when the API token can read secrets. Read-only.
+- `ssh_host_key_fingerprints` (List of String) Fingerprints of the trusted SSH host key. Null when Coolify has not stored one, including on instances older than v4.7.0.
+- `ssh_host_key_pending_fingerprints` (List of String) Fingerprints of an SSH host key Coolify has seen and not trusted yet. Null when there is none, including on instances older than v4.7.0.
 - `uuid` (String) The unique identifier of the server.
 
 <a id="nestedatt--timeouts"></a>

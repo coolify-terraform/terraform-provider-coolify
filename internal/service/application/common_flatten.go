@@ -581,6 +581,11 @@ func hasNonDefaultAppExtendedFields(f commonAppFields) bool {
 		(f.IsContainerLabelReadonlyEnabled != nil && !f.IsContainerLabelReadonlyEnabled.IsNull() && !f.IsContainerLabelReadonlyEnabled.IsUnknown()) ||
 		(f.GitHTTPSUsername != nil && !f.GitHTTPSUsername.IsNull() && !f.GitHTTPSUsername.IsUnknown()) ||
 		(f.GitHTTPSPassword != nil && !f.GitHTTPSPassword.IsNull() && !f.GitHTTPSPassword.IsUnknown()) ||
+		(f.GiteaAppUUID != nil && !f.GiteaAppUUID.IsNull() && !f.GiteaAppUUID.IsUnknown()) ||
+		flex.BoolPtrNonDefault(f.IncludeNetworkHostsInBuild, true) ||
+		flex.BoolPtrNonDefault(f.IsAutoCancelQueuedDeploymentsEnabled, true) ||
+		flex.BoolPtrNonDefault(f.IsAutoCancelBuildingDeploymentsEnabled, false) ||
+		flex.BoolPtrNonDefault(f.IsImageScanEnabled, true) ||
 		listPtrConfigured(f.NoindexDomains) ||
 		flex.BoolPtrNonDefault(f.ForceDomainOverride, false) ||
 		// String overrides
@@ -802,6 +807,28 @@ func setBoolOrNull(dst *types.Bool, v *bool) {
 	}
 }
 
+func flattenCoolify47ApplicationSettings(app *client.Application, f commonAppFields) {
+	if !keepConfiguredString(f.WithholdCoolify47, f.GiteaAppUUID) {
+		if app.GiteaAppUUID != nil && *app.GiteaAppUUID != "" {
+			setStringIfPresent(f.GiteaAppUUID, *app.GiteaAppUUID)
+		} else if f.GiteaAppUUID != nil && f.GiteaAppUUID.IsUnknown() {
+			*f.GiteaAppUUID = types.StringNull()
+		}
+	}
+	if !keepConfiguredBool(f.WithholdCoolify47, f.IncludeNetworkHostsInBuild) {
+		setBoolIfPresent(f.IncludeNetworkHostsInBuild, app.IncludeNetworkHostsInBuild)
+	}
+	if !keepConfiguredBool(f.WithholdCoolify47, f.IsAutoCancelQueuedDeploymentsEnabled) {
+		setBoolIfPresent(f.IsAutoCancelQueuedDeploymentsEnabled, app.IsAutoCancelQueuedDeploymentsEnabled)
+	}
+	if !keepConfiguredBool(f.WithholdCoolify47, f.IsAutoCancelBuildingDeploymentsEnabled) {
+		setBoolIfPresent(f.IsAutoCancelBuildingDeploymentsEnabled, app.IsAutoCancelBuildingDeploymentsEnabled)
+	}
+	if !keepConfiguredBool(f.WithholdCoolify47, f.IsImageScanEnabled) {
+		setBoolIfPresent(f.IsImageScanEnabled, app.IsImageScanEnabled)
+	}
+}
+
 func flattenApplicationSettingFields(app *client.Application, f commonAppFields) {
 	setBoolDefault(f.IsGitSubmodulesEnabled, app.IsGitSubmodulesEnabled, true)
 	setBoolDefault(f.IsGitLfsEnabled, app.IsGitLfsEnabled, true)
@@ -851,6 +878,7 @@ func flattenApplicationSettingFields(app *client.Application, f commonAppFields)
 	if !keepConfiguredBool(f.WithholdCoolify451, f.IsContainerLabelReadonlyEnabled) {
 		setBoolIfPresent(f.IsContainerLabelReadonlyEnabled, app.IsContainerLabelReadonlyEnabled)
 	}
+	flattenCoolify47ApplicationSettings(app, f)
 	if !keepConfiguredString(f.WithholdCoolify46, f.GitHTTPSUsername) {
 		if app.GitHTTPSUsername != nil && *app.GitHTTPSUsername != "" {
 			setStringIfPresent(f.GitHTTPSUsername, *app.GitHTTPSUsername)
@@ -874,6 +902,7 @@ func noteCoolifyVersion(f *commonAppFields, c *client.Client) {
 	f.PreserveConfiguredMaxRestart = c != nil && !c.SupportsApplicationSettingsV43()
 	f.WithholdCoolify451 = c != nil && !c.SupportsCoolify451()
 	f.WithholdCoolify46 = c != nil && !c.SupportsCoolify46()
+	f.WithholdCoolify47 = c != nil && !c.SupportsCoolify47()
 }
 
 func keepConfiguredBool(withhold bool, v *types.Bool) bool {
@@ -1033,6 +1062,11 @@ func addApplicationSettingUpdateFields(plan, state commonAppFields, input *clien
 	setBoolDiff(&input.IsContainerLabelReadonlyEnabled, plan.IsContainerLabelReadonlyEnabled, state.IsContainerLabelReadonlyEnabled)
 	setStrDiff(&input.GitHTTPSUsername, plan.GitHTTPSUsername, state.GitHTTPSUsername)
 	setStrDiff(&input.GitHTTPSPassword, plan.GitHTTPSPassword, state.GitHTTPSPassword)
+	setStrDiff(&input.GiteaAppUUID, plan.GiteaAppUUID, state.GiteaAppUUID)
+	setBoolDiff(&input.IncludeNetworkHostsInBuild, plan.IncludeNetworkHostsInBuild, state.IncludeNetworkHostsInBuild)
+	setBoolDiff(&input.IsAutoCancelQueuedDeploymentsEnabled, plan.IsAutoCancelQueuedDeploymentsEnabled, state.IsAutoCancelQueuedDeploymentsEnabled)
+	setBoolDiff(&input.IsAutoCancelBuildingDeploymentsEnabled, plan.IsAutoCancelBuildingDeploymentsEnabled, state.IsAutoCancelBuildingDeploymentsEnabled)
+	setBoolDiff(&input.IsImageScanEnabled, plan.IsImageScanEnabled, state.IsImageScanEnabled)
 	if plan.NoindexDomains != nil && state.NoindexDomains != nil && !plan.NoindexDomains.Equal(*state.NoindexDomains) {
 		if plan.NoindexDomains.IsNull() {
 			empty := []string{}
@@ -1107,6 +1141,13 @@ func setApplicationSettingPostCreate(input *client.UpdateApplicationInput, f com
 	if f.GitHTTPSPassword != nil {
 		flex.SetStrPtr(&input.GitHTTPSPassword, *f.GitHTTPSPassword)
 	}
+	if f.GiteaAppUUID != nil {
+		flex.SetStrPtr(&input.GiteaAppUUID, *f.GiteaAppUUID)
+	}
+	flex.SetBoolPtr(&input.IncludeNetworkHostsInBuild, safeBool(f.IncludeNetworkHostsInBuild))
+	flex.SetBoolPtr(&input.IsAutoCancelQueuedDeploymentsEnabled, safeBool(f.IsAutoCancelQueuedDeploymentsEnabled))
+	flex.SetBoolPtr(&input.IsAutoCancelBuildingDeploymentsEnabled, safeBool(f.IsAutoCancelBuildingDeploymentsEnabled))
+	flex.SetBoolPtr(&input.IsImageScanEnabled, safeBool(f.IsImageScanEnabled))
 	if listPtrConfigured(f.NoindexDomains) {
 		list := stringListFromTypes(*f.NoindexDomains)
 		input.NoindexDomains = &list

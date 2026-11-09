@@ -60,9 +60,13 @@ Required:
 Read-Only:
 
 - `command` (String) The command to execute.
+- `consecutive_failures` (Number) How many runs in a row have failed. Null when Coolify has not reported one.
 - `container` (String) Container name where the command runs.
+- `disabled_reason` (String) Why Coolify disabled the task. Null when the task is not disabled for failures.
 - `enabled` (Boolean) Whether the task is enabled.
+- `failing_since` (String) When the current failure streak started. Null when the task is not in a failure streak.
 - `frequency` (String) The cron expression.
 - `name` (String) The name of the scheduled task.
 - `timeout` (Number) Maximum run time in seconds.
+- `use_shell` (Boolean) Whether the command runs with `sh -c`. Null when the instance is older than v4.7.0.
 - `uuid` (String) The UUID of the scheduled task.

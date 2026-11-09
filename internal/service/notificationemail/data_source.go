@@ -52,6 +52,8 @@ func (d *emailDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, 
 		"smtp_ehlo_domain":            schema.StringAttribute{MarkdownDescription: "Hostname sent with SMTP EHLO. Requires Coolify >= v4.3.10.", Computed: true},
 		"resend_enabled":              notificationcommon.BoolComputed("Whether Resend delivery is enabled."),
 		"resend_api_key":              sens("Resend API key."),
+		"resend_from_address":         sens("From address used when Resend sends team mail. Requires Coolify >= v4.7.0."),
+		"resend_from_name":            sens("Display name used when Resend sends team mail. Requires Coolify >= v4.7.0."),
 		"use_instance_email_settings": notificationcommon.BoolComputed("Whether the team uses the Coolify instance email settings."),
 		"deployment_commit_details_email_notifications": notificationcommon.BoolComputed(
 			"Whether deployment emails include git commit details. Requires Coolify >= v4.5.0. Null when the API omits the key.",
@@ -76,7 +78,7 @@ func (d *emailDataSource) Read(ctx context.Context, _ datasource.ReadRequest, re
 		return
 	}
 	var state model
-	if err := flatten(got, &state); err != nil {
+	if err := flatten(d.client, got, &state); err != nil {
 		resp.Diagnostics.AddError("Error mapping notification settings", err.Error())
 		return
 	}

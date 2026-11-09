@@ -33,13 +33,17 @@ type scheduledTaskListModel struct {
 }
 
 type scheduledTaskItemModel struct {
-	UUID      types.String `tfsdk:"uuid"`
-	Name      types.String `tfsdk:"name"`
-	Command   types.String `tfsdk:"command"`
-	Frequency types.String `tfsdk:"frequency"`
-	Enabled   types.Bool   `tfsdk:"enabled"`
-	Container types.String `tfsdk:"container"`
-	Timeout   types.Int64  `tfsdk:"timeout"`
+	UUID                types.String `tfsdk:"uuid"`
+	Name                types.String `tfsdk:"name"`
+	Command             types.String `tfsdk:"command"`
+	Frequency           types.String `tfsdk:"frequency"`
+	Enabled             types.Bool   `tfsdk:"enabled"`
+	Container           types.String `tfsdk:"container"`
+	Timeout             types.Int64  `tfsdk:"timeout"`
+	UseShell            types.Bool   `tfsdk:"use_shell"`
+	ConsecutiveFailures types.Int64  `tfsdk:"consecutive_failures"`
+	DisabledReason      types.String `tfsdk:"disabled_reason"`
+	FailingSince        types.String `tfsdk:"failing_since"`
 }
 
 // NewListDataSource returns a new scheduledTaskListDataSource instance.
@@ -73,13 +77,17 @@ func (d *scheduledTaskListDataSource) Schema(_ context.Context, _ datasource.Sch
 				Computed:            true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
-						"uuid":      schema.StringAttribute{MarkdownDescription: "The UUID of the scheduled task.", Computed: true},
-						"name":      schema.StringAttribute{MarkdownDescription: "The name of the scheduled task.", Computed: true},
-						"command":   schema.StringAttribute{MarkdownDescription: "The command to execute.", Computed: true},
-						"frequency": schema.StringAttribute{MarkdownDescription: "The cron expression.", Computed: true},
-						"enabled":   schema.BoolAttribute{MarkdownDescription: "Whether the task is enabled.", Computed: true},
-						"container": schema.StringAttribute{MarkdownDescription: "Container name where the command runs.", Computed: true},
-						"timeout":   schema.Int64Attribute{MarkdownDescription: "Maximum run time in seconds.", Computed: true},
+						"uuid":                 schema.StringAttribute{MarkdownDescription: "The UUID of the scheduled task.", Computed: true},
+						"name":                 schema.StringAttribute{MarkdownDescription: "The name of the scheduled task.", Computed: true},
+						"command":              schema.StringAttribute{MarkdownDescription: "The command to execute.", Computed: true},
+						"frequency":            schema.StringAttribute{MarkdownDescription: "The cron expression.", Computed: true},
+						"enabled":              schema.BoolAttribute{MarkdownDescription: "Whether the task is enabled.", Computed: true},
+						"container":            schema.StringAttribute{MarkdownDescription: "Container name where the command runs.", Computed: true},
+						"timeout":              schema.Int64Attribute{MarkdownDescription: "Maximum run time in seconds.", Computed: true},
+						"use_shell":            schema.BoolAttribute{MarkdownDescription: "Whether the command runs with `sh -c`. Null when the instance is older than v4.7.0.", Computed: true},
+						"consecutive_failures": schema.Int64Attribute{MarkdownDescription: "How many runs in a row have failed. Null when Coolify has not reported one.", Computed: true},
+						"disabled_reason":      schema.StringAttribute{MarkdownDescription: "Why Coolify disabled the task. Null when the task is not disabled for failures.", Computed: true},
+						"failing_since":        schema.StringAttribute{MarkdownDescription: "When the current failure streak started. Null when the task is not in a failure streak.", Computed: true},
 					},
 				},
 			},
@@ -152,7 +160,7 @@ func (d *scheduledTaskListDataSource) Read(ctx context.Context, req datasource.R
 		if t.Timeout != nil {
 			timeout = *t.Timeout
 		}
-		items[i] = scheduledTaskItemModel{
+		item := scheduledTaskItemModel{
 			UUID:      types.StringValue(t.UUID),
 			Name:      types.StringValue(t.Name),
 			Command:   types.StringValue(t.Command),
@@ -161,6 +169,19 @@ func (d *scheduledTaskListDataSource) Read(ctx context.Context, req datasource.R
 			Container: types.StringValue(t.Container),
 			Timeout:   types.Int64Value(timeout),
 		}
+		if t.UseShell != nil {
+			item.UseShell = types.BoolValue(*t.UseShell)
+		} else {
+			item.UseShell = types.BoolNull()
+		}
+		if t.ConsecutiveFailures != nil {
+			item.ConsecutiveFailures = types.Int64Value(*t.ConsecutiveFailures)
+		} else {
+			item.ConsecutiveFailures = types.Int64Null()
+		}
+		item.DisabledReason = stringOrNull(t.DisabledReason)
+		item.FailingSince = stringOrNull(t.FailingSince)
+		items[i] = item
 	}
 	config.Tasks = items
 

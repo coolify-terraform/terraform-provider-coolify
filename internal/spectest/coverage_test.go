@@ -31,6 +31,11 @@ var registryExtrasNotInContract = map[string]bool{
 	"PATCH /applications/{uuid}/secret-manager": true,
 	"GET /servers/{uuid}/export":                true,
 	"POST /servers/{uuid}/export/mailbox":       true,
+	// Coolify 4.7 routes. The pin contract is still v4.6.0.
+	"POST /applications/private-gitea-app": true,
+	"GET /servers/{uuid}/image-scanning":   true,
+	"PATCH /servers/{uuid}/image-scanning": true,
+	"POST /servers/{uuid}/host-key/reset":  true,
 }
 
 // coveredEndpoints returns the provider's route coverage registry.
@@ -63,15 +68,18 @@ func coveredEndpoints() map[string]coverageStatus {
 		"GET /projects/{uuid}/{environment_name_or_uuid}":                 covered("data.coolify_environment", "v0.2.0"),
 
 		// ── Servers ──
-		"GET /servers":                  covered("data.coolify_servers", "v0.1.0"),
-		"POST /servers":                 covered("coolify_server", "v0.1.0"),
-		"GET /servers/{uuid}":           covered("data.coolify_server", "v0.1.0"),
-		"PATCH /servers/{uuid}":         covered("coolify_server", "v0.1.0"),
-		"DELETE /servers/{uuid}":        covered("coolify_server", "v0.1.0"),
-		"GET /servers/{uuid}/domains":   covered("data.coolify_server_domains", "v0.1.0"),
-		"GET /servers/{uuid}/resources": covered("data.coolify_server_resources", "v0.1.0"),
-		"POST /servers/hetzner":         covered("coolify_server_hetzner", "v0.2.0"),
-		"GET /servers/{uuid}/validate":  covered("data.coolify_server_validation", "v0.2.0"),
+		"GET /servers":                         covered("data.coolify_servers", "v0.1.0"),
+		"POST /servers":                        covered("coolify_server", "v0.1.0"),
+		"GET /servers/{uuid}":                  covered("data.coolify_server", "v0.1.0"),
+		"PATCH /servers/{uuid}":                covered("coolify_server", "v0.1.0"),
+		"DELETE /servers/{uuid}":               covered("coolify_server", "v0.1.0"),
+		"GET /servers/{uuid}/domains":          covered("data.coolify_server_domains", "v0.1.0"),
+		"GET /servers/{uuid}/resources":        covered("data.coolify_server_resources", "v0.1.0"),
+		"POST /servers/hetzner":                covered("coolify_server_hetzner", "v0.2.0"),
+		"GET /servers/{uuid}/validate":         covered("data.coolify_server_validation", "v0.2.0"),
+		"GET /servers/{uuid}/image-scanning":   covered("coolify_server_image_scanning", "v0.1.32"),
+		"PATCH /servers/{uuid}/image-scanning": covered("coolify_server_image_scanning", "v0.1.32"),
+		"POST /servers/{uuid}/host-key/reset":  covered("coolify_server", "v0.1.32"),
 
 		// ── Applications ──
 		"GET /applications":                                               covered("data.coolify_applications", "v0.1.0"),
@@ -89,6 +97,7 @@ func coveredEndpoints() map[string]coverageStatus {
 		"GET /applications/{uuid}/restart":                                covered("coolify_deployment", "v0.1.0"),
 		"POST /applications/dockerfile":                                   covered("coolify_application_dockerfile", "v0.2.0"),
 		"POST /applications/private-github-app":                           covered("coolify_application_github_app", "v0.2.0"),
+		"POST /applications/private-gitea-app":                            covered("coolify_application_gitea_app", "v0.1.32"),
 		"GET /applications/{uuid}/start":                                  covered("coolify_resource_action", "v0.3.0"),
 		"GET /applications/{uuid}/stop":                                   covered("coolify_resource_action", "v0.3.0"),
 		"GET /applications/{uuid}/scheduled-tasks":                        covered("data.coolify_scheduled_tasks", "v0.2.0"),
@@ -420,7 +429,7 @@ func coveredEndpoints() map[string]coverageStatus {
 		"DELETE /security/integration-tokens/{uuid}":                                   covered("coolify_integration_token", "v0.1.31"),
 		"POST /security/integration-tokens/{uuid}/sync-zones":                          skipped(skipOperator),
 		"GET /audit-events":                                                            skipped(skipOperator),
-		"PATCH /team":                                                                  skipped(skipOperator),
+		"PATCH /team":                                                                  covered("coolify_team_settings", "v0.1.32"),
 		"POST /team/envs":                                                              covered("coolify_shared_environment_variable", "v0.1.15"),
 		"PUT /servers/{uuid}/proxy/configuration":                                      covered("coolify_server_proxy", "v0.1.15"),
 	}

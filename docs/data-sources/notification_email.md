@@ -33,8 +33,11 @@ output "notifications" {
 - `docker_cleanup_failure` (Boolean) Whether email notifications are sent for Docker cleanup failure events.
 - `docker_cleanup_success` (Boolean) Whether email notifications are sent for Docker cleanup success events.
 - `id` (String) Identifier. Always `current` (team is implied by the API token).
+- `image_vulnerabilities` (Boolean) Whether email notifications are sent for image vulnerabilities events. Requires Coolify >= v4.7.0.
 - `resend_api_key` (String, Sensitive) Resend API key. Coolify may omit this unless the API token can read sensitive fields (`read:sensitive` or root).
 - `resend_enabled` (Boolean) Whether Resend delivery is enabled.
+- `resend_from_address` (String, Sensitive) From address used when Resend sends team mail. Requires Coolify >= v4.7.0. Coolify may omit this unless the API token can read sensitive fields (`read:sensitive` or root).
+- `resend_from_name` (String, Sensitive) Display name used when Resend sends team mail. Requires Coolify >= v4.7.0. Coolify may omit this unless the API token can read sensitive fields (`read:sensitive` or root).
 - `restart_limit_reached` (Boolean) Whether email notifications are sent for restart limit reached events. Requires Coolify >= v4.3.15 (not in tag v4.3.14).
 - `scheduled_task_failure` (Boolean) Whether email notifications are sent for scheduled task failure events.
 - `scheduled_task_success` (Boolean) Whether email notifications are sent for scheduled task success events.

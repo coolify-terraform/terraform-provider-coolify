@@ -29,9 +29,9 @@ variable "smtp_enabled" {
 }
 
 variable "smtp_host" {
-  description = "SMTP host"
+  description = "SMTP host. Coolify >= v4.7.0 resolves this name and rejects a host that does not resolve."
   type        = string
-  default     = "smtp.example.com"
+  default     = "example.com"
 }
 
 variable "smtp_port" {

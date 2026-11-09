@@ -21,6 +21,10 @@ type S3Storage struct {
 	Secret               string `json:"secret,omitempty"`
 	UsePathStyleEndpoint *bool  `json:"use_path_style_endpoint,omitempty"`
 	IsUsable             *bool  `json:"is_usable,omitempty"`
+	Type                 string `json:"type,omitempty"`
+	SkipTLSVerification  *bool  `json:"skip_tls_verification,omitempty"`
+	PrivateKeyUUID       string `json:"private_key_uuid,omitempty"`
+	SFTPHostKey          string `json:"sftp_host_key,omitempty"`
 }
 
 // CreateS3StorageInput is the payload for creating S3 storage.
@@ -35,6 +39,9 @@ type CreateS3StorageInput struct {
 	Secret               string `json:"secret"`
 	UsePathStyleEndpoint *bool  `json:"use_path_style_endpoint,omitempty"`
 	IsUsable             *bool  `json:"is_usable,omitempty"`
+	Type                 string `json:"type,omitempty"`
+	SkipTLSVerification  *bool  `json:"skip_tls_verification,omitempty"`
+	PrivateKeyUUID       string `json:"private_key_uuid,omitempty"`
 }
 
 // UpdateS3StorageInput is the payload for updating S3 storage.
@@ -49,6 +56,9 @@ type UpdateS3StorageInput struct {
 	Secret               *string `json:"secret,omitempty"`
 	UsePathStyleEndpoint *bool   `json:"use_path_style_endpoint,omitempty"`
 	IsUsable             *bool   `json:"is_usable,omitempty"`
+	Type                 *string `json:"type,omitempty"`
+	SkipTLSVerification  *bool   `json:"skip_tls_verification,omitempty"`
+	PrivateKeyUUID       *string `json:"private_key_uuid,omitempty"`
 }
 
 // ListS3Storages returns all S3 storages for the authenticated team.
@@ -77,6 +87,11 @@ func (c *Client) CreateS3Storage(ctx context.Context, input CreateS3StorageInput
 	if c != nil && !c.SupportsCoolify451() {
 		input.UsePathStyleEndpoint = nil
 	}
+	if c != nil && !c.SupportsCoolify47() {
+		input.Type = ""
+		input.SkipTLSVerification = nil
+		input.PrivateKeyUUID = ""
+	}
 	var r S3Storage
 	if err := c.doWithStatus(ctx, http.MethodPost, "/api/v1/s3-storages", input, &r, http.StatusCreated); err != nil {
 		return nil, fmt.Errorf("creating s3 storage: %w", err)
@@ -89,6 +104,11 @@ func (c *Client) CreateS3Storage(ctx context.Context, input CreateS3StorageInput
 func (c *Client) UpdateS3Storage(ctx context.Context, uuid string, input UpdateS3StorageInput) (*S3Storage, error) {
 	if c != nil && !c.SupportsCoolify451() {
 		input.UsePathStyleEndpoint = nil
+	}
+	if c != nil && !c.SupportsCoolify47() {
+		input.Type = nil
+		input.SkipTLSVerification = nil
+		input.PrivateKeyUUID = nil
 	}
 	var r S3Storage
 	if err := c.do(ctx, http.MethodPatch, fmt.Sprintf("/api/v1/s3-storages/%s", url.PathEscape(uuid)), input, &r); err != nil {

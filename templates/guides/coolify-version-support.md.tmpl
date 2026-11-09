@@ -294,6 +294,22 @@ application, null uses the server setting. `none` turns the resolver off.
 | `git_https_username` and `git_https_password` on applications | HTTPS Git credentials for a private repository that is not a GitHub App. The password is not returned on read. 4.6 release candidates keep a configured value in state and do not send it. |
 | `coolify_integration_token` | Cloudflare, Doppler, Infisical, and Vault tokens. Create checks the secret with that provider. The secret and metadata are not returned. `POST .../sync-zones` stays an operator action. |
 
+### Requires Coolify ≥ 4.7.0
+
+| Resource / attribute | Role |
+|----------------------|------|
+| `coolify_application_gitea_app` | Create an application from a private Gitea app (`POST /applications/private-gitea-app`). `gitea_app_uuid` is required on that resource. Other application types can set the same attribute when the source is a Gitea app. Do not set it together with `github_app_uuid`. |
+| `include_network_hosts_in_build`, `is_auto_cancel_queued_deployments_enabled`, `is_auto_cancel_building_deployments_enabled`, `is_image_scan_enabled` on applications | Application settings. Coolify defaults are true, true, false, and true. Older instances keep a configured value in state and do not send it. |
+| `use_shell` on `coolify_scheduled_task` | Run the command with `sh -c`. Coolify's stored default is true. `consecutive_failures`, `disabled_reason`, and `failing_since` are read-only. |
+| `type`, `skip_tls_verification`, `private_key_uuid` on `coolify_s3_storage` | `type` is `s3` or `sftp`. `private_key_uuid` is the SFTP login key. `sftp_host_key` is read-only. Bucket, region, and secret stay required in the schema. Older instances keep configured values in state and do not send them. |
+| `ssh_host_key` on `coolify_server` | Public key or known_hosts lines trusted at create. Later changes call `POST /servers/{uuid}/host-key/reset`. The raw key is not returned. `ssh_host_key_fingerprints` and `ssh_host_key_pending_fingerprints` are read-only. Cloud server resources do not expose this attribute. |
+| `coolify_server_image_scanning` | Turn image scanning on or off for one server and read scanner state. The route does not exist before v4.7.0, so create fails on older instances. |
+| `coolify_team_settings` | `scan_images_on_new_servers` for the team bound to the API token (`PATCH /team`). Older instances keep a configured value in state and do not send it. |
+| `notification_from_address`, `notification_from_name`, `resend_from_address`, `resend_from_name` on `coolify_instance_email_settings` | Sender identity for instance mail and Resend. Sensitive. Older instances keep configured values in state and do not send them. |
+| `resend_from_address` and `resend_from_name` on `coolify_notification_email` | Sender identity for team Resend mail. |
+| `smtp_host` on `coolify_notification_email` | Coolify resolves the host on PATCH and rejects a name that does not resolve. |
+| `image_vulnerabilities` on notification channels | Send a notification when an image scan finds vulnerabilities. Telegram also has `thread_image_vulnerabilities`. Older instances keep configured values in state and do not send them. |
+
 `coolify_service_application` configures an application the compose service already created. Fields that older Coolify accepts, such as `url` and `description`, are still sent. There is no DELETE for this object. Destroy drops Terraform state and leaves the container and its URL in place.
 
 ## What "does not work" means in practice
@@ -314,7 +330,7 @@ PATCH if any disallowed field is present, so the provider strips them.
 | Topic | Guidance |
 |-------|----------|
 | Minimum Coolify for this provider | **4.1.0** |
-| Recommended Coolify for every write this provider sends | **≥ 4.6.0** |
+| Recommended Coolify for every write this provider sends | **≥ 4.7.0** |
 | Provider package versions | Current 0.1.x line targets Coolify 4.1+ and withholds newer fields on older instances |
 
 Historical "0.2.x / 0.3.x min Coolify" rows in older docs referred to planned

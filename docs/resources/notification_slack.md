@@ -41,6 +41,7 @@ resource "coolify_notification_slack" "main" {
 - `docker_cleanup_failure` (Boolean) Whether to send Slack notifications for Docker cleanup failure events.
 - `docker_cleanup_success` (Boolean) Whether to send Slack notifications for Docker cleanup success events.
 - `enabled` (Boolean) Whether Slack notifications are enabled for the team.
+- `image_vulnerabilities` (Boolean) Whether to send Slack notifications for image vulnerabilities events. Requires Coolify >= v4.7.0. On older instances the provider keeps the value in state and does not send it.
 - `restart_limit_reached` (Boolean) Whether to send Slack notifications for restart limit reached events. Requires Coolify >= v4.3.15 (not in tag v4.3.14). Omit on older instances; the API rejects the field with HTTP 422.
 - `scheduled_task_failure` (Boolean) Whether to send Slack notifications for scheduled task failure events.
 - `scheduled_task_success` (Boolean) Whether to send Slack notifications for scheduled task success events.

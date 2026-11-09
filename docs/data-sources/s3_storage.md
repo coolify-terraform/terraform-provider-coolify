@@ -32,5 +32,9 @@ data "coolify_s3_storage" "example" {
 - `endpoint` (String) S3-compatible endpoint URL.
 - `is_usable` (Boolean) Whether Coolify marks this storage as usable.
 - `name` (String) A friendly name for the S3 storage.
+- `private_key_uuid` (String) SFTP private key UUID. Null when this storage is not SFTP or the instance does not return the field.
 - `region` (String) S3 region.
+- `sftp_host_key` (String, Sensitive) SFTP host key recorded by Coolify. Sensitive. Null when absent.
+- `skip_tls_verification` (Boolean) Whether S3 TLS verification is skipped. Null when the instance does not return the field.
+- `type` (String) Storage type (`s3` or `sftp`). Null when the instance is older than v4.7.0 and does not return the field.
 - `use_path_style_endpoint` (Boolean) Whether this storage uses path-style URLs. Null when the Coolify instance is older than v4.5.1 and does not return the field.

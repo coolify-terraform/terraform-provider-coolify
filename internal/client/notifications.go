@@ -31,6 +31,7 @@ type DiscordNotificationSettings struct {
 	ServerUnreachable    bool `json:"server_unreachable_discord_notifications"`
 	ServerPatch          bool `json:"server_patch_discord_notifications"`
 	TraefikOutdated      bool `json:"traefik_outdated_discord_notifications"`
+	ImageVulnerabilities bool `json:"image_vulnerabilities_discord_notifications"`
 }
 
 // UpdateDiscordNotificationInput is the PATCH body for Discord notifications.
@@ -55,6 +56,7 @@ type UpdateDiscordNotificationInput struct {
 	ServerUnreachable    *bool `json:"server_unreachable_discord_notifications,omitempty"`
 	ServerPatch          *bool `json:"server_patch_discord_notifications,omitempty"`
 	TraefikOutdated      *bool `json:"traefik_outdated_discord_notifications,omitempty"`
+	ImageVulnerabilities *bool `json:"image_vulnerabilities_discord_notifications,omitempty"`
 }
 
 // SlackNotificationSettings is the current team's Slack notification config.
@@ -80,6 +82,7 @@ type SlackNotificationSettings struct {
 	ServerUnreachable    bool `json:"server_unreachable_slack_notifications"`
 	ServerPatch          bool `json:"server_patch_slack_notifications"`
 	TraefikOutdated      bool `json:"traefik_outdated_slack_notifications"`
+	ImageVulnerabilities bool `json:"image_vulnerabilities_slack_notifications"`
 }
 
 // UpdateSlackNotificationInput is the PATCH body for Slack notifications.
@@ -102,6 +105,7 @@ type UpdateSlackNotificationInput struct {
 	ServerUnreachable    *bool `json:"server_unreachable_slack_notifications,omitempty"`
 	ServerPatch          *bool `json:"server_patch_slack_notifications,omitempty"`
 	TraefikOutdated      *bool `json:"traefik_outdated_slack_notifications,omitempty"`
+	ImageVulnerabilities *bool `json:"image_vulnerabilities_slack_notifications,omitempty"`
 }
 
 // GetDiscordNotifications returns the current team's Discord settings.
@@ -117,6 +121,7 @@ func (c *Client) GetDiscordNotifications(ctx context.Context) (*DiscordNotificat
 // UpdateDiscordNotifications updates the current team's Discord settings.
 // Requires Coolify >= v4.3.0.
 func (c *Client) UpdateDiscordNotifications(ctx context.Context, input UpdateDiscordNotificationInput) (*DiscordNotificationSettings, error) {
+	c.omitCoolify47Bool(&input.ImageVulnerabilities)
 	var r DiscordNotificationSettings
 	if err := c.do(ctx, http.MethodPatch, "/api/v1/notifications/discord", input, &r); err != nil {
 		return nil, fmt.Errorf("updating discord notifications: %w", err)
@@ -137,6 +142,7 @@ func (c *Client) GetSlackNotifications(ctx context.Context) (*SlackNotificationS
 // UpdateSlackNotifications updates the current team's Slack settings.
 // Requires Coolify >= v4.3.0.
 func (c *Client) UpdateSlackNotifications(ctx context.Context, input UpdateSlackNotificationInput) (*SlackNotificationSettings, error) {
+	c.omitCoolify47Bool(&input.ImageVulnerabilities)
 	var r SlackNotificationSettings
 	if err := c.do(ctx, http.MethodPatch, "/api/v1/notifications/slack", input, &r); err != nil {
 		return nil, fmt.Errorf("updating slack notifications: %w", err)
@@ -167,6 +173,7 @@ type WebhookNotificationSettings struct {
 	ServerUnreachable    bool `json:"server_unreachable_webhook_notifications"`
 	ServerPatch          bool `json:"server_patch_webhook_notifications"`
 	TraefikOutdated      bool `json:"traefik_outdated_webhook_notifications"`
+	ImageVulnerabilities bool `json:"image_vulnerabilities_webhook_notifications"`
 }
 
 // UpdateWebhookNotificationInput is the PATCH body for webhook notifications.
@@ -189,6 +196,7 @@ type UpdateWebhookNotificationInput struct {
 	ServerUnreachable    *bool `json:"server_unreachable_webhook_notifications,omitempty"`
 	ServerPatch          *bool `json:"server_patch_webhook_notifications,omitempty"`
 	TraefikOutdated      *bool `json:"traefik_outdated_webhook_notifications,omitempty"`
+	ImageVulnerabilities *bool `json:"image_vulnerabilities_webhook_notifications,omitempty"`
 }
 
 // PushoverNotificationSettings is the current team's Pushover notification config.
@@ -215,6 +223,7 @@ type PushoverNotificationSettings struct {
 	ServerUnreachable    bool `json:"server_unreachable_pushover_notifications"`
 	ServerPatch          bool `json:"server_patch_pushover_notifications"`
 	TraefikOutdated      bool `json:"traefik_outdated_pushover_notifications"`
+	ImageVulnerabilities bool `json:"image_vulnerabilities_pushover_notifications"`
 }
 
 // UpdatePushoverNotificationInput is the PATCH body for Pushover notifications.
@@ -238,6 +247,7 @@ type UpdatePushoverNotificationInput struct {
 	ServerUnreachable    *bool `json:"server_unreachable_pushover_notifications,omitempty"`
 	ServerPatch          *bool `json:"server_patch_pushover_notifications,omitempty"`
 	TraefikOutdated      *bool `json:"traefik_outdated_pushover_notifications,omitempty"`
+	ImageVulnerabilities *bool `json:"image_vulnerabilities_pushover_notifications,omitempty"`
 }
 
 // GetWebhookNotifications returns the current team's webhook settings.
@@ -253,6 +263,7 @@ func (c *Client) GetWebhookNotifications(ctx context.Context) (*WebhookNotificat
 // UpdateWebhookNotifications updates the current team's webhook settings.
 // Requires Coolify >= v4.3.0.
 func (c *Client) UpdateWebhookNotifications(ctx context.Context, input UpdateWebhookNotificationInput) (*WebhookNotificationSettings, error) {
+	c.omitCoolify47Bool(&input.ImageVulnerabilities)
 	var r WebhookNotificationSettings
 	if err := c.do(ctx, http.MethodPatch, "/api/v1/notifications/webhook", input, &r); err != nil {
 		return nil, fmt.Errorf("updating webhook notifications: %w", err)
@@ -273,6 +284,7 @@ func (c *Client) GetPushoverNotifications(ctx context.Context) (*PushoverNotific
 // UpdatePushoverNotifications updates the current team's Pushover settings.
 // Requires Coolify >= v4.3.0.
 func (c *Client) UpdatePushoverNotifications(ctx context.Context, input UpdatePushoverNotificationInput) (*PushoverNotificationSettings, error) {
+	c.omitCoolify47Bool(&input.ImageVulnerabilities)
 	var r PushoverNotificationSettings
 	if err := c.do(ctx, http.MethodPatch, "/api/v1/notifications/pushover", input, &r); err != nil {
 		return nil, fmt.Errorf("updating pushover notifications: %w", err)
@@ -303,21 +315,24 @@ type EmailNotificationSettings struct {
 	ResendAPIKey     string  `json:"resend_api_key,omitempty"`
 	UseInstanceEmail bool    `json:"use_instance_email_settings"`
 
-	DeploymentSuccess    bool `json:"deployment_success_email_notifications"`
-	DeploymentFailure    bool `json:"deployment_failure_email_notifications"`
-	StatusChange         bool `json:"status_change_email_notifications"`
-	RestartLimitReached  bool `json:"restart_limit_reached_email_notifications"`
-	BackupSuccess        bool `json:"backup_success_email_notifications"`
-	BackupFailure        bool `json:"backup_failure_email_notifications"`
-	ScheduledTaskSuccess bool `json:"scheduled_task_success_email_notifications"`
-	ScheduledTaskFailure bool `json:"scheduled_task_failure_email_notifications"`
-	DockerCleanupSuccess bool `json:"docker_cleanup_success_email_notifications"`
-	DockerCleanupFailure bool `json:"docker_cleanup_failure_email_notifications"`
-	ServerDiskUsage      bool `json:"server_disk_usage_email_notifications"`
-	ServerReachable      bool `json:"server_reachable_email_notifications"`
-	ServerUnreachable    bool `json:"server_unreachable_email_notifications"`
-	ServerPatch          bool `json:"server_patch_email_notifications"`
-	TraefikOutdated      bool `json:"traefik_outdated_email_notifications"`
+	DeploymentSuccess    bool   `json:"deployment_success_email_notifications"`
+	DeploymentFailure    bool   `json:"deployment_failure_email_notifications"`
+	StatusChange         bool   `json:"status_change_email_notifications"`
+	RestartLimitReached  bool   `json:"restart_limit_reached_email_notifications"`
+	BackupSuccess        bool   `json:"backup_success_email_notifications"`
+	BackupFailure        bool   `json:"backup_failure_email_notifications"`
+	ScheduledTaskSuccess bool   `json:"scheduled_task_success_email_notifications"`
+	ScheduledTaskFailure bool   `json:"scheduled_task_failure_email_notifications"`
+	DockerCleanupSuccess bool   `json:"docker_cleanup_success_email_notifications"`
+	DockerCleanupFailure bool   `json:"docker_cleanup_failure_email_notifications"`
+	ServerDiskUsage      bool   `json:"server_disk_usage_email_notifications"`
+	ServerReachable      bool   `json:"server_reachable_email_notifications"`
+	ServerUnreachable    bool   `json:"server_unreachable_email_notifications"`
+	ServerPatch          bool   `json:"server_patch_email_notifications"`
+	TraefikOutdated      bool   `json:"traefik_outdated_email_notifications"`
+	ImageVulnerabilities bool   `json:"image_vulnerabilities_email_notifications"`
+	ResendFromAddress    string `json:"resend_from_address,omitempty"`
+	ResendFromName       string `json:"resend_from_name,omitempty"`
 	// DeploymentCommitDetails includes git commit details in deployment
 	// emails. Coolify >= v4.5.0. Nil when the API omits the key.
 	DeploymentCommitDetails *bool `json:"deployment_commit_details_email_notifications,omitempty"`
@@ -340,22 +355,25 @@ type UpdateEmailNotificationInput struct {
 	ResendAPIKey     *string `json:"resend_api_key,omitempty"`
 	UseInstanceEmail *bool   `json:"use_instance_email_settings,omitempty"`
 
-	DeploymentSuccess       *bool `json:"deployment_success_email_notifications,omitempty"`
-	DeploymentFailure       *bool `json:"deployment_failure_email_notifications,omitempty"`
-	StatusChange            *bool `json:"status_change_email_notifications,omitempty"`
-	RestartLimitReached     *bool `json:"restart_limit_reached_email_notifications,omitempty"`
-	BackupSuccess           *bool `json:"backup_success_email_notifications,omitempty"`
-	BackupFailure           *bool `json:"backup_failure_email_notifications,omitempty"`
-	ScheduledTaskSuccess    *bool `json:"scheduled_task_success_email_notifications,omitempty"`
-	ScheduledTaskFailure    *bool `json:"scheduled_task_failure_email_notifications,omitempty"`
-	DockerCleanupSuccess    *bool `json:"docker_cleanup_success_email_notifications,omitempty"`
-	DockerCleanupFailure    *bool `json:"docker_cleanup_failure_email_notifications,omitempty"`
-	ServerDiskUsage         *bool `json:"server_disk_usage_email_notifications,omitempty"`
-	ServerReachable         *bool `json:"server_reachable_email_notifications,omitempty"`
-	ServerUnreachable       *bool `json:"server_unreachable_email_notifications,omitempty"`
-	ServerPatch             *bool `json:"server_patch_email_notifications,omitempty"`
-	TraefikOutdated         *bool `json:"traefik_outdated_email_notifications,omitempty"`
-	DeploymentCommitDetails *bool `json:"deployment_commit_details_email_notifications,omitempty"`
+	DeploymentSuccess       *bool   `json:"deployment_success_email_notifications,omitempty"`
+	DeploymentFailure       *bool   `json:"deployment_failure_email_notifications,omitempty"`
+	StatusChange            *bool   `json:"status_change_email_notifications,omitempty"`
+	RestartLimitReached     *bool   `json:"restart_limit_reached_email_notifications,omitempty"`
+	BackupSuccess           *bool   `json:"backup_success_email_notifications,omitempty"`
+	BackupFailure           *bool   `json:"backup_failure_email_notifications,omitempty"`
+	ScheduledTaskSuccess    *bool   `json:"scheduled_task_success_email_notifications,omitempty"`
+	ScheduledTaskFailure    *bool   `json:"scheduled_task_failure_email_notifications,omitempty"`
+	DockerCleanupSuccess    *bool   `json:"docker_cleanup_success_email_notifications,omitempty"`
+	DockerCleanupFailure    *bool   `json:"docker_cleanup_failure_email_notifications,omitempty"`
+	ServerDiskUsage         *bool   `json:"server_disk_usage_email_notifications,omitempty"`
+	ServerReachable         *bool   `json:"server_reachable_email_notifications,omitempty"`
+	ServerUnreachable       *bool   `json:"server_unreachable_email_notifications,omitempty"`
+	ServerPatch             *bool   `json:"server_patch_email_notifications,omitempty"`
+	TraefikOutdated         *bool   `json:"traefik_outdated_email_notifications,omitempty"`
+	ImageVulnerabilities    *bool   `json:"image_vulnerabilities_email_notifications,omitempty"`
+	ResendFromAddress       *string `json:"resend_from_address,omitempty"`
+	ResendFromName          *string `json:"resend_from_name,omitempty"`
+	DeploymentCommitDetails *bool   `json:"deployment_commit_details_email_notifications,omitempty"`
 }
 
 // TelegramNotificationSettings is the current team's Telegram notification config.
@@ -382,6 +400,7 @@ type TelegramNotificationSettings struct {
 	ServerUnreachable    bool `json:"server_unreachable_telegram_notifications"`
 	ServerPatch          bool `json:"server_patch_telegram_notifications"`
 	TraefikOutdated      bool `json:"traefik_outdated_telegram_notifications"`
+	ImageVulnerabilities bool `json:"image_vulnerabilities_telegram_notifications"`
 
 	ThreadDeploymentSuccess    string `json:"telegram_notifications_deployment_success_thread_id,omitempty"`
 	ThreadDeploymentFailure    string `json:"telegram_notifications_deployment_failure_thread_id,omitempty"`
@@ -398,6 +417,7 @@ type TelegramNotificationSettings struct {
 	ThreadServerUnreachable    string `json:"telegram_notifications_server_unreachable_thread_id,omitempty"`
 	ThreadServerPatch          string `json:"telegram_notifications_server_patch_thread_id,omitempty"`
 	ThreadTraefikOutdated      string `json:"telegram_notifications_traefik_outdated_thread_id,omitempty"`
+	ThreadImageVulnerabilities string `json:"telegram_notifications_image_vulnerabilities_thread_id,omitempty"`
 }
 
 // UpdateTelegramNotificationInput is the PATCH body for Telegram notifications.
@@ -421,6 +441,7 @@ type UpdateTelegramNotificationInput struct {
 	ServerUnreachable    *bool `json:"server_unreachable_telegram_notifications,omitempty"`
 	ServerPatch          *bool `json:"server_patch_telegram_notifications,omitempty"`
 	TraefikOutdated      *bool `json:"traefik_outdated_telegram_notifications,omitempty"`
+	ImageVulnerabilities *bool `json:"image_vulnerabilities_telegram_notifications,omitempty"`
 
 	ThreadDeploymentSuccess    *string `json:"telegram_notifications_deployment_success_thread_id,omitempty"`
 	ThreadDeploymentFailure    *string `json:"telegram_notifications_deployment_failure_thread_id,omitempty"`
@@ -437,6 +458,7 @@ type UpdateTelegramNotificationInput struct {
 	ThreadServerUnreachable    *string `json:"telegram_notifications_server_unreachable_thread_id,omitempty"`
 	ThreadServerPatch          *string `json:"telegram_notifications_server_patch_thread_id,omitempty"`
 	ThreadTraefikOutdated      *string `json:"telegram_notifications_traefik_outdated_thread_id,omitempty"`
+	ThreadImageVulnerabilities *string `json:"telegram_notifications_image_vulnerabilities_thread_id,omitempty"`
 }
 
 // GetEmailNotifications returns the current team's email settings. Coolify >= v4.3.0.
@@ -456,6 +478,9 @@ func (c *Client) UpdateEmailNotifications(ctx context.Context, input UpdateEmail
 	if !c.SupportsCoolify45() {
 		input.DeploymentCommitDetails = nil
 	}
+	c.omitCoolify47Bool(&input.ImageVulnerabilities)
+	c.omitCoolify47String(&input.ResendFromAddress)
+	c.omitCoolify47String(&input.ResendFromName)
 	var r EmailNotificationSettings
 	if err := c.do(ctx, http.MethodPatch, "/api/v1/notifications/email", input, &r); err != nil {
 		return nil, fmt.Errorf("updating email notifications: %w", err)
@@ -474,6 +499,8 @@ func (c *Client) GetTelegramNotifications(ctx context.Context) (*TelegramNotific
 
 // UpdateTelegramNotifications updates the current team's Telegram settings. Coolify >= v4.3.0.
 func (c *Client) UpdateTelegramNotifications(ctx context.Context, input UpdateTelegramNotificationInput) (*TelegramNotificationSettings, error) {
+	c.omitCoolify47Bool(&input.ImageVulnerabilities)
+	c.omitCoolify47String(&input.ThreadImageVulnerabilities)
 	var r TelegramNotificationSettings
 	if err := c.do(ctx, http.MethodPatch, "/api/v1/notifications/telegram", input, &r); err != nil {
 		return nil, fmt.Errorf("updating telegram notifications: %w", err)
@@ -484,6 +511,18 @@ func (c *Client) UpdateTelegramNotifications(ctx context.Context, input UpdateTe
 // NotificationUpdateJSONTags returns JSON keys on Update*NotificationInput for
 // the given Coolify channel name (email, discord, slack, telegram, pushover,
 // webhook). Used by spectest write coverage against channelConfig rules.
+func (c *Client) omitCoolify47Bool(v **bool) {
+	if v != nil && !c.SupportsCoolify47() {
+		*v = nil
+	}
+}
+
+func (c *Client) omitCoolify47String(v **string) {
+	if v != nil && !c.SupportsCoolify47() {
+		*v = nil
+	}
+}
+
 func NotificationUpdateJSONTags(channel string) map[string]struct{} {
 	switch channel {
 	case "email":

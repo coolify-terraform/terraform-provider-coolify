@@ -150,6 +150,7 @@ func TestInstanceEmailUpdateJSONTags(t *testing.T) {
 		"smtp_enabled", "smtp_from_address", "smtp_from_name", "smtp_host",
 		"smtp_port", "smtp_encryption", "smtp_username", "smtp_password",
 		"smtp_timeout", "smtp_ehlo_domain", "resend_enabled", "resend_api_key",
+		"notification_from_address", "notification_from_name", "resend_from_address", "resend_from_name",
 	}
 	got := make([]string, 0, len(tags))
 	for k := range tags {

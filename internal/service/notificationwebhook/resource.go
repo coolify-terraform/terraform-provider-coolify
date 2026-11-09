@@ -91,7 +91,7 @@ func (r *webhookResource) Create(ctx context.Context, req resource.CreateRequest
 		return
 	}
 
-	if err := flatten(updated, &plan); err != nil {
+	if err := flatten(r.client, updated, &plan); err != nil {
 		resp.Diagnostics.AddError("Error mapping notification settings", err.Error())
 		return
 	}
@@ -117,7 +117,7 @@ func (r *webhookResource) Read(ctx context.Context, req resource.ReadRequest, re
 		return
 	}
 
-	if err := flatten(got, &state); err != nil {
+	if err := flatten(r.client, got, &state); err != nil {
 		resp.Diagnostics.AddError("Error mapping notification settings", err.Error())
 		return
 	}
@@ -149,7 +149,7 @@ func (r *webhookResource) Update(ctx context.Context, req resource.UpdateRequest
 		return
 	}
 
-	if err := flatten(updated, &plan); err != nil {
+	if err := flatten(r.client, updated, &plan); err != nil {
 		resp.Diagnostics.AddError("Error mapping notification settings", err.Error())
 		return
 	}
@@ -201,12 +201,16 @@ func updateInputFromPlan(plan, state model) (client.UpdateWebhookNotificationInp
 	return in, nil
 }
 
-func flatten(api *client.WebhookNotificationSettings, m *model) error {
+func flatten(c *client.Client, api *client.WebhookNotificationSettings, m *model) error {
+	priorImage := m.ImageVulnerabilities
 	ev, err := client.EventsFrom(api)
 	if err != nil {
 		return err
 	}
 	m.FlattenEvents(ev)
+	if c == nil || !c.SupportsCoolify47() {
+		m.RestoreImageVulnerabilities(priorImage)
+	}
 	m.ID = types.StringValue(notificationcommon.ImportIDCurrent)
 	m.Enabled = types.BoolValue(api.Enabled)
 	flex.SetStringPreserveEmpty(&m.WebhookURL, api.Webhook)

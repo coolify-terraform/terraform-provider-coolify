@@ -26,6 +26,7 @@ type EventStore struct {
 	ServerUnreachable    bool
 	ServerPatch          bool
 	TraefikOutdated      bool
+	ImageVulnerabilities bool
 }
 
 // EventJSONKey returns the Coolify PATCH/GET JSON key for a schema event attr.
@@ -65,6 +66,7 @@ func (e *EventStore) fieldPtrs() []struct {
 		{"server_unreachable", &e.ServerUnreachable},
 		{"server_patch", &e.ServerPatch},
 		{"traefik_outdated", &e.TraefikOutdated},
+		{"image_vulnerabilities", &e.ImageVulnerabilities},
 	}
 }
 

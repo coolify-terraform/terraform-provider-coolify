@@ -3,8 +3,9 @@
 resource "coolify_notification_email" "main" {
   # To inherit instance-wide SMTP instead, set use_instance_email_settings = true
   # (coolify_instance_email_settings) and omit the smtp_* credentials below.
+  # Coolify >= v4.7.0 resolves smtp_host and rejects a name that does not resolve.
   smtp_enabled      = true
-  smtp_host         = "smtp.example.com"
+  smtp_host         = "example.com"
   smtp_port         = 587
   smtp_encryption   = "starttls"
   smtp_from_address = "alerts@example.com"

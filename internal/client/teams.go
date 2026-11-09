@@ -7,9 +7,18 @@ import (
 )
 
 type Team struct {
-	ID          int    `json:"id"`
-	Name        string `json:"name"`
-	Description string `json:"description,omitempty"`
+	ID                     int    `json:"id"`
+	Name                   string `json:"name"`
+	Description            string `json:"description,omitempty"`
+	ScanImagesOnNewServers *bool  `json:"scan_images_on_new_servers,omitempty"`
+}
+
+// UpdateCurrentTeamInput is PATCH /team. Only scan_images_on_new_servers is
+// sent. Coolify >= v4.7.0. UpdateCurrentTeam skips the PATCH when the
+// pointer is nil or the instance is older, because an empty body is rejected
+// and the older allow list does not include this field.
+type UpdateCurrentTeamInput struct {
+	ScanImagesOnNewServers *bool `json:"scan_images_on_new_servers,omitempty"`
 }
 type TeamMember struct {
 	ID    int    `json:"id"`
@@ -38,6 +47,21 @@ func (c *Client) ListTeams(ctx context.Context) ([]Team, error) {
 		return nil, fmt.Errorf("listing teams: %w", err)
 	}
 	return t, nil
+}
+
+// UpdateCurrentTeam patches the team bound to the API token.
+func (c *Client) UpdateCurrentTeam(ctx context.Context, input UpdateCurrentTeamInput) (*Team, error) {
+	if !c.SupportsCoolify47() {
+		input.ScanImagesOnNewServers = nil
+	}
+	if input.ScanImagesOnNewServers == nil {
+		return c.GetCurrentTeam(ctx)
+	}
+	var t Team
+	if err := c.do(ctx, http.MethodPatch, "/api/v1/team", input, &t); err != nil {
+		return nil, fmt.Errorf("updating current team: %w", err)
+	}
+	return &t, nil
 }
 
 func (c *Client) GetCurrentTeam(ctx context.Context) (*Team, error) {

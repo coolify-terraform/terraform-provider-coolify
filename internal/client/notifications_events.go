@@ -24,6 +24,7 @@ type NotificationEvents struct {
 	ServerUnreachable    bool
 	ServerPatch          bool
 	TraefikOutdated      bool
+	ImageVulnerabilities bool
 }
 
 // NotificationEventUpdate is the PATCH form of NotificationEvents (nil = omit).
@@ -43,6 +44,7 @@ type NotificationEventUpdate struct {
 	ServerUnreachable    *bool
 	ServerPatch          *bool
 	TraefikOutdated      *bool
+	ImageVulnerabilities *bool
 }
 
 // ApplyEventUpdate copies shared event pointers onto a channel Update* input.

@@ -33,6 +33,7 @@ output "notifications" {
 - `docker_cleanup_success` (Boolean) Whether Slack notifications are sent for Docker cleanup success events.
 - `enabled` (Boolean) Whether Slack notifications are enabled for the team.
 - `id` (String) Identifier. Always `current` (team is implied by the API token).
+- `image_vulnerabilities` (Boolean) Whether Slack notifications are sent for image vulnerabilities events. Requires Coolify >= v4.7.0.
 - `restart_limit_reached` (Boolean) Whether Slack notifications are sent for restart limit reached events. Requires Coolify >= v4.3.15 (not in tag v4.3.14).
 - `scheduled_task_failure` (Boolean) Whether Slack notifications are sent for scheduled task failure events.
 - `scheduled_task_success` (Boolean) Whether Slack notifications are sent for scheduled task success events.

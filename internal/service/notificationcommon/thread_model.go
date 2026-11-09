@@ -26,6 +26,7 @@ type ThreadModel struct {
 	ThreadServerUnreachable    types.String `tfsdk:"thread_server_unreachable"`
 	ThreadServerPatch          types.String `tfsdk:"thread_server_patch"`
 	ThreadTraefikOutdated      types.String `tfsdk:"thread_traefik_outdated"`
+	ThreadImageVulnerabilities types.String `tfsdk:"thread_image_vulnerabilities"`
 }
 
 // CreateThreadUpdate returns PATCH thread-id pointers for every known plan value.
@@ -46,6 +47,7 @@ func (t ThreadModel) CreateThreadUpdate() client.NotificationThreadUpdate {
 		ThreadServerUnreachable:    flex.StringValueOrNull(t.ThreadServerUnreachable),
 		ThreadServerPatch:          flex.StringValueOrNull(t.ThreadServerPatch),
 		ThreadTraefikOutdated:      flex.StringValueOrNull(t.ThreadTraefikOutdated),
+		ThreadImageVulnerabilities: flex.StringValueOrNull(t.ThreadImageVulnerabilities),
 	}
 }
 
@@ -67,6 +69,7 @@ func (t ThreadModel) DiffThreadUpdate(state ThreadModel) client.NotificationThre
 		ThreadServerUnreachable:    flex.StringIfChanged(t.ThreadServerUnreachable, state.ThreadServerUnreachable),
 		ThreadServerPatch:          flex.StringIfChanged(t.ThreadServerPatch, state.ThreadServerPatch),
 		ThreadTraefikOutdated:      flex.StringIfChanged(t.ThreadTraefikOutdated, state.ThreadTraefikOutdated),
+		ThreadImageVulnerabilities: flex.StringIfChanged(t.ThreadImageVulnerabilities, state.ThreadImageVulnerabilities),
 	}
 }
 
@@ -88,4 +91,15 @@ func (t *ThreadModel) FlattenThreads(src client.NotificationThreads) {
 	flex.SetStringPreserveEmpty(&t.ThreadServerUnreachable, src.ThreadServerUnreachable)
 	flex.SetStringPreserveEmpty(&t.ThreadServerPatch, src.ThreadServerPatch)
 	flex.SetStringPreserveEmpty(&t.ThreadTraefikOutdated, src.ThreadTraefikOutdated)
+	flex.SetStringPreserveEmpty(&t.ThreadImageVulnerabilities, src.ThreadImageVulnerabilities)
+}
+
+// RestoreThreadImageVulnerabilities keeps a configured thread id when Coolify
+// omitted the v4.7 field.
+func (t *ThreadModel) RestoreThreadImageVulnerabilities(prior types.String) {
+	if !prior.IsNull() && !prior.IsUnknown() {
+		t.ThreadImageVulnerabilities = prior
+		return
+	}
+	t.ThreadImageVulnerabilities = types.StringNull()
 }

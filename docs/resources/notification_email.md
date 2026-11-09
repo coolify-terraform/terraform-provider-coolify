@@ -24,8 +24,9 @@ On destroy, all three enable flags are set to `false`; credentials are left unch
 resource "coolify_notification_email" "main" {
   # To inherit instance-wide SMTP instead, set use_instance_email_settings = true
   # (coolify_instance_email_settings) and omit the smtp_* credentials below.
+  # Coolify >= v4.7.0 resolves smtp_host and rejects a name that does not resolve.
   smtp_enabled      = true
-  smtp_host         = "smtp.example.com"
+  smtp_host         = "example.com"
   smtp_port         = 587
   smtp_encryption   = "starttls"
   smtp_from_address = "alerts@example.com"
@@ -55,8 +56,11 @@ resource "coolify_notification_email" "main" {
 - `deployment_success` (Boolean) Whether to send email notifications for deployment success events.
 - `docker_cleanup_failure` (Boolean) Whether to send email notifications for Docker cleanup failure events.
 - `docker_cleanup_success` (Boolean) Whether to send email notifications for Docker cleanup success events.
+- `image_vulnerabilities` (Boolean) Whether to send email notifications for image vulnerabilities events. Requires Coolify >= v4.7.0. On older instances the provider keeps the value in state and does not send it.
 - `resend_api_key` (String, Sensitive) Resend API key. Sensitive; Coolify may omit it on read unless the API token can read sensitive fields (`read:sensitive` or root). Preserve after import.
 - `resend_enabled` (Boolean) Whether Resend delivery is enabled.
+- `resend_from_address` (String, Sensitive) From address used when Resend sends team mail. Sensitive; Coolify may omit it on read unless the API token can read sensitive fields (`read:sensitive` or root). Preserve after import. Must be a valid email address. Requires Coolify >= v4.7.0. On older instances the provider keeps the value in state and does not send it.
+- `resend_from_name` (String, Sensitive) Display name used when Resend sends team mail. Requires Coolify >= v4.7.0. On older instances the provider keeps the value in state and does not send it. Sensitive; Coolify may omit it on read unless the API token can read sensitive fields (`read:sensitive` or root). Preserve after import.
 - `restart_limit_reached` (Boolean) Whether to send email notifications for restart limit reached events. Requires Coolify >= v4.3.15 (not in tag v4.3.14). Omit on older instances; the API rejects the field with HTTP 422.
 - `scheduled_task_failure` (Boolean) Whether to send email notifications for scheduled task failure events.
 - `scheduled_task_success` (Boolean) Whether to send email notifications for scheduled task success events.
@@ -69,7 +73,7 @@ resource "coolify_notification_email" "main" {
 - `smtp_encryption` (String) SMTP encryption. One of `starttls`, `tls`, or `none`.
 - `smtp_from_address` (String, Sensitive) SMTP From address. Sensitive; Coolify may omit it on read unless the API token can read sensitive fields (`read:sensitive` or root). Preserve after import. Must be a valid email address.
 - `smtp_from_name` (String, Sensitive) SMTP From display name. Sensitive; Coolify may omit it on read unless the API token can read sensitive fields (`read:sensitive` or root). Preserve after import.
-- `smtp_host` (String, Sensitive) SMTP host. Sensitive; Coolify may omit it on read unless the API token can read sensitive fields (`read:sensitive` or root). Preserve after import.
+- `smtp_host` (String, Sensitive) SMTP host. Coolify >= v4.7.0 resolves this name and rejects a host that does not resolve. Sensitive; Coolify may omit it on read unless the API token can read sensitive fields (`read:sensitive` or root). Preserve after import.
 - `smtp_password` (String, Sensitive) SMTP password. Sensitive; Coolify may omit it on read unless the API token can read sensitive fields (`read:sensitive` or root). Preserve after import.
 - `smtp_port` (Number) SMTP port (1-65535).
 - `smtp_recipients` (String, Sensitive) Comma-separated recipient addresses. Sensitive; Coolify may omit it on read unless the API token can read sensitive fields (`read:sensitive` or root). Preserve after import.

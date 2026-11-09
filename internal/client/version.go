@@ -111,6 +111,21 @@ var ApplicationSettingsV46WriteJSONKeys = []string{
 	"git_https_password",
 }
 
+// minCoolify47Version is the first tagged Coolify release that accepts the
+// v4.7 application settings, gitea_app_uuid updates, SFTP storage, scheduled
+// task use_shell, image scanning, and the Resend From fields.
+const minCoolify47Version = "4.7.0"
+
+// ApplicationSettingsV47WriteJSONKeys lists application PATCH JSON keys
+// accepted only on Coolify >= v4.7.0. v4.7 pre-release strings are withheld.
+var ApplicationSettingsV47WriteJSONKeys = []string{
+	"include_network_hosts_in_build",
+	"is_auto_cancel_queued_deployments_enabled",
+	"is_auto_cancel_building_deployments_enabled",
+	"is_image_scan_enabled",
+	"gitea_app_uuid",
+}
+
 // ApplicationSettingsAheadOfPinWriteJSONKeys are public application write
 // keys that exist on Coolify main after tag v4.4.6. That tag and main both
 // report version 4.4.6, so a version check cannot tell them apart. Callers
@@ -286,6 +301,15 @@ func versionIs46Prerelease(ver string) bool {
 	return strings.HasPrefix(v, "4.6-rc") || strings.HasPrefix(v, "4.6.0-rc")
 }
 
+// versionIs47Prerelease reports Coolify 4.7 release candidates. Those
+// strings do not parse as 4.7.0, and IsVersionAtLeast treats an
+// unparseable version as newest. The v4.7 write fields landed on the
+// 4.7.0 tag.
+func versionIs47Prerelease(ver string) bool {
+	v := strings.TrimPrefix(strings.ToLower(strings.TrimSpace(ver)), "v")
+	return strings.HasPrefix(v, "4.7-rc") || strings.HasPrefix(v, "4.7.0-rc") || strings.HasPrefix(v, "4.7.0-alpha")
+}
+
 // SupportsCoolify46 reports whether the connected instance accepts Coolify
 // >= v4.6.0 write fields.
 //
@@ -304,6 +328,26 @@ func (c *Client) SupportsCoolify46() bool {
 		return true
 	}
 	return IsVersionAtLeast(c.CoolifyVersion, minCoolify46Version)
+}
+
+// SupportsCoolify47 reports whether the connected instance accepts Coolify
+// >= v4.7.0 write fields.
+//
+// Empty CoolifyVersion reports true so unit tests that never call Configure
+// exercise the new payload. A 4.3.0 version string reports true because CI
+// edge has used that string while shipping later APIs. 4.4-rc.*, 4.6-rc.*,
+// and 4.7 pre-release strings report false.
+func (c *Client) SupportsCoolify47() bool {
+	if c == nil || c.CoolifyVersion == "" {
+		return true
+	}
+	if versionIs44Prerelease(c.CoolifyVersion) || versionIs46Prerelease(c.CoolifyVersion) || versionIs47Prerelease(c.CoolifyVersion) {
+		return false
+	}
+	if versionStringLagsTip(c.CoolifyVersion) {
+		return true
+	}
+	return IsVersionAtLeast(c.CoolifyVersion, minCoolify47Version)
 }
 
 // SupportsHighlightLogDrain reports whether GET server settings still include

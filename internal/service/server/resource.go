@@ -91,6 +91,9 @@ type serverResourceModel struct {
 	DockerVersion                     types.String `tfsdk:"docker_version"`
 	DockerVersionCheckedAt            types.String `tfsdk:"docker_version_checked_at"`
 	BackupCompressionCPUPercentage    types.Int64  `tfsdk:"backup_compression_cpu_percentage"`
+	SSHHostKey                        types.String `tfsdk:"ssh_host_key"`
+	SSHHostKeyFingerprints            types.List   `tfsdk:"ssh_host_key_fingerprints"`
+	SSHHostKeyPendingFingerprints     types.List   `tfsdk:"ssh_host_key_pending_fingerprints"`
 }
 
 // NewResource returns a new server resource.
@@ -105,7 +108,7 @@ func (r *serverResource) Metadata(_ context.Context, req resource.MetadataReques
 func (r *serverResource) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "Manages a Coolify server.\n\n~> **Warning:** Deleting a server will cascade-delete all applications, databases, and services deployed on it.",
-		Attributes: CommonServerAttrs(ctx, map[string]schema.Attribute{
+		Attributes: CommonServerAttrs(ctx, mergeServerAttrs(sshHostKeyAttrs(), map[string]schema.Attribute{
 			"ip": schema.StringAttribute{
 				MarkdownDescription: "The IP address of the server. Coolify stores IPv6 in short lowercase form " +
 					"(for example `2A01:04F8::0001` is stored as `2a01:4f8::1`). " +
@@ -119,8 +122,22 @@ func (r *serverResource) Schema(ctx context.Context, _ resource.SchemaRequest, r
 				Computed:      true,
 				PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},
-		}),
+		})),
 	}
+}
+
+func mergeServerAttrs(maps ...map[string]schema.Attribute) map[string]schema.Attribute {
+	n := 0
+	for _, m := range maps {
+		n += len(m)
+	}
+	out := make(map[string]schema.Attribute, n)
+	for _, m := range maps {
+		for k, v := range m {
+			out[k] = v
+		}
+	}
+	return out
 }
 
 func (r *serverResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
@@ -186,7 +203,9 @@ func (r *serverResource) Create(ctx context.Context, req resource.CreateRequest,
 		IsBuildServer:   isBuild,
 		ServerRole:      role,
 		InstantValidate: flex.BoolValueOrNull(plan.InstantValidate),
+		SSHHostKey:      sshHostKeyForCreate(plan.SSHHostKey),
 	}
+	warnUnsupportedSSHHostKey(r.client, plan.SSHHostKey, &resp.Diagnostics)
 
 	created, err := r.client.CreateServer(ctx, input)
 	if err != nil {
@@ -301,6 +320,10 @@ func (r *serverResource) Update(ctx context.Context, req resource.UpdateRequest,
 		resp.Diagnostics.AddError("Error updating server", fmt.Sprintf("server %s: %s", state.UUID.ValueString(), err))
 		return
 	}
+	if err := syncSSHHostKey(ctx, r.client, state.UUID.ValueString(), plan.SSHHostKey, state.SSHHostKey, &resp.Diagnostics); err != nil {
+		resp.Diagnostics.AddError("Error updating SSH host key", fmt.Sprintf("server %s: %s", state.UUID.ValueString(), err))
+		return
+	}
 
 	// Read back for full state.
 	srv, err := r.client.GetServer(ctx, state.UUID.ValueString())
@@ -386,6 +409,7 @@ func flattenServer(c *client.Client, srv *client.Server, model *serverResourceMo
 	ptrs := model.commonPtrs()
 	NoteServerCoolifyVersion(c, &ptrs)
 	FlattenServerCommon(srv, ptrs)
+	applySSHHostKeyRead(srv, model)
 }
 
 // resolveInstantValidate fills the create/update-only trigger after flatten.
