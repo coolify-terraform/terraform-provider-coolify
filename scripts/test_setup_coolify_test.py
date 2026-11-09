@@ -3,12 +3,34 @@
 
 from __future__ import annotations
 
+import sys
 import unittest
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+import coolify_register_page
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts" / "setup-coolify-test.sh"
 ACTION = ROOT / ".github" / "actions" / "setup-coolify" / "action.yml"
+
+
+class TestRegisterPageClassification(unittest.TestCase):
+    def test_name_field_is_a_form_even_if_the_closed_sentence_is_present(self) -> None:
+        html = '<input name="name" type="text">Setup window closed'
+        self.assertEqual(coolify_register_page.classify_register_html(html), "form")
+
+    def test_closed_window_hides_the_form(self) -> None:
+        html = "<p>Setup window closed</p><code>docker restart coolify</code>"
+        self.assertEqual(coolify_register_page.classify_register_html(html), "closed")
+
+    def test_startup_message_stays_pending(self) -> None:
+        html = "<p>Coolify is starting</p><code>docker restart coolify</code>"
+        self.assertEqual(coolify_register_page.classify_register_html(html), "pending")
+
+    def test_empty_body_stays_pending(self) -> None:
+        self.assertEqual(coolify_register_page.classify_register_html(""), "pending")
 
 
 class TestSetupCoolifyTestTimeouts(unittest.TestCase):
@@ -21,6 +43,11 @@ class TestSetupCoolifyTestTimeouts(unittest.TestCase):
         self.assertIn('run_limited 180 "$PW_VENV/bin/playwright" install chromium', src)
         self.assertIn("--max-time 10", src)
         self.assertIn("TimeoutExpired", src)
+        self.assertIn("coolify_register_page.py", src)
+        self.assertIn('REGISTER_MODE" != "form"', src)
+        self.assertIn('"id" => 0', src)
+        self.assertIn('"email" => "admin@acme.test"', src)
+        self.assertIn("is_registration_enabled = false", src)
 
     def test_ci_bootstrap_step_has_hard_cap(self) -> None:
         src = ACTION.read_text()

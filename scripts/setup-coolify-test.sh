@@ -1,9 +1,13 @@
 #!/usr/bin/env bash
 # setup-coolify-test.sh - Automated Coolify test instance setup
 #
-# Registers a user via Playwright (required for Laravel bootstrap),
-# enables the API, generates a token, fixes the SSH key, and
-# optionally updates GitHub secrets for CI acceptance tests.
+# Registers the first admin user, enables the API, generates a token,
+# fixes the SSH key, and optionally updates GitHub secrets for CI
+# acceptance tests. Playwright fills /register when that form is in the
+# HTML. Coolify >= 4.7 hides the form when the root setup window is not
+# open (on Redis the close time is a string, so the window never reads
+# as open). In that case the script creates the same root user the
+# register action writes, through the User model inside the container.
 #
 # Prerequisites:
 #   - Coolify containers running (coolify, coolify-db, coolify-redis)
@@ -19,6 +23,7 @@ set -euo pipefail
 
 COOLIFY_ENDPOINT="http://localhost:8000"
 COOLIFY_DATA_DIR="${COOLIFY_DATA_DIR:-$HOME/coolify-data}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO="coolify-terraform/terraform-provider-coolify"
 UPDATE_SECRETS=false
 
@@ -69,6 +74,87 @@ raise SystemExit(code)
 PY
 }
 
+fetch_register_html() {
+  # Failure here is "not ready yet", not a hard stop. The caller retries.
+  curl -sS -L --max-time 10 "$COOLIFY_ENDPOINT/register" 2>/dev/null || true
+}
+
+# Sets REGISTER_MODE to form, closed, or pending.
+choose_registration_mode() {
+  local html i
+  REGISTER_MODE="pending"
+  if ! command -v python3 >/dev/null 2>&1; then
+    echo "ERROR: python3 is required to read the Coolify register page" >&2
+    exit 1
+  fi
+  for i in $(seq 1 18); do
+    html="$(fetch_register_html)"
+    REGISTER_MODE="$(printf '%s' "$html" | python3 "$SCRIPT_DIR/coolify_register_page.py")"
+    if [[ "$REGISTER_MODE" == "form" || "$REGISTER_MODE" == "closed" ]]; then
+      return 0
+    fi
+    log "Register page not ready ($REGISTER_MODE, attempt $i/18)"
+    sleep 5
+  done
+}
+
+wait_for_root_team() {
+  local i
+  for i in $(seq 1 12); do
+    if [[ -n "$(psql_exec "SELECT id FROM teams WHERE id = 0;")" ]]; then
+      return 0
+    fi
+    log "Waiting for root team (attempt $i/12)"
+    sleep 5
+  done
+  echo "ERROR: root team was not seeded" >&2
+  return 1
+}
+
+# Same records as App\Actions\Fortify\CreateNewUser for the first user:
+# id 0, attached to team 0, registration disabled afterwards.
+register_root_user_artisan() {
+  local output
+  log "Creating root user via artisan because the register form is hidden"
+  wait_for_root_team
+  if ! output=$(docker exec coolify php artisan tinker --execute='
+    if (\App\Models\User::query()->exists()) {
+        echo "EXISTS\n";
+    } elseif (\App\Models\Team::find(0) === null) {
+        echo "ERROR: root team is missing\n";
+        exit(1);
+    } else {
+        $user = (new \App\Models\User)->forceFill([
+            "id" => 0,
+            "name" => "admin",
+            "email" => "admin@acme.test",
+            "password" => \Illuminate\Support\Facades\Hash::make(\Illuminate\Support\Str::random(24)."Aa1!"),
+        ]);
+        $user->save();
+        $team = \App\Models\Team::find(0);
+        if ($team !== null && ! $user->teams()->where("team_id", $team->id)->exists()) {
+            $user->teams()->attach($team, ["role" => "owner"]);
+        }
+        $settings = \App\Models\InstanceSettings::find(0);
+        if ($settings !== null) {
+            $settings->is_registration_enabled = false;
+            $settings->save();
+        }
+        echo "CREATED\n";
+    }
+  ' 2>&1); then
+    echo "ERROR: artisan root user create failed" >&2
+    echo "$output" >&2
+    exit 1
+  fi
+  if [[ "$output" != *CREATED* && "$output" != *EXISTS* ]]; then
+    echo "ERROR: artisan root user create did not confirm" >&2
+    echo "$output" >&2
+    exit 1
+  fi
+  log "Root user ready"
+}
+
 # --- Preflight ---
 
 log "Checking Coolify containers"
@@ -93,10 +179,14 @@ for i in $(seq 1 24); do
   sleep 5
 done
 
-# --- Step 1: Register user via Playwright (if no users exist) ---
+# --- Step 1: Register the first user (if none exist) ---
 
 USER_COUNT=$(psql_exec "SELECT count(*) FROM users;")
 if [[ "$USER_COUNT" == "0" ]]; then
+  choose_registration_mode
+  if [[ "$REGISTER_MODE" != "form" ]]; then
+    register_root_user_artisan
+  else
   log "Registering admin user via Playwright (required for Laravel bootstrap)"
 
   # Prefer Playwright already installed by setup-coolify (CI). A second
@@ -152,6 +242,7 @@ with sync_playwright() as p:
     print("Registration successful")
     browser.close()
 PYEOF
+  fi
 else
   log "User already exists (count=$USER_COUNT), skipping registration"
 fi
