@@ -89,7 +89,7 @@ func (r *emailResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 		},
 		"smtp_from_name":  notificationcommon.StringSensitiveOmit("SMTP From display name."),
 		"smtp_recipients": notificationcommon.StringSensitiveOmit("Comma-separated recipient addresses."),
-		"smtp_host":       notificationcommon.StringSensitiveOmit("SMTP host."),
+		"smtp_host":       notificationcommon.StringSensitiveOmit("SMTP host. Coolify >= v4.7.0 resolves this name and rejects a host that does not resolve."),
 		"smtp_port": schema.Int64Attribute{
 			MarkdownDescription: "SMTP port (1-65535).",
 			Optional:            true,

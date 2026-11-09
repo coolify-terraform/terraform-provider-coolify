@@ -307,6 +307,7 @@ application, null uses the server setting. `none` turns the resolver off.
 | `coolify_team_settings` | `scan_images_on_new_servers` for the team bound to the API token (`PATCH /team`). Older instances keep a configured value in state and do not send it. |
 | `notification_from_address`, `notification_from_name`, `resend_from_address`, `resend_from_name` on `coolify_instance_email_settings` | Sender identity for instance mail and Resend. Sensitive. Older instances keep configured values in state and do not send them. |
 | `resend_from_address` and `resend_from_name` on `coolify_notification_email` | Sender identity for team Resend mail. |
+| `smtp_host` on `coolify_notification_email` | Coolify resolves the host on PATCH and rejects a name that does not resolve. |
 | `image_vulnerabilities` on notification channels | Send a notification when an image scan finds vulnerabilities. Telegram also has `thread_image_vulnerabilities`. Older instances keep configured values in state and do not send them. |
 
 `coolify_service_application` configures an application the compose service already created. Fields that older Coolify accepts, such as `url` and `description`, are still sent. There is no DELETE for this object. Destroy drops Terraform state and leaves the container and its URL in place.
