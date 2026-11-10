@@ -755,6 +755,26 @@ func TestDockerImageApplicationResource_Timeouts(t *testing.T) {
 	})
 }
 
+func TestDockerImageApplicationResource_RejectsGiteaAppUUID(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.NotFoundHandler()))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{{
+			Config: testDockerImageResourceConfig(srv.URL, `
+				project_uuid   = "aaaa0002-0002-4000-8000-000000000002"
+				server_uuid    = "bbbb0002-0002-4000-8000-000000000002"
+				docker_image   = "nginx:latest"
+				ports_exposes  = "80"
+				gitea_app_uuid = "cccc0001-0001-4000-8000-000000000001"
+			`),
+			ExpectError: regexp.MustCompile(`gitea_app_uuid is not valid for this application`),
+		}},
+	})
+}
+
 func TestDockerImageApplicationResource_InvalidPortsExposes(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.NotFoundHandler()))

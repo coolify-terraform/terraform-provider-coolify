@@ -83,6 +83,7 @@ func (r *privateGitApplicationResource) ModifyPlan(ctx context.Context, req reso
 		return
 	}
 	warnUnsupportedApplicationSettingsWrites(r.client, cfg.common(), &resp.Diagnostics)
+	rejectGiteaAppUUID(cfg.GiteaAppUUID, &resp.Diagnostics)
 }
 
 //nolint:dupl // Create methods differ by input struct type and API call

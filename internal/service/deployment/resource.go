@@ -10,6 +10,7 @@ import (
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/flex"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/validate"
 	"github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -44,6 +45,7 @@ type deploymentResourceModel struct {
 	UUID              types.String   `tfsdk:"uuid"`
 	Status            types.String   `tfsdk:"status"`
 	WaitForCompletion types.Bool     `tfsdk:"wait_for_completion"`
+	CancelPrevious    types.String   `tfsdk:"cancel_previous"`
 	Triggers          types.Map      `tfsdk:"triggers"`
 }
 
@@ -89,6 +91,17 @@ func (r *deploymentResource) Schema(ctx context.Context, _ resource.SchemaReques
 				Computed:            true,
 				Default:             booldefault.StaticBool(false),
 			},
+			"cancel_previous": schema.StringAttribute{
+				MarkdownDescription: "Cancel older webhook, API, and MCP deployments of this application on the same pull request and server. " +
+					"`queued` cancels deployments waiting in the queue. `building` also stops deployments that are still building. " +
+					"A deployment that has already started replacing containers finishes. Manual, restart, and rollback deployments are not cancelled. " +
+					"`none` leaves them running. Requires Coolify >= v4.7.0. Changing this starts a new deployment.",
+				Optional: true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
+				Validators: []validator.String{stringvalidator.OneOf("none", "queued", "building")},
+			},
 			"triggers": schema.MapAttribute{
 				MarkdownDescription: "An arbitrary map of values that, when changed, triggers a new deployment.",
 				Optional:            true,
@@ -123,7 +136,23 @@ func (r *deploymentResource) Create(ctx context.Context, req resource.CreateRequ
 	defer cancel()
 
 	appUUID := plan.ApplicationUUID.ValueString()
-	result, err := r.client.DeployApplication(ctx, appUUID)
+	cancelPrevious := ""
+	if !plan.CancelPrevious.IsNull() && !plan.CancelPrevious.IsUnknown() {
+		cancelPrevious = plan.CancelPrevious.ValueString()
+	}
+	if cancelPrevious != "" && cancelPrevious != "none" && (r.client == nil || !r.client.SupportsCoolify47()) {
+		ver := "unknown"
+		if r.client != nil && r.client.CoolifyVersion != "" {
+			ver = r.client.CoolifyVersion
+		}
+		resp.Diagnostics.AddAttributeError(
+			path.Root("cancel_previous"),
+			"Coolify version cannot cancel previous deployments",
+			fmt.Sprintf("This Coolify instance (%s) does not accept cancel_previous (added in Coolify v4.7.0). Remove cancel_previous or set it to none.", ver),
+		)
+		return
+	}
+	result, err := r.client.DeployApplicationCancelPrevious(ctx, appUUID, cancelPrevious)
 	if err != nil {
 		resp.Diagnostics.AddError("Error triggering deployment", fmt.Sprintf("Could not deploy application %s: %s", appUUID, err))
 		return

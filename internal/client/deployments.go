@@ -165,8 +165,20 @@ type deployByUUIDItem struct {
 // returned UUID may also be a never-persisted id; callers must GET it
 // and fall back to LatestApplicationDeploymentUUID on 404 or empty.
 func (c *Client) DeployApplication(ctx context.Context, appUUID string) (*RestartApplicationResponse, error) {
+	return c.DeployApplicationCancelPrevious(ctx, appUUID, "")
+}
+
+// DeployApplicationCancelPrevious queues a deploy. cancelPrevious is
+// none, queued, or building. Empty and none omit the query parameter.
+// Coolify older than v4.7.0 does not accept the parameter, so it is omitted
+// unless SupportsCoolify47. Callers that require the flag should check the
+// version before calling.
+func (c *Client) DeployApplicationCancelPrevious(ctx context.Context, appUUID, cancelPrevious string) (*RestartApplicationResponse, error) {
 	q := url.Values{}
 	q.Set("uuid", appUUID)
+	if c != nil && c.SupportsCoolify47() && cancelPrevious != "" && cancelPrevious != "none" {
+		q.Set("cancel_previous", cancelPrevious)
+	}
 	var wrap deployByUUIDResponse
 	if err := c.do(ctx, http.MethodPost, "/api/v1/deploy?"+q.Encode(), nil, &wrap); err != nil {
 		return nil, fmt.Errorf("deploying application %s: %w", appUUID, err)

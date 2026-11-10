@@ -122,6 +122,7 @@ func (r *dockerfileApplicationResource) ModifyPlan(ctx context.Context, req reso
 		return
 	}
 	warnUnsupportedApplicationSettingsWrites(r.client, cfg.common(), &resp.Diagnostics)
+	rejectGiteaAppUUID(cfg.GiteaAppUUID, &resp.Diagnostics)
 	if req.State.Raw.IsNull() {
 		return
 	}

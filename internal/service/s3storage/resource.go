@@ -61,7 +61,7 @@ func (r *s3StorageResource) Metadata(_ context.Context, req resource.MetadataReq
 
 func (r *s3StorageResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Manages a Coolify S3-compatible storage configuration. Requires Coolify >= v4.3.0.",
+		MarkdownDescription: "Manages a Coolify backup storage endpoint. `type` is `s3` (requires Coolify >= v4.3.0), or `sftp`, `ftps`, or `webdav` (requires Coolify >= v4.7.0).",
 		Attributes: map[string]schema.Attribute{
 			"uuid": schema.StringAttribute{
 				MarkdownDescription: "The unique identifier of the S3 storage.",
@@ -102,17 +102,19 @@ func (r *s3StorageResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 				PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 			},
 			"key": schema.StringAttribute{
-				MarkdownDescription: "Access key. Sensitive; Coolify may omit it on read unless the API token can read sensitive fields. Preserve the value in configuration after import.",
+				MarkdownDescription: "S3 access key, or the username for `sftp`, `ftps`, and `webdav`. Sensitive; Coolify may omit it on read unless the API token can read sensitive fields. Preserve the value in configuration after import.",
 				Required:            true,
 				Sensitive:           true,
 			},
 			"secret": schema.StringAttribute{
-				MarkdownDescription: "Secret key. Sensitive; Coolify may omit it on read unless the API token can read sensitive fields. Preserve the value in configuration after import.",
-				Required:            true,
+				MarkdownDescription: "S3 secret key, or the password for `ftps`, `webdav`, and password-based `sftp`. Omit it when `type` is `sftp` and `private_key_uuid` is set. Sensitive; Coolify may omit it on read unless the API token can read sensitive fields. Preserve the value in configuration after import. Set it again in the same change that removes `private_key_uuid`, because Coolify clears the saved password when a key is used.",
+				Optional:            true,
+				Computed:            true,
 				Sensitive:           true,
+				PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 			},
 			"use_path_style_endpoint": schema.BoolAttribute{
-				MarkdownDescription: "Use path-style URLs (`endpoint/bucket`) instead of virtual-hosted-style (`bucket.endpoint`). Requires Coolify >= v4.5.1. On create, leaving it unset lets Coolify choose: false for Alibaba Cloud OSS, Tencent Cloud COS, and Volcengine TOS endpoints, and true for other endpoints. Removing the attribute later does not clear a stored value. On older instances the provider keeps the value in state and does not send it.",
+				MarkdownDescription: "S3 only. Use path-style URLs (`endpoint/bucket`) instead of virtual-hosted-style (`bucket.endpoint`). Do not set it for `sftp`, `ftps`, or `webdav`. Requires Coolify >= v4.5.1. On create, leaving it unset lets Coolify choose: false for Alibaba Cloud OSS, Tencent Cloud COS, and Volcengine TOS endpoints, and true for other endpoints. Removing the attribute later does not clear a stored value. On older instances the provider keeps the value in state and does not send it.",
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers:       []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
@@ -134,10 +136,10 @@ func (r *s3StorageResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 				PlanModifiers:       []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},
 			"private_key_uuid": schema.StringAttribute{
-				MarkdownDescription: "SFTP only. UUID of a team private key used to log in. Requires Coolify >= v4.7.0. On older instances the provider keeps the value in state and does not send it.",
+				MarkdownDescription: "SFTP only. UUID of a team private key used to log in. Requires Coolify >= v4.7.0. On older instances the provider keeps the value in state and does not send it. Removing the attribute sends null so Coolify switches back to the password in `secret`. After import, leave the imported UUID in configuration or the next apply clears the key.",
 				Optional:            true,
 				Computed:            true,
-				PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+				PlanModifiers:       []planmodifier.String{clearPrivateKeyWhenOmitted{}},
 				Validators:          []validator.String{validate.UUID()},
 			},
 			"sftp_host_key": schema.StringAttribute{
@@ -166,8 +168,14 @@ func (r *s3StorageResource) Create(ctx context.Context, req resource.CreateReque
 		return
 	}
 
+	var cfg s3StorageResourceModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &cfg)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	tflog.Debug(ctx, "creating resource", map[string]interface{}{"resource_type": "coolify_s3_storage"})
-	resp.Diagnostics.Append(rejectStoragePlan(r.client, plan)...)
+	resp.Diagnostics.Append(rejectStoragePlan(r.client, plan, cfg)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -175,17 +183,17 @@ func (r *s3StorageResource) Create(ctx context.Context, req resource.CreateReque
 
 	input := client.CreateS3StorageInput{
 		Name:                 plan.Name.ValueString(),
-		Description:          plan.Description.ValueString(),
+		Description:          knownString(plan.Description),
 		Endpoint:             plan.Endpoint.ValueString(),
-		Bucket:               plan.Bucket.ValueString(),
-		Region:               plan.Region.ValueString(),
+		Bucket:               knownString(plan.Bucket),
+		Region:               knownString(plan.Region),
 		Key:                  plan.Key.ValueString(),
-		Secret:               plan.Secret.ValueString(),
+		Secret:               knownString(plan.Secret),
 		UsePathStyleEndpoint: flex.BoolValueOrNull(plan.UsePathStyleEndpoint),
 		IsUsable:             flex.BoolValueOrNull(plan.IsUsable),
-		Type:                 plan.Type.ValueString(),
+		Type:                 knownString(plan.Type),
 		SkipTLSVerification:  flex.BoolValueOrNull(plan.SkipTLSVerification),
-		PrivateKeyUUID:       plan.PrivateKeyUUID.ValueString(),
+		PrivateKeyUUID:       knownString(plan.PrivateKeyUUID),
 	}
 
 	created, err := r.client.CreateS3Storage(ctx, input)
@@ -198,6 +206,7 @@ func (r *s3StorageResource) Create(ctx context.Context, req resource.CreateReque
 	plan.UUID = types.StringValue(createdUUID)
 
 	// Save partial state so the resource is tracked even if the read-back fails.
+	nullUnknownStorage(&plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -255,8 +264,14 @@ func (r *s3StorageResource) Update(ctx context.Context, req resource.UpdateReque
 		return
 	}
 
+	var cfg s3StorageResourceModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &cfg)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	tflog.Debug(ctx, "updating resource", map[string]interface{}{"resource_type": "coolify_s3_storage", "uuid": state.UUID.ValueString()})
-	resp.Diagnostics.Append(rejectStoragePlan(r.client, plan)...)
+	resp.Diagnostics.Append(rejectStoragePlan(r.client, plan, cfg)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -275,6 +290,20 @@ func (r *s3StorageResource) Update(ctx context.Context, req resource.UpdateReque
 		Type:                 flex.StringIfChanged(plan.Type, state.Type),
 		SkipTLSVerification:  flex.BoolIfChanged(plan.SkipTLSVerification, state.SkipTLSVerification),
 		PrivateKeyUUID:       flex.StringIfChanged(plan.PrivateKeyUUID, state.PrivateKeyUUID),
+	}
+	if plan.PrivateKeyUUID.IsNull() && stringConfigured(state.PrivateKeyUUID) {
+		if !stringConfigured(cfg.Secret) {
+			resp.Diagnostics.AddAttributeError(
+				path.Root("secret"),
+				"secret is required to remove private_key_uuid",
+				"Set secret to the SFTP password in the same change. Coolify clears the saved password when a private key is used, and null private_key_uuid switches back to that password.",
+			)
+			return
+		}
+		secret := cfg.Secret.ValueString()
+		input.Secret = &secret
+		input.ClearPrivateKey = true
+		input.PrivateKeyUUID = nil
 	}
 	client.OmitDisallowedStorageUpdate(&input, plan.Type.ValueString())
 

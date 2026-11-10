@@ -1063,6 +1063,26 @@ func TestDockerfileApplicationResource_DockerfileTargetBuildPostCreate(t *testin
 	})
 }
 
+func TestDockerfileApplicationResource_RejectsGiteaAppUUID(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.NotFoundHandler()))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{{
+			Config: testDockerfileResourceConfig(srv.URL, `
+				project_uuid        = "aaaa0001-0001-4000-8000-000000000001"
+				server_uuid         = "bbbb0001-0001-4000-8000-000000000001"
+				dockerfile_location = "FROM nginx:alpine"
+				ports_exposes       = "80"
+				gitea_app_uuid      = "cccc0001-0001-4000-8000-000000000001"
+			`),
+			ExpectError: regexp.MustCompile(`gitea_app_uuid is not valid for this application`),
+		}},
+	})
+}
+
 func testDockerfileResourceConfig(endpoint, attrs string) string {
 	return acctest.TestResourceConfig(endpoint, "coolify_application_dockerfile", "test", attrs)
 }

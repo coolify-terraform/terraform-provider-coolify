@@ -17,6 +17,7 @@ func sshHostKeyAttrs() map[string]schema.Attribute {
 		"ssh_host_key": schema.StringAttribute{
 			MarkdownDescription: "SSH host key to trust, as public key lines (`type base64`) or known_hosts lines. " +
 				"Coolify does not return the raw key. Requires Coolify >= v4.7.0. On older instances the provider keeps the value in state and does not send it. " +
+				"After an upgrade to v4.7.0, the next refresh sends a stored key that Coolify has not pinned yet. " +
 				"Removing the value clears the trusted key so Coolify trusts the key the server sends on the next connection.",
 			Optional:   true,
 			Sensitive:  true,
@@ -75,6 +76,27 @@ func sshHostKeyEqual(plan, state types.String) bool {
 		return true
 	}
 	return plan.ValueString() == state.ValueString()
+}
+
+// noteUnappliedSSHHostKey drops a configured key from refreshed state when
+// Coolify 4.7 has no pinned fingerprints. The configuration still has the
+// key, so the next plan updates and POST /host-key/reset runs. Calling this
+// from Update would store null while the plan still has the key.
+func noteUnappliedSSHHostKey(c *client.Client, model *serverResourceModel) {
+	if c == nil || !c.SupportsCoolify47() || model == nil {
+		return
+	}
+	if model.SSHHostKey.IsNull() || model.SSHHostKey.IsUnknown() || model.SSHHostKey.ValueString() == "" {
+		return
+	}
+	if sshHostKeyFingerprintsPresent(model.SSHHostKeyFingerprints) {
+		return
+	}
+	model.SSHHostKey = types.StringNull()
+}
+
+func sshHostKeyFingerprintsPresent(v types.List) bool {
+	return !v.IsNull() && !v.IsUnknown() && len(v.Elements()) > 0
 }
 
 func applySSHHostKeyRead(srv *client.Server, model *serverResourceModel) {

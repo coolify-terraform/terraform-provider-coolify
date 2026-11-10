@@ -988,10 +988,54 @@ func TestScheduledTaskResource_ReadBackFallback(t *testing.T) {
 					resource.TestCheckResourceAttr("coolify_scheduled_task.test", "command", "echo fallback"),
 					resource.TestCheckResourceAttr("coolify_scheduled_task.test", "frequency", "*/5 * * * *"),
 					resource.TestCheckResourceAttr("coolify_scheduled_task.test", "enabled", "true"),
+					resource.TestCheckNoResourceAttr("coolify_scheduled_task.test", "consecutive_failures"),
+					resource.TestCheckNoResourceAttr("coolify_scheduled_task.test", "disabled_reason"),
+					resource.TestCheckNoResourceAttr("coolify_scheduled_task.test", "failing_since"),
 				),
 			},
 		},
 	})
+}
+
+func TestScheduledTaskResource_UseShellSent(t *testing.T) {
+	t.Parallel()
+	var body map[string]any
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/applications/{appUUID}/scheduled-tasks", func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		_ = json.NewEncoder(w).Encode(map[string]string{"uuid": "task-shell"})
+	})
+	mux.HandleFunc("GET /api/v1/applications/{appUUID}/scheduled-tasks", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		shell := false
+		_ = json.NewEncoder(w).Encode([]client.ScheduledTask{{
+			UUID: "task-shell", Name: "shell-task", Command: "echo hi", Frequency: "0 * * * *", Enabled: true, UseShell: &shell,
+		}})
+	})
+	mux.HandleFunc("DELETE /api/v1/applications/{appUUID}/scheduled-tasks/{taskUUID}", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	})
+	srv := httptest.NewServer(acctest.WithVersionEndpointVersion(mux, "4.7.1"))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{{
+			Config: testScheduledTaskResourceConfig(srv.URL, `
+				application_uuid = "cccc0001-0001-4000-8000-000000000001"
+				name             = "shell-task"
+				command          = "echo hi"
+				frequency        = "0 * * * *"
+				use_shell        = false
+			`),
+			Check: resource.TestCheckResourceAttr("coolify_scheduled_task.test", "use_shell", "false"),
+		}},
+	})
+	if body["use_shell"] != false {
+		t.Fatalf("use_shell = %v, want false", body["use_shell"])
+	}
 }
 
 // ---------------------------------------------------------------------------

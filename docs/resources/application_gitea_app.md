@@ -3,12 +3,12 @@
 page_title: "coolify_application_gitea_app Resource - coolify"
 subcategory: ""
 description: |-
-  Manages a Coolify application deployed via a Gitea app. Coolify checks repository access during create, so the Gitea app must be connected and able to read git_repository. Changing gitea_app_uuid updates the source in place on Coolify >= v4.7.0. Older instances keep the value in state and do not send it.
+  Manages a Coolify application deployed via a Gitea app. Coolify checks repository access during create, so the Gitea app must be connected and able to read git_repository. Use owner/name or an HTTPS URL on that Gitea host. Coolify stores owner/name, and the provider keeps the URL you configured. Changing gitea_app_uuid updates the source in place on Coolify >= v4.7.0. Older instances keep the value in state and do not send it.
 ---
 
 # coolify_application_gitea_app (Resource)
 
-Manages a Coolify application deployed via a Gitea app. Coolify checks repository access during create, so the Gitea app must be connected and able to read `git_repository`. Changing `gitea_app_uuid` updates the source in place on Coolify >= v4.7.0. Older instances keep the value in state and do not send it.
+Manages a Coolify application deployed via a Gitea app. Coolify checks repository access during create, so the Gitea app must be connected and able to read `git_repository`. Use `owner/name` or an HTTPS URL on that Gitea host. Coolify stores `owner/name`, and the provider keeps the URL you configured. Changing `gitea_app_uuid` updates the source in place on Coolify >= v4.7.0. Older instances keep the value in state and do not send it.
 
 ## Example Usage
 

@@ -69,6 +69,9 @@ func (c *Client) UpdateInstanceEmailSettings(ctx context.Context, input UpdateIn
 	c.omitCoolify47String(&input.NotificationFromName)
 	c.omitCoolify47String(&input.ResendFromAddress)
 	c.omitCoolify47String(&input.ResendFromName)
+	if jsonObjectEmpty(input) {
+		return c.GetInstanceEmailSettings(ctx)
+	}
 	var r InstanceEmailSettings
 	if err := c.do(ctx, http.MethodPatch, "/api/v1/settings/email", input, &r); err != nil {
 		return nil, fmt.Errorf("updating instance email settings: %w", err)

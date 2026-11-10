@@ -159,6 +159,10 @@ func TestClient_EmailNotifications_SMTPEhloDomainVersionGate(t *testing.T) {
 			t.Parallel()
 			var lastPatch map[string]interface{}
 			mux := http.NewServeMux()
+			mux.HandleFunc("GET /api/v1/notifications/email", func(w http.ResponseWriter, _ *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				_, _ = w.Write([]byte(`{"id":1,"team_id":0,"smtp_enabled":true}`))
+			})
 			mux.HandleFunc("PATCH /api/v1/notifications/email", func(w http.ResponseWriter, r *http.Request) {
 				require.NoError(t, json.NewDecoder(r.Body).Decode(&lastPatch))
 				_ = json.NewEncoder(w).Encode(map[string]interface{}{
@@ -176,6 +180,11 @@ func TestClient_EmailNotifications_SMTPEhloDomainVersionGate(t *testing.T) {
 			})
 			require.NoError(t, err)
 			_, sent := lastPatch["smtp_ehlo_domain"]
+			// A body that the version gate reduces to {} is not sent. Coolify
+			// rejects that PATCH with 400 Empty JSON.
+			if lastPatch == nil {
+				sent = false
+			}
 			if sent != tt.wantKey {
 				t.Errorf("Coolify %q: smtp_ehlo_domain sent=%v, want %v (body=%v)",
 					tt.version, sent, tt.wantKey, lastPatch)

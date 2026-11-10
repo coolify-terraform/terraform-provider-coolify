@@ -9,6 +9,7 @@ import (
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/flex"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/validate"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
@@ -81,6 +82,14 @@ func (r *gitHubAppApplicationResource) ModifyPlan(ctx context.Context, req resou
 		return
 	}
 	warnUnsupportedApplicationSettingsWrites(r.client, cfg.common(), &resp.Diagnostics)
+	if !cfg.GiteaAppUUID.IsNull() && !cfg.GiteaAppUUID.IsUnknown() && cfg.GiteaAppUUID.ValueString() != "" &&
+		!cfg.GitHubAppUUID.IsNull() && !cfg.GitHubAppUUID.IsUnknown() && cfg.GitHubAppUUID.ValueString() != "" {
+		resp.Diagnostics.AddAttributeError(
+			path.Root("gitea_app_uuid"),
+			"gitea_app_uuid conflicts with github_app_uuid",
+			"Send only one of github_app_uuid or gitea_app_uuid. Coolify rejects both in the same request.",
+		)
+	}
 }
 
 //nolint:dupl // Create methods differ by input struct type and API call

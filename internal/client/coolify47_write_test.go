@@ -13,6 +13,48 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestUpdateApplication_SkipsEmptyBodyBefore47(t *testing.T) {
+	t.Parallel()
+	var patches int
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPatch {
+			patches++
+			http.Error(w, `{"message":"Invalid request.","error":"Empty JSON."}`, http.StatusBadRequest)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	t.Cleanup(srv.Close)
+
+	c := New(srv.URL, "test-token")
+	c.CoolifyVersion = "4.6.1"
+	off := false
+	_, err := c.UpdateApplication(context.Background(), "app-1", UpdateApplicationInput{IsImageScanEnabled: &off})
+	require.NoError(t, err)
+	assert.Equal(t, 0, patches)
+}
+
+func TestUpdateScheduledTask_SkipsUseShellOnlyBefore47(t *testing.T) {
+	t.Parallel()
+	var patches int
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPatch {
+			patches++
+			http.Error(w, `{"message":"Invalid request.","error":"Empty JSON."}`, http.StatusBadRequest)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	t.Cleanup(srv.Close)
+
+	c := New(srv.URL, "test-token")
+	c.CoolifyVersion = "4.6.1"
+	off := false
+	err := c.UpdateScheduledTask(context.Background(), "applications", "app-1", "task-1", UpdateScheduledTaskInput{UseShell: &off})
+	require.NoError(t, err)
+	assert.Equal(t, 0, patches)
+}
+
 func TestCreateServer_StripsSSHHostKeyBefore47(t *testing.T) {
 	t.Parallel()
 	var got map[string]any

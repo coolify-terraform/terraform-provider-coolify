@@ -419,18 +419,59 @@ func (m *applicationCommonModel) common() commonAppFields {
 
 // resolveGitRepository reconciles the user's configured git_repository value
 // with the API response. Coolify strips "https://github.com/" from GitHub URLs,
-// so the API value may differ from the user's input. On import (state is
-// null/unknown) the normalized value is used; otherwise the user's value is
-// preserved when it matches the raw or normalized API value.
-func resolveGitRepository(state types.String, apiValue string) types.String {
+// and Gitea stores owner/name. On import (state is null/unknown) the normalized
+// value is used. A Gitea source keeps that owner/name instead of a github.com
+// URL. Otherwise the user's value is preserved when it is the same repository.
+func resolveGitRepository(state types.String, apiValue string, giteaSource bool) types.String {
 	normalized := normalizeGitRepository(apiValue)
+	if giteaSource {
+		if slug := gitRepositorySlug(apiValue); slug != "" {
+			normalized = slug
+		}
+	}
 	if !state.IsNull() && !state.IsUnknown() {
 		sv := state.ValueString()
-		if sv == apiValue || sv == normalized || canonicalGitRepo(sv) == canonicalGitRepo(apiValue) {
+		if sv == apiValue || sv == normalized || canonicalGitRepo(sv) == canonicalGitRepo(apiValue) || sameGitRepository(sv, apiValue) {
 			return state
 		}
 	}
 	return types.StringValue(normalized)
+}
+
+// gitRepositorySlug returns owner/name from a URL, an scp SSH path, or a slug.
+func gitRepositorySlug(s string) string {
+	s = strings.TrimSpace(s)
+	s = strings.TrimSuffix(s, ".git")
+	switch {
+	case strings.HasPrefix(s, "git@"):
+		if i := strings.Index(s, ":"); i >= 0 {
+			s = s[i+1:]
+		}
+	case strings.Contains(s, "://"):
+		rest := s
+		if i := strings.Index(s, "://"); i >= 0 {
+			rest = s[i+3:]
+		}
+		if i := strings.Index(rest, "/"); i >= 0 {
+			s = rest[i+1:]
+		} else {
+			return ""
+		}
+	default:
+		if i := strings.Index(s, "/"); i >= 0 && strings.Contains(s[:i], ".") {
+			s = s[i+1:]
+		}
+	}
+	return strings.Trim(s, "/")
+}
+
+// sameGitRepository reports whether two repository strings name the same owner/name.
+func sameGitRepository(a, b string) bool {
+	as, bs := gitRepositorySlug(a), gitRepositorySlug(b)
+	if as == "" || bs == "" {
+		return false
+	}
+	return as == bs
 }
 
 // canonicalGitRepo strips the protocol prefix so that "github.com/org/repo"
