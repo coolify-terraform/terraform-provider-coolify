@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.32](https://github.com/coolify-terraform/terraform-provider-coolify/compare/v0.1.31...v0.1.32) (2026-11-10)
+
+
+### Features
+
+* support Coolify 4.7 public API writes ([#1055](https://github.com/coolify-terraform/terraform-provider-coolify/issues/1055)) ([2796975](https://github.com/coolify-terraform/terraform-provider-coolify/commit/2796975657d34658095575d46c78cefa84f57fff))
+
+
+### Bug Fixes
+
+* omit S3-only fields for non-S3 backup storage ([#1057](https://github.com/coolify-terraform/terraform-provider-coolify/issues/1057)) ([7b7a445](https://github.com/coolify-terraform/terraform-provider-coolify/commit/7b7a445743c89e45f8f87174992a1541183c62e5))
+* stop Coolify 4.7 plans from sending rejected or empty writes ([#1060](https://github.com/coolify-terraform/terraform-provider-coolify/issues/1060)) ([4c02397](https://github.com/coolify-terraform/terraform-provider-coolify/commit/4c02397b326c6e3e8a869ca3e16d1f4411b6a992))
+* treat Coolify 4.7.0 pre-release tags as unsupported ([#1058](https://github.com/coolify-terraform/terraform-provider-coolify/issues/1058)) ([5f5d53e](https://github.com/coolify-terraform/terraform-provider-coolify/commit/5f5d53ecf96f9658812e4d6c013ea9a9e64bd0cf))
+
 ## [0.1.31](https://github.com/coolify-terraform/terraform-provider-coolify/compare/v0.1.30...v0.1.31) (2026-11-08)
 
 
