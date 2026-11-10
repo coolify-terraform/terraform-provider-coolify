@@ -54,7 +54,7 @@ func (r *giteaAppApplicationResource) Metadata(_ context.Context, req resource.M
 
 func (r *giteaAppApplicationResource) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Manages a Coolify application deployed via a Gitea app. Coolify checks repository access during create, so the Gitea app must be connected and able to read `git_repository`. Changing `gitea_app_uuid` updates the source in place on Coolify >= v4.7.0. Older instances keep the value in state and do not send it.",
+		MarkdownDescription: "Manages a Coolify application deployed via a Gitea app. Coolify checks repository access during create, so the Gitea app must be connected and able to read `git_repository`. Use `owner/name` or an HTTPS URL on that Gitea host. Coolify stores `owner/name`, and the provider keeps the URL you configured. Changing `gitea_app_uuid` updates the source in place on Coolify >= v4.7.0. Older instances keep the value in state and do not send it.",
 		Attributes: gitAppAttrs(ctx, "The Git repository URL (for example `https://gitea.example.com/org/repo` or `org/repo`).", map[string]schema.Attribute{
 			"gitea_app_uuid": schema.StringAttribute{
 				MarkdownDescription: "UUID of the connected Gitea app that clones this repository. Requires Coolify >= v4.7.0 to change after create. Do not set it together with `github_app_uuid`.",

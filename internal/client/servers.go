@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
 // ServerSettings holds the nested settings returned by the Coolify API
@@ -203,6 +205,10 @@ func (c *Client) UpdateServer(ctx context.Context, uuid string, input UpdateServ
 		input.ServerTimezone = nil
 		input.BackupCompressionCPUPercentage = nil
 	}
+	if jsonObjectEmpty(input) {
+		tflog.Debug(ctx, "skipping server update: empty body", map[string]interface{}{"uuid": uuid})
+		return &Server{UUID: uuid}, nil
+	}
 	var s Server
 	if err := c.do(ctx, http.MethodPatch, fmt.Sprintf("/api/v1/servers/%s", url.PathEscape(uuid)), input, &s); err != nil {
 		return nil, fmt.Errorf("updating server %s: %w", uuid, err)
@@ -247,8 +253,25 @@ func applyDiskIntervalWrite(c *Client, hours *int) *int {
 	return nil
 }
 
+// DeleteServerOptions selects destroy query flags. Force stays on so a server
+// that still has resources can be deleted. RemoveSSHKey asks Coolify >= v4.7.0
+// to drop the server's public key from authorized_keys first. Coolify rejects
+// that flag when the server still has resources.
+type DeleteServerOptions struct {
+	RemoveSSHKey bool
+}
+
 func (c *Client) DeleteServer(ctx context.Context, uuid string) error {
-	path := fmt.Sprintf("/api/v1/servers/%s?force=true", url.PathEscape(uuid))
+	return c.DeleteServerWithOptions(ctx, uuid, DeleteServerOptions{})
+}
+
+func (c *Client) DeleteServerWithOptions(ctx context.Context, uuid string, opts DeleteServerOptions) error {
+	q := url.Values{}
+	q.Set("force", "true")
+	if opts.RemoveSSHKey {
+		q.Set("remove_ssh_key", "true")
+	}
+	path := fmt.Sprintf("/api/v1/servers/%s?%s", url.PathEscape(uuid), q.Encode())
 	if err := c.do(ctx, http.MethodDelete, path, nil, nil); err != nil {
 		return fmt.Errorf("deleting server %s: %w", uuid, err)
 	}

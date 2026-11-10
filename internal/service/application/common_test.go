@@ -98,16 +98,40 @@ func TestResolveGitRepository_ProtocolNormalization(t *testing.T) {
 			"org/repo",
 			"https://github.com/org/repo", // preserve user's value (matches normalized)
 		},
+		{
+			"gitea URL kept when API stores owner/name",
+			"https://gitea.example.com/org/repo",
+			"org/repo",
+			"https://gitea.example.com/org/repo",
+		},
+		{
+			"longer path is a different repository",
+			"https://github.com/team/org/repo",
+			"org/repo",
+			"https://github.com/org/repo",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			state := types.StringValue(tt.state)
-			got := resolveGitRepository(state, tt.apiValue)
+			got := resolveGitRepository(state, tt.apiValue, false)
 			if got.ValueString() != tt.want {
 				t.Errorf("resolveGitRepository(%q, %q) = %q, want %q", tt.state, tt.apiValue, got.ValueString(), tt.want)
 			}
 		})
+	}
+}
+
+func TestResolveGitRepository_GiteaImportKeepsSlug(t *testing.T) {
+	t.Parallel()
+	got := resolveGitRepository(types.StringNull(), "org/repo", true)
+	if got.ValueString() != "org/repo" {
+		t.Fatalf("import slug = %q, want org/repo", got.ValueString())
+	}
+	got = resolveGitRepository(types.StringNull(), "org/repo", false)
+	if got.ValueString() != "https://github.com/org/repo" {
+		t.Fatalf("github import = %q", got.ValueString())
 	}
 }
 

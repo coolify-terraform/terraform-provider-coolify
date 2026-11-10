@@ -19,7 +19,7 @@ func TestGiteaAppApplicationResource_CreateSendsGiteaUUID(t *testing.T) {
 	app := client.Application{
 		UUID:            "gitea-app-uuid",
 		Name:            "my-gitea-app",
-		GitRepository:   "gitea.example.com/org/repo",
+		GitRepository:   "org/repo",
 		GitBranch:       "main",
 		BuildPack:       "nixpacks",
 		PortsExposes:    "3000",
@@ -86,7 +86,7 @@ func TestGiteaAppApplicationResource_CreateSendsGiteaUUID(t *testing.T) {
 					project_uuid    = "aaaa0001-0001-4000-8000-000000000001"
 					server_uuid     = "bbbb0001-0001-4000-8000-000000000001"
 					gitea_app_uuid  = "cccc0001-0001-4000-8000-000000000001"
-					git_repository  = "gitea.example.com/org/repo"
+					git_repository  = "https://gitea.example.com/org/repo"
 					git_branch      = "main"
 					build_pack      = "nixpacks"
 					ports_exposes   = "3000"
@@ -95,6 +95,7 @@ func TestGiteaAppApplicationResource_CreateSendsGiteaUUID(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("coolify_application_gitea_app.test", "uuid", "gitea-app-uuid"),
 					resource.TestCheckResourceAttr("coolify_application_gitea_app.test", "gitea_app_uuid", gitea),
+					resource.TestCheckResourceAttr("coolify_application_gitea_app.test", "git_repository", "https://gitea.example.com/org/repo"),
 					resource.TestCheckResourceAttr("coolify_application_gitea_app.test", "is_image_scan_enabled", "false"),
 				),
 			},
@@ -109,4 +110,67 @@ func TestGiteaAppApplicationResource_CreateSendsGiteaUUID(t *testing.T) {
 	if patched["is_image_scan_enabled"] != false {
 		t.Fatalf("post-create PATCH is_image_scan_enabled = %v, want false", patched["is_image_scan_enabled"])
 	}
+	if _, ok := patched["gitea_app_uuid"]; ok {
+		t.Fatalf("post-create PATCH repeated gitea_app_uuid: %v", patched["gitea_app_uuid"])
+	}
+}
+
+func TestGiteaAppApplicationResource_Disappears(t *testing.T) {
+	t.Parallel()
+	deleted := false
+	var mu sync.Mutex
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/applications/private-gitea-app", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		_, _ = w.Write([]byte(`{"uuid":"gitea-app-uuid"}`))
+	})
+	mux.HandleFunc("GET /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		gone := deleted
+		mu.Unlock()
+		if gone {
+			http.Error(w, `{"message":"not found"}`, http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(client.Application{
+			UUID: "gitea-app-uuid", Name: "my-gitea-app", GitRepository: "org/repo",
+			GitBranch: "main", BuildPack: "nixpacks", PortsExposes: "3000",
+			ProjectUUID: "aaaa0001-0001-4000-8000-000000000001",
+			ServerUUID:  "bbbb0001-0001-4000-8000-000000000001",
+		})
+	})
+	mux.HandleFunc("PATCH /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"uuid":"gitea-app-uuid"}`))
+	})
+	mux.HandleFunc("DELETE /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		deleted = true
+		mu.Unlock()
+		w.WriteHeader(http.StatusNoContent)
+	})
+	srv := httptest.NewServer(acctest.WithVersionEndpointVersion(mux, "4.7.1"))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{{
+			Config: acctest.TestResourceConfig(srv.URL, "coolify_application_gitea_app", "test", `
+				name            = "my-gitea-app"
+				project_uuid    = "aaaa0001-0001-4000-8000-000000000001"
+				server_uuid     = "bbbb0001-0001-4000-8000-000000000001"
+				gitea_app_uuid  = "cccc0001-0001-4000-8000-000000000001"
+				git_repository  = "https://gitea.example.com/org/repo"
+				git_branch      = "main"
+				build_pack      = "nixpacks"
+				ports_exposes   = "3000"
+			`),
+			Check: resource.ComposeAggregateTestCheckFunc(
+				acctest.CheckResourceDisappears(srv.URL, "coolify_application_gitea_app.test", "/api/v1/applications/"),
+			),
+			ExpectNonEmptyPlan: true,
+		}},
+	})
 }

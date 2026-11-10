@@ -869,6 +869,29 @@ func TestPrivateGitApplicationResource_CreateAPIError(t *testing.T) {
 	})
 }
 
+func TestPrivateGitApplicationResource_RejectsGiteaAppUUID(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.NotFoundHandler()))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{{
+			Config: testPrivateGitResourceConfig(srv.URL, `
+				project_uuid     = "aaaa0002-0002-4000-8000-000000000002"
+				server_uuid      = "bbbb0002-0002-4000-8000-000000000002"
+				git_repository   = "git@github.com:myorg/api-server.git"
+				git_branch       = "main"
+				build_pack       = "dockerfile"
+				ports_exposes    = "8080"
+				private_key_uuid = "dddd0001-0001-4000-8000-000000000001"
+				gitea_app_uuid   = "cccc0001-0001-4000-8000-000000000001"
+			`),
+			ExpectError: regexp.MustCompile(`gitea_app_uuid is not valid for this application`),
+		}},
+	})
+}
+
 func testPrivateGitResourceConfig(endpoint, attrs string) string {
 	return acctest.TestResourceConfig(endpoint, "coolify_application_private_git", "test", attrs)
 }

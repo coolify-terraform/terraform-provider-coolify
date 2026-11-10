@@ -2,9 +2,12 @@ package client
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
+
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
 // S3Storage is an S3-compatible storage configuration in Coolify.
@@ -36,7 +39,7 @@ type CreateS3StorageInput struct {
 	Bucket               string `json:"bucket,omitempty"`
 	Region               string `json:"region,omitempty"`
 	Key                  string `json:"key"`
-	Secret               string `json:"secret"`
+	Secret               string `json:"secret,omitempty"`
 	UsePathStyleEndpoint *bool  `json:"use_path_style_endpoint,omitempty"`
 	IsUsable             *bool  `json:"is_usable,omitempty"`
 	Type                 string `json:"type,omitempty"`
@@ -59,6 +62,9 @@ type UpdateS3StorageInput struct {
 	Type                 *string `json:"type,omitempty"`
 	SkipTLSVerification  *bool   `json:"skip_tls_verification,omitempty"`
 	PrivateKeyUUID       *string `json:"private_key_uuid,omitempty"`
+	// ClearPrivateKey sends private_key_uuid as JSON null. A nil pointer is
+	// omitted, and Coolify keeps the key when the field is absent.
+	ClearPrivateKey bool `json:"-"`
 }
 
 // ListS3Storages returns all S3 storages for the authenticated team.
@@ -116,11 +122,42 @@ func (c *Client) UpdateS3Storage(ctx context.Context, uuid string, input UpdateS
 	}
 	// Coolify's update allow list does not include type. Sending it is a 422.
 	input.Type = nil
+	body, err := storageUpdateBody(input)
+	if err != nil {
+		return nil, fmt.Errorf("updating s3 storage %s: %w", uuid, err)
+	}
+	if jsonObjectEmpty(body) {
+		ver := ""
+		if c != nil {
+			ver = c.CoolifyVersion
+		}
+		tflog.Debug(ctx, "skipping s3 storage update: version gate left an empty body", map[string]interface{}{
+			"uuid":    uuid,
+			"version": ver,
+		})
+		return &S3Storage{UUID: uuid}, nil
+	}
 	var r S3Storage
-	if err := c.do(ctx, http.MethodPatch, fmt.Sprintf("/api/v1/s3-storages/%s", url.PathEscape(uuid)), input, &r); err != nil {
+	if err := c.do(ctx, http.MethodPatch, fmt.Sprintf("/api/v1/s3-storages/%s", url.PathEscape(uuid)), body, &r); err != nil {
 		return nil, fmt.Errorf("updating s3 storage %s: %w", uuid, err)
 	}
 	return &r, nil
+}
+
+func storageUpdateBody(input UpdateS3StorageInput) (any, error) {
+	if !input.ClearPrivateKey {
+		return input, nil
+	}
+	raw, err := json.Marshal(input)
+	if err != nil {
+		return nil, err
+	}
+	var body map[string]any
+	if err := json.Unmarshal(raw, &body); err != nil {
+		return nil, err
+	}
+	body["private_key_uuid"] = nil
+	return body, nil
 }
 
 // DeleteS3Storage deletes an S3 storage by UUID.

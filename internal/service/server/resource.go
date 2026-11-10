@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -94,6 +95,7 @@ type serverResourceModel struct {
 	SSHHostKey                        types.String `tfsdk:"ssh_host_key"`
 	SSHHostKeyFingerprints            types.List   `tfsdk:"ssh_host_key_fingerprints"`
 	SSHHostKeyPendingFingerprints     types.List   `tfsdk:"ssh_host_key_pending_fingerprints"`
+	RemoveSSHKey                      types.Bool   `tfsdk:"remove_ssh_key"`
 }
 
 // NewResource returns a new server resource.
@@ -114,6 +116,13 @@ func (r *serverResource) Schema(ctx context.Context, _ resource.SchemaRequest, r
 					"(for example `2A01:04F8::0001` is stored as `2a01:4f8::1`). " +
 					"When that stored address is the same as this value, Terraform keeps the config text.",
 				Required: true,
+			},
+			"remove_ssh_key": schema.BoolAttribute{
+				MarkdownDescription: "On destroy, remove this server's SSH public key from `~/.ssh/authorized_keys` before deleting the Coolify server. " +
+					"Coolify refuses the delete when the server still has resources. Requires Coolify >= v4.7.0. Default `false`.",
+				Optional: true,
+				Computed: true,
+				Default:  booldefault.StaticBool(false),
 			},
 			"instant_validate": schema.BoolAttribute{
 				MarkdownDescription: "Whether to validate server connectivity immediately after creation or update. " +
@@ -293,6 +302,10 @@ func (r *serverResource) Read(ctx context.Context, req resource.ReadRequest, res
 
 	flattenServer(r.client, srv, &state)
 	resolveInstantValidate(&state.InstantValidate)
+	if state.RemoveSSHKey.IsNull() || state.RemoveSSHKey.IsUnknown() {
+		state.RemoveSSHKey = types.BoolValue(false)
+	}
+	noteUnappliedSSHHostKey(r.client, &state)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
@@ -346,7 +359,20 @@ func (r *serverResource) Delete(ctx context.Context, req resource.DeleteRequest,
 
 	tflog.Debug(ctx, "deleting resource", map[string]interface{}{"resource_type": "coolify_server", "uuid": state.UUID.ValueString()})
 
-	if err := r.client.DeleteServer(ctx, state.UUID.ValueString()); err != nil {
+	removeKey := !state.RemoveSSHKey.IsNull() && !state.RemoveSSHKey.IsUnknown() && state.RemoveSSHKey.ValueBool()
+	opts := client.DeleteServerOptions{RemoveSSHKey: removeKey}
+	if opts.RemoveSSHKey && (r.client == nil || !r.client.SupportsCoolify47()) {
+		ver := "unknown"
+		if r.client != nil && r.client.CoolifyVersion != "" {
+			ver = r.client.CoolifyVersion
+		}
+		resp.Diagnostics.AddError(
+			"Coolify version cannot remove the server SSH key",
+			fmt.Sprintf("This Coolify instance (%s) does not accept remove_ssh_key (added in Coolify v4.7.0). Set remove_ssh_key to false or upgrade Coolify before deleting the server.", ver),
+		)
+		return
+	}
+	if err := r.client.DeleteServerWithOptions(ctx, state.UUID.ValueString(), opts); err != nil {
 		if client.IsNotFound(err) {
 			return
 		}

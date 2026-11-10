@@ -669,6 +669,13 @@ func (c *Client) UpdateApplication(ctx context.Context, uuid string, input Updat
 	// github_app_uuid is create-only. Coolify 4.5.0 lists it on update,
 	// but changing the app still replaces the application.
 	input.GitHubAppUUID = nil
+	if jsonObjectEmpty(input) {
+		tflog.Debug(ctx, "skipping application update: version gate left an empty body", map[string]interface{}{
+			"uuid":    uuid,
+			"version": c.CoolifyVersion,
+		})
+		return &Application{UUID: uuid}, nil
+	}
 	var a Application
 	if err := c.do(ctx, http.MethodPatch, fmt.Sprintf("/api/v1/applications/%s", url.PathEscape(uuid)), input, &a); err != nil {
 		return nil, fmt.Errorf("updating application %s: %w", uuid, err)
@@ -833,6 +840,22 @@ func (i UpdateApplicationInput) HasOnlyApplicationSettingsV44() bool {
 func (i UpdateApplicationInput) HasOnlyApplicationSettingsV45() bool {
 	stripped := i
 	stripped.clearApplicationSettingsV45()
+	return i.encodedFieldCount() > 0 && stripped.encodedFieldCount() == 0
+}
+
+// HasOnlyApplicationSettingsV46 reports whether the payload would be empty
+// once the v4.6.0 gated fields are dropped.
+func (i UpdateApplicationInput) HasOnlyApplicationSettingsV46() bool {
+	stripped := i
+	stripped.clearApplicationSettingsV46()
+	return i.encodedFieldCount() > 0 && stripped.encodedFieldCount() == 0
+}
+
+// HasOnlyApplicationSettingsV47 reports whether the payload would be empty
+// once the v4.7.0 gated fields are dropped.
+func (i UpdateApplicationInput) HasOnlyApplicationSettingsV47() bool {
+	stripped := i
+	stripped.clearApplicationSettingsV47()
 	return i.encodedFieldCount() > 0 && stripped.encodedFieldCount() == 0
 }
 

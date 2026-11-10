@@ -90,6 +90,7 @@ func (r *dockerImageApplicationResource) ModifyPlan(ctx context.Context, req res
 		return
 	}
 	warnUnsupportedApplicationSettingsWrites(r.client, cfg.common(), &resp.Diagnostics)
+	rejectGiteaAppUUID(cfg.GiteaAppUUID, &resp.Diagnostics)
 }
 
 func (r *dockerImageApplicationResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {

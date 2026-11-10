@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
 // ScheduledTask represents a scheduled task on an application or service.
@@ -88,6 +90,12 @@ func (c *Client) UpdateScheduledTask(ctx context.Context, parentType, parentUUID
 	}
 	if c != nil && !c.SupportsCoolify47() {
 		input.UseShell = nil
+	}
+	if jsonObjectEmpty(input) {
+		tflog.Debug(ctx, "skipping scheduled task update: version gate left an empty body", map[string]interface{}{
+			"uuid": taskUUID,
+		})
+		return nil
 	}
 	if err := c.do(ctx, http.MethodPatch, fmt.Sprintf("/api/v1/%s/%s/scheduled-tasks/%s", parentType, url.PathEscape(parentUUID), url.PathEscape(taskUUID)), input, nil); err != nil {
 		return fmt.Errorf("updating scheduled task %s for %s %s: %w", taskUUID, parentType, parentUUID, err)

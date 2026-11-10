@@ -122,6 +122,9 @@ func (c *Client) GetDiscordNotifications(ctx context.Context) (*DiscordNotificat
 // Requires Coolify >= v4.3.0.
 func (c *Client) UpdateDiscordNotifications(ctx context.Context, input UpdateDiscordNotificationInput) (*DiscordNotificationSettings, error) {
 	c.omitCoolify47Bool(&input.ImageVulnerabilities)
+	if jsonObjectEmpty(input) {
+		return c.GetDiscordNotifications(ctx)
+	}
 	var r DiscordNotificationSettings
 	if err := c.do(ctx, http.MethodPatch, "/api/v1/notifications/discord", input, &r); err != nil {
 		return nil, fmt.Errorf("updating discord notifications: %w", err)
@@ -143,6 +146,9 @@ func (c *Client) GetSlackNotifications(ctx context.Context) (*SlackNotificationS
 // Requires Coolify >= v4.3.0.
 func (c *Client) UpdateSlackNotifications(ctx context.Context, input UpdateSlackNotificationInput) (*SlackNotificationSettings, error) {
 	c.omitCoolify47Bool(&input.ImageVulnerabilities)
+	if jsonObjectEmpty(input) {
+		return c.GetSlackNotifications(ctx)
+	}
 	var r SlackNotificationSettings
 	if err := c.do(ctx, http.MethodPatch, "/api/v1/notifications/slack", input, &r); err != nil {
 		return nil, fmt.Errorf("updating slack notifications: %w", err)
@@ -264,6 +270,9 @@ func (c *Client) GetWebhookNotifications(ctx context.Context) (*WebhookNotificat
 // Requires Coolify >= v4.3.0.
 func (c *Client) UpdateWebhookNotifications(ctx context.Context, input UpdateWebhookNotificationInput) (*WebhookNotificationSettings, error) {
 	c.omitCoolify47Bool(&input.ImageVulnerabilities)
+	if jsonObjectEmpty(input) {
+		return c.GetWebhookNotifications(ctx)
+	}
 	var r WebhookNotificationSettings
 	if err := c.do(ctx, http.MethodPatch, "/api/v1/notifications/webhook", input, &r); err != nil {
 		return nil, fmt.Errorf("updating webhook notifications: %w", err)
@@ -285,6 +294,9 @@ func (c *Client) GetPushoverNotifications(ctx context.Context) (*PushoverNotific
 // Requires Coolify >= v4.3.0.
 func (c *Client) UpdatePushoverNotifications(ctx context.Context, input UpdatePushoverNotificationInput) (*PushoverNotificationSettings, error) {
 	c.omitCoolify47Bool(&input.ImageVulnerabilities)
+	if jsonObjectEmpty(input) {
+		return c.GetPushoverNotifications(ctx)
+	}
 	var r PushoverNotificationSettings
 	if err := c.do(ctx, http.MethodPatch, "/api/v1/notifications/pushover", input, &r); err != nil {
 		return nil, fmt.Errorf("updating pushover notifications: %w", err)
@@ -481,6 +493,9 @@ func (c *Client) UpdateEmailNotifications(ctx context.Context, input UpdateEmail
 	c.omitCoolify47Bool(&input.ImageVulnerabilities)
 	c.omitCoolify47String(&input.ResendFromAddress)
 	c.omitCoolify47String(&input.ResendFromName)
+	if jsonObjectEmpty(input) {
+		return c.GetEmailNotifications(ctx)
+	}
 	var r EmailNotificationSettings
 	if err := c.do(ctx, http.MethodPatch, "/api/v1/notifications/email", input, &r); err != nil {
 		return nil, fmt.Errorf("updating email notifications: %w", err)
@@ -501,6 +516,9 @@ func (c *Client) GetTelegramNotifications(ctx context.Context) (*TelegramNotific
 func (c *Client) UpdateTelegramNotifications(ctx context.Context, input UpdateTelegramNotificationInput) (*TelegramNotificationSettings, error) {
 	c.omitCoolify47Bool(&input.ImageVulnerabilities)
 	c.omitCoolify47String(&input.ThreadImageVulnerabilities)
+	if jsonObjectEmpty(input) {
+		return c.GetTelegramNotifications(ctx)
+	}
 	var r TelegramNotificationSettings
 	if err := c.do(ctx, http.MethodPatch, "/api/v1/notifications/telegram", input, &r); err != nil {
 		return nil, fmt.Errorf("updating telegram notifications: %w", err)

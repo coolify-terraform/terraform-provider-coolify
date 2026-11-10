@@ -126,6 +126,48 @@ resource "coolify_deployment" "test" {
 	})
 }
 
+func TestDeploymentResource_CancelPrevious(t *testing.T) {
+	t.Parallel()
+	appUUID := "cccc0002-0002-4000-8000-000000000002"
+	deploymentUUID := "aaaa0001-0001-4000-8000-000000000099"
+	var got string
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/deploy", func(w http.ResponseWriter, r *http.Request) {
+		got = r.URL.Query().Get("cancel_previous")
+		writeDeployQueued(w, appUUID, deploymentUUID)
+	})
+	mux.HandleFunc("GET /api/v1/deployments/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"deployment_uuid": r.PathValue("uuid"),
+			"status":          "queued",
+		})
+	})
+	srv := httptest.NewServer(acctest.WithVersionEndpointVersion(mux, "4.7.1"))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{{
+			Config: fmt.Sprintf(`
+provider "coolify" {
+  endpoint = %q
+  token    = "test-token"
+}
+
+resource "coolify_deployment" "test" {
+  application_uuid = %q
+  cancel_previous  = "queued"
+}
+`, srv.URL, appUUID),
+			Check: resource.TestCheckResourceAttr("coolify_deployment.test", "cancel_previous", "queued"),
+		}},
+	})
+	if got != "queued" {
+		t.Fatalf("cancel_previous = %q", got)
+	}
+}
+
 func TestDeploymentResource_TriggersForceNew(t *testing.T) {
 	t.Parallel()
 	appUUID := "cccc0001-0001-4000-8000-000000000001"

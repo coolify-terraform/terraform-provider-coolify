@@ -214,8 +214,10 @@ func (r *scheduledTaskResource) Create(ctx context.Context, req resource.CreateR
 	tasks, listErr := r.client.ListScheduledTasks(ctx, parentType, parentUUID)
 	if listErr != nil {
 		tflog.Warn(ctx, "read-back after create failed, using plan values", map[string]interface{}{"resource_type": "coolify_scheduled_task", "uuid": taskUUID, "error": listErr.Error()})
+		normalizeScheduledTaskFallback(&plan)
 	} else if !flattenScheduledTaskFromList(tasks, &plan) {
 		tflog.Warn(ctx, "task not found in read-back after create, using plan values", map[string]interface{}{"resource_type": "coolify_scheduled_task", "uuid": taskUUID})
+		normalizeScheduledTaskFallback(&plan)
 	}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
@@ -288,8 +290,10 @@ func (r *scheduledTaskResource) Update(ctx context.Context, req resource.UpdateR
 	tasks, listErr := r.client.ListScheduledTasks(ctx, parentType, parentUUID)
 	if listErr != nil {
 		tflog.Warn(ctx, "read-back after update failed, using plan values", map[string]interface{}{"resource_type": "coolify_scheduled_task", "uuid": plan.UUID.ValueString(), "error": listErr.Error()})
+		normalizeScheduledTaskFallback(&plan)
 	} else if !flattenScheduledTaskFromList(tasks, &plan) {
 		tflog.Warn(ctx, "task not found in read-back after update, using plan values", map[string]interface{}{"resource_type": "coolify_scheduled_task", "uuid": plan.UUID.ValueString()})
+		normalizeScheduledTaskFallback(&plan)
 	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
@@ -351,6 +355,28 @@ func applyScheduledTask(t client.ScheduledTask, state *scheduledTaskResourceMode
 	}
 	state.DisabledReason = stringOrNull(t.DisabledReason)
 	state.FailingSince = stringOrNull(t.FailingSince)
+}
+
+// normalizeScheduledTaskFallback replaces unknown computed values before
+// State.Set. A missed read-back used to leave consecutive_failures,
+// disabled_reason, failing_since, and an unset use_shell unknown, which
+// Terraform rejects after apply.
+func normalizeScheduledTaskFallback(m *scheduledTaskResourceModel) {
+	if m.UseShell.IsUnknown() {
+		m.UseShell = types.BoolNull()
+	}
+	if m.ConsecutiveFailures.IsUnknown() {
+		m.ConsecutiveFailures = types.Int64Null()
+	}
+	if m.DisabledReason.IsUnknown() {
+		m.DisabledReason = types.StringNull()
+	}
+	if m.FailingSince.IsUnknown() {
+		m.FailingSince = types.StringNull()
+	}
+	if m.Container.IsUnknown() {
+		m.Container = types.StringNull()
+	}
 }
 
 func stringOrNull(v string) types.String {

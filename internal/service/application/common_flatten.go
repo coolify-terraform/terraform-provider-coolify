@@ -120,7 +120,8 @@ func flattenApplicationCommon(app *client.Application, f commonAppFields) {
 	*f.Name = types.StringValue(app.Name)
 	*f.Description = flex.StringFromAPI(app.Description, *f.Description)
 	if f.GitRepository != nil {
-		*f.GitRepository = resolveGitRepository(*f.GitRepository, app.GitRepository)
+		giteaSource := app.GiteaAppUUID != nil && *app.GiteaAppUUID != ""
+		*f.GitRepository = resolveGitRepository(*f.GitRepository, app.GitRepository, giteaSource)
 	}
 	if f.GitBranch != nil {
 		*f.GitBranch = types.StringValue(app.GitBranch)
@@ -581,7 +582,6 @@ func hasNonDefaultAppExtendedFields(f commonAppFields) bool {
 		(f.IsContainerLabelReadonlyEnabled != nil && !f.IsContainerLabelReadonlyEnabled.IsNull() && !f.IsContainerLabelReadonlyEnabled.IsUnknown()) ||
 		(f.GitHTTPSUsername != nil && !f.GitHTTPSUsername.IsNull() && !f.GitHTTPSUsername.IsUnknown()) ||
 		(f.GitHTTPSPassword != nil && !f.GitHTTPSPassword.IsNull() && !f.GitHTTPSPassword.IsUnknown()) ||
-		(f.GiteaAppUUID != nil && !f.GiteaAppUUID.IsNull() && !f.GiteaAppUUID.IsUnknown()) ||
 		flex.BoolPtrNonDefault(f.IncludeNetworkHostsInBuild, true) ||
 		flex.BoolPtrNonDefault(f.IsAutoCancelQueuedDeploymentsEnabled, true) ||
 		flex.BoolPtrNonDefault(f.IsAutoCancelBuildingDeploymentsEnabled, false) ||
@@ -728,6 +728,16 @@ func postCreatePatchExtendedFields(ctx context.Context, c *client.Client, uuid s
 	}
 	if !c.SupportsCoolify45() && input.HasOnlyApplicationSettingsV45() {
 		tflog.Debug(ctx, "skipping post-create patch: only Coolify>=4.5.0 write fields, unsupported on this Coolify version",
+			map[string]interface{}{"uuid": uuid})
+		return
+	}
+	if c.SupportsCoolify45() && !c.SupportsCoolify46() && input.HasOnlyApplicationSettingsV46() {
+		tflog.Debug(ctx, "skipping post-create patch: only Coolify>=4.6.0 write fields, unsupported on this Coolify version",
+			map[string]interface{}{"uuid": uuid})
+		return
+	}
+	if c.SupportsCoolify46() && !c.SupportsCoolify47() && input.HasOnlyApplicationSettingsV47() {
+		tflog.Debug(ctx, "skipping post-create patch: only Coolify>=4.7.0 write fields, unsupported on this Coolify version",
 			map[string]interface{}{"uuid": uuid})
 		return
 	}
@@ -1141,9 +1151,9 @@ func setApplicationSettingPostCreate(input *client.UpdateApplicationInput, f com
 	if f.GitHTTPSPassword != nil {
 		flex.SetStrPtr(&input.GitHTTPSPassword, *f.GitHTTPSPassword)
 	}
-	if f.GiteaAppUUID != nil {
-		flex.SetStrPtr(&input.GiteaAppUUID, *f.GiteaAppUUID)
-	}
+	// gitea_app_uuid is sent on the private-gitea-app create. Repeating it on
+	// this PATCH makes Coolify return 422 when the application already has an
+	// inline dockerfile. Updates still send a changed UUID through buildUpdateInput.
 	flex.SetBoolPtr(&input.IncludeNetworkHostsInBuild, safeBool(f.IncludeNetworkHostsInBuild))
 	flex.SetBoolPtr(&input.IsAutoCancelQueuedDeploymentsEnabled, safeBool(f.IsAutoCancelQueuedDeploymentsEnabled))
 	flex.SetBoolPtr(&input.IsAutoCancelBuildingDeploymentsEnabled, safeBool(f.IsAutoCancelBuildingDeploymentsEnabled))

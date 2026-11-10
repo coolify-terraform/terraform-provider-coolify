@@ -905,6 +905,29 @@ func TestGitHubAppApplicationResource_CreateAPIError(t *testing.T) {
 	})
 }
 
+func TestGitHubAppApplicationResource_RejectsBothSourceUUIDs(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.NotFoundHandler()))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{{
+			Config: testGitHubAppResourceConfig(srv.URL, `
+				project_uuid    = "aaaa0001-0001-4000-8000-000000000001"
+				server_uuid     = "bbbb0001-0001-4000-8000-000000000001"
+				github_app_uuid = "cccc0001-0001-4000-8000-000000000001"
+				gitea_app_uuid  = "dddd0001-0001-4000-8000-000000000001"
+				git_repository  = "github.com/myorg/myrepo"
+				git_branch      = "main"
+				build_pack      = "nixpacks"
+				ports_exposes   = "3000"
+			`),
+			ExpectError: regexp.MustCompile(`gitea_app_uuid conflicts with github_app_uuid`),
+		}},
+	})
+}
+
 func testGitHubAppResourceConfig(endpoint, attrs string) string {
 	return acctest.TestResourceConfig(endpoint, "coolify_application_github_app", "test", attrs)
 }

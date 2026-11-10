@@ -7,6 +7,7 @@ import (
 
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
@@ -106,6 +107,20 @@ func configuredVersionGatedV44WriteAttrs(f commonAppFields) []string {
 		names = append(names, "custom_container_name_prefix")
 	}
 	return names
+}
+
+// rejectGiteaAppUUID reports a plan error when this application type cannot
+// send gitea_app_uuid. Coolify returns 422 for Docker image, inline Dockerfile,
+// and deploy-key applications.
+func rejectGiteaAppUUID(v types.String, diags *diag.Diagnostics) {
+	if diags == nil || v.IsNull() || v.IsUnknown() || strings.TrimSpace(v.ValueString()) == "" {
+		return
+	}
+	diags.AddAttributeError(
+		path.Root("gitea_app_uuid"),
+		"gitea_app_uuid is not valid for this application",
+		"Coolify accepts gitea_app_uuid on a public Git repository or a Git app. Docker image, Dockerfile, and private deploy-key applications reject it.",
+	)
 }
 
 // warnUnsupportedApplicationSettingsWrites adds a plan/apply warning when the

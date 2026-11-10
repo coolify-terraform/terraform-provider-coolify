@@ -77,3 +77,46 @@ func TestTeamSettingsResource_CreateSendsScanFlag(t *testing.T) {
 		t.Fatalf("scan_images_on_new_servers = %v", patched["scan_images_on_new_servers"])
 	}
 }
+
+func TestTeamSettingsResource_Disappears(t *testing.T) {
+	t.Parallel()
+	var mu sync.Mutex
+	gone := false
+	mux := http.NewServeMux()
+	mux.HandleFunc("PATCH /api/v1/team", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"id":1,"scan_images_on_new_servers":true}`))
+	})
+	mux.HandleFunc("GET /api/v1/teams/current", func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		missing := gone
+		mu.Unlock()
+		if missing {
+			http.Error(w, `{"message":"not found"}`, http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"id":1,"name":"root","scan_images_on_new_servers":true}`))
+	})
+	mux.HandleFunc("DELETE /api/v1/teams/current", func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		gone = true
+		mu.Unlock()
+		w.WriteHeader(http.StatusNoContent)
+	})
+	srv := httptest.NewServer(acctest.WithVersionEndpointVersion(mux, "4.7.1"))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{{
+			Config: acctest.TestResourceConfig(srv.URL, "coolify_team_settings", "test", `
+				scan_images_on_new_servers = true
+			`),
+			Check: resource.ComposeAggregateTestCheckFunc(
+				acctest.CheckPathDisappears(srv.URL, "/api/v1/teams/current"),
+			),
+			ExpectNonEmptyPlan: true,
+		}},
+	})
+}
