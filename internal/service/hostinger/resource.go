@@ -227,6 +227,10 @@ func (r *hostingerServerResource) Create(ctx context.Context, req resource.Creat
 		resp.Diagnostics.AddError("Coolify version cannot set server public IPs", err.Error())
 		return
 	}
+	if err := server.RejectLocalhostServerPublicIPs(ctx, r.client, "", plan.IP.ValueString(), plan.commonPtrs()); err != nil {
+		resp.Diagnostics.AddError("Server public IPs are ignored on localhost", err.Error())
+		return
+	}
 	createTimeout, diags := plan.Timeouts.Create(ctx, 10*time.Minute)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -355,6 +359,10 @@ func (r *hostingerServerResource) Update(ctx context.Context, req resource.Updat
 	}
 	if err := server.RejectUnsupportedServerPublicIPs(r.client, plan.commonPtrs()); err != nil {
 		resp.Diagnostics.AddError("Coolify version cannot set server public IPs", err.Error())
+		return
+	}
+	if err := server.RejectLocalhostServerPublicIPs(ctx, r.client, state.UUID.ValueString(), plan.IP.ValueString(), plan.commonPtrs()); err != nil {
+		resp.Diagnostics.AddError("Server public IPs are ignored on localhost", err.Error())
 		return
 	}
 	server.WarnDiskUsageInterval(r.client, plan.ServerDiskUsageNotificationIntervalHours, &resp.Diagnostics)

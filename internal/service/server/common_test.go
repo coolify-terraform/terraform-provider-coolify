@@ -3,6 +3,8 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"reflect"
 	"sort"
 	"strings"
@@ -10,6 +12,8 @@ import (
 
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
@@ -549,8 +553,12 @@ func TestBuildServerUpdateInput_AllFieldsChanged(t *testing.T) {
 		{"ServerRole", "build", input.ServerRole},
 		{"WildcardDomain", "https://new.example.com", input.WildcardDomain},
 		{"ServerTimezone", "America/New_York", input.ServerTimezone},
-		{"PublicIPv4", "203.0.113.10", input.PublicIPv4},
-		{"PublicIPv6", "2001:db8::10", input.PublicIPv6},
+	}
+	if input.PublicIPv4 == nil || input.PublicIPv4.Null || input.PublicIPv4.Value != "203.0.113.10" {
+		t.Errorf("PublicIPv4 = %#v, want 203.0.113.10", input.PublicIPv4)
+	}
+	if input.PublicIPv6 == nil || input.PublicIPv6.Null || input.PublicIPv6.Value != "2001:db8::10" {
+		t.Errorf("PublicIPv6 = %#v, want 2001:db8::10", input.PublicIPv6)
 	}
 	for _, c := range stringChecks {
 		if c.got == nil {
@@ -623,6 +631,106 @@ func TestBuildServerUpdateInput_AllFieldsChanged(t *testing.T) {
 }
 
 func strPtr(s string) *string { return &s }
+
+func TestBuildServerUpdateInput_ClearsPublicIPWithJSONNull(t *testing.T) {
+	t.Parallel()
+	plan, planModel := newTestPtrs()
+	state, stateModel := newTestPtrs()
+	stateModel.PublicIPv4 = types.StringValue("203.0.113.10")
+	planModel.PublicIPv4 = types.StringNull()
+	stateModel.PublicIPv6 = types.StringValue("2001:db8::10")
+	planModel.PublicIPv6 = types.StringNull()
+
+	input := BuildServerUpdateInput(plan, state)
+	body, err := json.Marshal(input)
+	if err != nil {
+		t.Fatalf("marshal: %v", err)
+	}
+	var decoded map[string]any
+	if err := json.Unmarshal(body, &decoded); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if _, ok := decoded["public_ipv4"]; !ok || decoded["public_ipv4"] != nil {
+		t.Fatalf("public_ipv4 = %#v, want JSON null", decoded["public_ipv4"])
+	}
+	if _, ok := decoded["public_ipv6"]; !ok || decoded["public_ipv6"] != nil {
+		t.Fatalf("public_ipv6 = %#v, want JSON null", decoded["public_ipv6"])
+	}
+}
+
+func TestPublicIPPlanModifier_ClearsWhenOmitted(t *testing.T) {
+	t.Parallel()
+	var resp planmodifier.StringResponse
+	publicIPPlanModifier{}.PlanModifyString(context.Background(), planmodifier.StringRequest{
+		ConfigValue: types.StringNull(),
+		StateValue:  types.StringValue("203.0.113.10"),
+		PlanValue:   types.StringValue("203.0.113.10"),
+	}, &resp)
+	if !resp.PlanValue.IsNull() {
+		t.Fatalf("plan = %#v, want null", resp.PlanValue)
+	}
+}
+
+func TestPublicIPValidators(t *testing.T) {
+	t.Parallel()
+	v4 := publicIPv4Validator{}
+	v6 := publicIPv6Validator{}
+	cases := []struct {
+		name    string
+		v       validator.String
+		value   string
+		wantErr bool
+	}{
+		{name: "v4", v: v4, value: "203.0.113.10"},
+		{name: "v4 space", v: v4, value: " 203.0.113.10", wantErr: true},
+		{name: "v4 mapped", v: v4, value: "::ffff:203.0.113.10", wantErr: true},
+		{name: "v6", v: v6, value: "2001:db8::10"},
+		{name: "v6 space", v: v6, value: "2001:db8::10 ", wantErr: true},
+		{name: "v6 mapped", v: v6, value: "::ffff:203.0.113.10", wantErr: true},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			var resp validator.StringResponse
+			tc.v.ValidateString(context.Background(), validator.StringRequest{
+				ConfigValue: types.StringValue(tc.value),
+			}, &resp)
+			if resp.Diagnostics.HasError() != tc.wantErr {
+				t.Fatalf("value %q error=%v, want error=%v (%s)", tc.value, resp.Diagnostics.HasError(), tc.wantErr, resp.Diagnostics)
+			}
+		})
+	}
+}
+
+func TestRejectLocalhostServerPublicIPs(t *testing.T) {
+	t.Parallel()
+	ptrs, m := newTestPtrs()
+	m.PublicIPv4 = types.StringValue("203.0.113.10")
+	if err := RejectLocalhostServerPublicIPs(context.Background(), nil, "", "host.docker.internal", ptrs); err == nil {
+		t.Fatal("expected localhost IP to reject public_ipv4")
+	}
+
+	id := int64(0)
+	var gotPath string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotPath = r.URL.Path
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"uuid": "s1",
+			"ip":   "10.0.0.5",
+			"id":   id,
+		})
+	}))
+	defer srv.Close()
+	c := client.New(srv.URL, "test-token")
+	m.IP = types.StringValue("10.0.0.5")
+	if err := RejectLocalhostServerPublicIPs(context.Background(), c, "s1", "10.0.0.5", ptrs); err == nil {
+		t.Fatal("expected server id 0 to reject public_ipv4")
+	}
+	if gotPath != "/api/v1/servers/s1" {
+		t.Fatalf("GET path = %q", gotPath)
+	}
+}
 
 func TestRejectUnsupportedServerPublicIPs(t *testing.T) {
 	t.Parallel()

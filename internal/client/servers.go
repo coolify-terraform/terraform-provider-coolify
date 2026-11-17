@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -95,6 +96,10 @@ type ServerSettings struct {
 }
 
 type Server struct {
+	// ID is the database id. Coolify treats id 0 as localhost even when
+	// the IP is not host.docker.internal. A pointer so a missing id is
+	// not mistaken for 0.
+	ID                            *int64          `json:"id,omitempty"`
 	UUID                          string          `json:"uuid,omitempty"`
 	Name                          string          `json:"name"`
 	Description                   string          `json:"description,omitempty"`
@@ -158,9 +163,36 @@ type UpdateServerInput struct {
 	ServerTimezone                 *string `json:"server_timezone,omitempty"`
 	BackupCompressionCPUPercentage *int    `json:"backup_compression_cpu_percentage,omitempty"`
 	// PublicIPv4 and PublicIPv6 are accepted on PATCH from Coolify >= v4.8.0.
+	// A non-nil Null value sends JSON null, which clears the column.
 	// UpdateServer drops them on older instances.
-	PublicIPv4 *string `json:"public_ipv4,omitempty"`
-	PublicIPv6 *string `json:"public_ipv6,omitempty"`
+	PublicIPv4 *JSONString `json:"public_ipv4,omitempty"`
+	PublicIPv6 *JSONString `json:"public_ipv6,omitempty"`
+}
+
+// JSONString is one PATCH string that must be able to send JSON null.
+// A nil pointer is omitted. Null reports that the key is present and null.
+type JSONString struct {
+	Null  bool
+	Value string
+}
+
+// NewJSONString returns a PATCH string value.
+func NewJSONString(v string) *JSONString {
+	return &JSONString{Value: v}
+}
+
+// NewJSONNull returns a PATCH JSON null.
+func NewJSONNull() *JSONString {
+	return &JSONString{Null: true}
+}
+
+// MarshalJSON emits null or a JSON string. The pointer must be non-nil;
+// omitempty on the struct field omits a nil pointer.
+func (s JSONString) MarshalJSON() ([]byte, error) {
+	if s.Null {
+		return []byte("null"), nil
+	}
+	return json.Marshal(s.Value)
 }
 
 func (c *Client) ListServers(ctx context.Context) ([]Server, error) {

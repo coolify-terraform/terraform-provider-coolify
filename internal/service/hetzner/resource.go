@@ -249,6 +249,10 @@ func (r *hetznerServerResource) Create(ctx context.Context, req resource.CreateR
 		resp.Diagnostics.AddError("Coolify version cannot set server public IPs", err.Error())
 		return
 	}
+	if err := server.RejectLocalhostServerPublicIPs(ctx, r.client, "", plan.IP.ValueString(), plan.commonPtrs()); err != nil {
+		resp.Diagnostics.AddError("Server public IPs are ignored on localhost", err.Error())
+		return
+	}
 
 	tflog.Debug(ctx, "creating resource", map[string]interface{}{"resource_type": "coolify_server_hetzner"})
 
@@ -389,6 +393,10 @@ func (r *hetznerServerResource) Update(ctx context.Context, req resource.UpdateR
 
 	if err := server.RejectUnsupportedServerPublicIPs(r.client, plan.commonPtrs()); err != nil {
 		resp.Diagnostics.AddError("Coolify version cannot set server public IPs", err.Error())
+		return
+	}
+	if err := server.RejectLocalhostServerPublicIPs(ctx, r.client, state.UUID.ValueString(), plan.IP.ValueString(), plan.commonPtrs()); err != nil {
+		resp.Diagnostics.AddError("Server public IPs are ignored on localhost", err.Error())
 		return
 	}
 	server.WarnDiskUsageInterval(r.client, plan.ServerDiskUsageNotificationIntervalHours, &resp.Diagnostics)
