@@ -27,6 +27,7 @@ func newTestPtrs() (ServerCommonPtrs, *testModel) {
 		IsBuildServer:                            &m.IsBuildServer, ServerRole: &m.ServerRole, IsReachable: &m.IsReachable, IsUsable: &m.IsUsable,
 		InstantValidate: &m.InstantValidate,
 		WildcardDomain:  &m.WildcardDomain, IsCloudFlareTunnel: &m.IsCloudFlareTunnel,
+		PublicIPv4: &m.PublicIPv4, PublicIPv6: &m.PublicIPv6,
 		ServerTimezone: &m.ServerTimezone, IsMetricsEnabled: &m.IsMetricsEnabled,
 		IsTerminalEnabled: &m.IsTerminalEnabled, IsSentinelEnabled: &m.IsSentinelEnabled,
 		SentinelMetricsHistoryDays: &m.SentinelMetricsHistoryDays, SentinelMetricsRefreshRateSeconds: &m.SentinelMetricsRefreshRateSeconds,
@@ -52,6 +53,8 @@ type testModel struct {
 	InstantValidate                                   types.Bool
 	// Extended settings
 	WildcardDomain                    types.String
+	PublicIPv4                        types.String
+	PublicIPv6                        types.String
 	IsCloudFlareTunnel                types.Bool
 	ServerTimezone                    types.String
 	IsMetricsEnabled                  types.Bool
@@ -106,6 +109,8 @@ var expectedWritableServerUpdateKeys = []string{
 	"name",
 	"port",
 	"private_key_uuid",
+	"public_ipv4",
+	"public_ipv6",
 	"server_disk_usage_check_frequency",
 	"server_disk_usage_notification_interval_hours",
 	"server_disk_usage_notification_threshold",
@@ -131,6 +136,8 @@ func TestFlattenServerCommon_FullServer(t *testing.T) {
 			ServerDiskUsageNotificationThreshold: 90,
 			ServerDiskUsageCheckFrequency:        "0 * * * *",
 			WildcardDomain:                       "example.com",
+			PublicIPv4:                           strPtr("203.0.113.10"),
+			PublicIPv6:                           strPtr("2001:db8::10"),
 			IsCloudFlareTunnel:                   true,
 			ServerTimezone:                       "America/New_York",
 			IsMetricsEnabled:                     true,
@@ -158,6 +165,8 @@ func TestFlattenServerCommon_FullServer(t *testing.T) {
 		{"User", m.User.ValueString(), "deploy"},
 		{"PrivateKeyUUID", m.PrivateKeyUUID.ValueString(), "key-uuid"},
 		{"WildcardDomain", m.WildcardDomain.ValueString(), "example.com"},
+		{"PublicIPv4", m.PublicIPv4.ValueString(), "203.0.113.10"},
+		{"PublicIPv6", m.PublicIPv6.ValueString(), "2001:db8::10"},
 		{"ServerTimezone", m.ServerTimezone.ValueString(), "America/New_York"},
 		{"DockerCleanupFrequency", m.DockerCleanupFrequency.ValueString(), "0 3 * * *"},
 	}
@@ -492,6 +501,10 @@ func TestBuildServerUpdateInput_AllFieldsChanged(t *testing.T) {
 	*state.ServerTimezone = types.StringValue("UTC")
 	*plan.BackupCompressionCPUPercentage = types.Int64Value(50)
 	*state.BackupCompressionCPUPercentage = types.Int64Value(25)
+	*plan.PublicIPv4 = types.StringValue("203.0.113.10")
+	*state.PublicIPv4 = types.StringValue("203.0.113.11")
+	*plan.PublicIPv6 = types.StringValue("2001:db8::10")
+	*state.PublicIPv6 = types.StringValue("2001:db8::11")
 
 	// Unsupported extended settings still appear on reads, but the update
 	// contract must never write them back.
@@ -536,6 +549,8 @@ func TestBuildServerUpdateInput_AllFieldsChanged(t *testing.T) {
 		{"ServerRole", "build", input.ServerRole},
 		{"WildcardDomain", "https://new.example.com", input.WildcardDomain},
 		{"ServerTimezone", "America/New_York", input.ServerTimezone},
+		{"PublicIPv4", "203.0.113.10", input.PublicIPv4},
+		{"PublicIPv6", "2001:db8::10", input.PublicIPv6},
 	}
 	for _, c := range stringChecks {
 		if c.got == nil {
@@ -604,6 +619,22 @@ func TestBuildServerUpdateInput_AllFieldsChanged(t *testing.T) {
 	actualKeys = sortedStrings(actualKeys)
 	if !reflect.DeepEqual(actualKeys, expectedWritableServerUpdateKeys) {
 		t.Fatalf("BuildServerUpdateInput PATCH keys = %v, want %v", actualKeys, expectedWritableServerUpdateKeys)
+	}
+}
+
+func strPtr(s string) *string { return &s }
+
+func TestRejectUnsupportedServerPublicIPs(t *testing.T) {
+	t.Parallel()
+	ptrs, m := newTestPtrs()
+	m.PublicIPv4 = types.StringValue("203.0.113.10")
+	old := &client.Client{CoolifyVersion: "4.7.5"}
+	if err := RejectUnsupportedServerPublicIPs(old, ptrs); err == nil {
+		t.Fatal("expected 4.7.5 to reject public_ipv4")
+	}
+	nightly := &client.Client{CoolifyVersion: "4.8.0-alpha.0.20261116.1"}
+	if err := RejectUnsupportedServerPublicIPs(nightly, ptrs); err != nil {
+		t.Fatalf("nightly rejected public_ipv4: %v", err)
 	}
 }
 

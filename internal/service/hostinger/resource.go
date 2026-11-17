@@ -70,6 +70,8 @@ type hostingerServerResourceModel struct {
 	ServerDiskUsageNotificationIntervalHours types.Int64  `tfsdk:"server_disk_usage_notification_interval_hours"`
 	ServerDiskUsageCheckFrequency            types.String `tfsdk:"server_disk_usage_check_frequency"`
 	WildcardDomain                           types.String `tfsdk:"wildcard_domain"`
+	PublicIPv4                               types.String `tfsdk:"public_ipv4"`
+	PublicIPv6                               types.String `tfsdk:"public_ipv6"`
 	IsCloudFlareTunnel                       types.Bool   `tfsdk:"is_cloudflare_tunnel"`
 	ServerTimezone                           types.String `tfsdk:"server_timezone"`
 	IsMetricsEnabled                         types.Bool   `tfsdk:"is_metrics_enabled"`
@@ -221,6 +223,10 @@ func (r *hostingerServerResource) Create(ctx context.Context, req resource.Creat
 		)
 		return
 	}
+	if err := server.RejectUnsupportedServerPublicIPs(r.client, plan.commonPtrs()); err != nil {
+		resp.Diagnostics.AddError("Coolify version cannot set server public IPs", err.Error())
+		return
+	}
 	createTimeout, diags := plan.Timeouts.Create(ctx, 10*time.Minute)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -347,6 +353,10 @@ func (r *hostingerServerResource) Update(ctx context.Context, req resource.Updat
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	if err := server.RejectUnsupportedServerPublicIPs(r.client, plan.commonPtrs()); err != nil {
+		resp.Diagnostics.AddError("Coolify version cannot set server public IPs", err.Error())
+		return
+	}
 	server.WarnDiskUsageInterval(r.client, plan.ServerDiskUsageNotificationIntervalHours, &resp.Diagnostics)
 	server.WarnUnsupportedServerV451(r.client, plan.commonPtrs(), &resp.Diagnostics)
 	input := server.BuildServerUpdateInput(plan.commonPtrs(), state.commonPtrs())
@@ -395,6 +405,7 @@ func (m *hostingerServerResourceModel) commonPtrs() server.ServerCommonPtrs {
 		IsBuildServer:                            &m.IsBuildServer, ServerRole: &m.ServerRole, IsReachable: &m.IsReachable, IsUsable: &m.IsUsable,
 		InstantValidate: &m.InstantValidate,
 		WildcardDomain:  &m.WildcardDomain, IsCloudFlareTunnel: &m.IsCloudFlareTunnel,
+		PublicIPv4: &m.PublicIPv4, PublicIPv6: &m.PublicIPv6,
 		ServerTimezone: &m.ServerTimezone, IsMetricsEnabled: &m.IsMetricsEnabled,
 		IsTerminalEnabled: &m.IsTerminalEnabled, IsSentinelEnabled: &m.IsSentinelEnabled,
 		SentinelMetricsHistoryDays: &m.SentinelMetricsHistoryDays, SentinelMetricsRefreshRateSeconds: &m.SentinelMetricsRefreshRateSeconds,

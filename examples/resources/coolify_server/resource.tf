@@ -16,6 +16,8 @@ resource "coolify_server" "example" {
   # server_disk_usage_check_frequency      = "*/5 * * * *"  # Cron schedule for disk checks
   # instant_validate                       = true    # Validate SSH after create or update
   # is_terminal_enabled                    = true    # Web terminal (Coolify >= v4.3.0, default true)
+  # public_ipv4                            = "203.0.113.10"  # DNS address when the server IP is private (Coolify >= v4.8.0)
+  # public_ipv6                            = "2001:db8::10"
 
   # Additional server settings such as wildcard domains, Sentinel flags,
   # and Docker cleanup options are exposed as read-only attributes because

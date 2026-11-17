@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"fmt"
+	"net"
 	"regexp"
 	"strings"
 	"time"
@@ -81,6 +82,8 @@ type ServerCommonPtrs struct {
 	DockerVersion                     *types.String
 	DockerVersionCheckedAt            *types.String
 	BackupCompressionCPUPercentage    *types.Int64
+	PublicIPv4                        *types.String
+	PublicIPv6                        *types.String
 	// WithholdCoolify451 keeps configured v4.5.1 server writes when Read
 	// runs against an older instance.
 	WithholdCoolify451 bool
@@ -223,6 +226,21 @@ func addExtendedSettingsAttrs(attrs map[string]schema.Attribute) {
 }
 
 func addCoreExtendedSettingsAttrs(attrs map[string]schema.Attribute) {
+	const needs48 = "Requires Coolify >= v4.8.0, including the 4.8.0-alpha nightly. Setting this on Coolify v4.7.5 and older fails the apply. Removing the attribute later does not clear a stored value. Ignored for localhost."
+	attrs["public_ipv4"] = schema.StringAttribute{
+		MarkdownDescription: "Public IPv4 that DNS checks and DNS records use instead of the server IP, when Coolify reaches this server over a private network. Null removes it. " + needs48,
+		Optional:            true,
+		Computed:            true,
+		PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+		Validators:          []validator.String{publicIPv4Validator{}},
+	}
+	attrs["public_ipv6"] = schema.StringAttribute{
+		MarkdownDescription: "Public IPv6 that DNS checks and DNS records use instead of the server IP, when Coolify reaches this server over a private network. Null removes it. " + needs48,
+		Optional:            true,
+		Computed:            true,
+		PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+		Validators:          []validator.String{publicIPv6Validator{}},
+	}
 	attrs["wildcard_domain"] = schema.StringAttribute{
 		MarkdownDescription: "Wildcard domain URL used to generate domains for new resources on this server (for example `https://example.com`). " +
 			"Null removes it. Requires Coolify >= v4.5.1. On older instances the provider keeps a configured value in state and does not send it. " +
@@ -435,6 +453,42 @@ func (serverTimezoneValidator) MarkdownDescription(context.Context) string {
 	return "must be a valid IANA timezone, for example `UTC` or `Europe/Berlin`"
 }
 
+type publicIPv4Validator struct{}
+
+func (publicIPv4Validator) Description(context.Context) string { return "must be an IPv4 address" }
+
+func (publicIPv4Validator) MarkdownDescription(context.Context) string {
+	return "must be an IPv4 address"
+}
+
+func (publicIPv4Validator) ValidateString(_ context.Context, req validator.StringRequest, resp *validator.StringResponse) {
+	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() {
+		return
+	}
+	ip := net.ParseIP(strings.TrimSpace(req.ConfigValue.ValueString()))
+	if ip == nil || ip.To4() == nil {
+		resp.Diagnostics.AddAttributeError(req.Path, "Invalid public IPv4", "public_ipv4 must be an IPv4 address.")
+	}
+}
+
+type publicIPv6Validator struct{}
+
+func (publicIPv6Validator) Description(context.Context) string { return "must be an IPv6 address" }
+
+func (publicIPv6Validator) MarkdownDescription(context.Context) string {
+	return "must be an IPv6 address"
+}
+
+func (publicIPv6Validator) ValidateString(_ context.Context, req validator.StringRequest, resp *validator.StringResponse) {
+	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() {
+		return
+	}
+	ip := net.ParseIP(strings.TrimSpace(req.ConfigValue.ValueString()))
+	if ip == nil || ip.To4() != nil {
+		resp.Diagnostics.AddAttributeError(req.Path, "Invalid public IPv6", "public_ipv6 must be an IPv6 address.")
+	}
+}
+
 func (serverTimezoneValidator) ValidateString(_ context.Context, req validator.StringRequest, resp *validator.StringResponse) {
 	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() {
 		return
@@ -552,6 +606,8 @@ func flattenExtendedSettings(s *client.ServerSettings, f ServerCommonPtrs) {
 	priorTimezone, keepTimezone := configuredString(f.WithholdCoolify451, f.ServerTimezone)
 	priorCPU, keepCPU := configuredInt(f.WithholdCoolify451, f.BackupCompressionCPUPercentage)
 	*f.WildcardDomain = flex.StringToFramework(s.WildcardDomain)
+	setNullableString(f.PublicIPv4, s.PublicIPv4)
+	setNullableString(f.PublicIPv6, s.PublicIPv6)
 	*f.IsCloudFlareTunnel = types.BoolValue(s.IsCloudFlareTunnel)
 	*f.ServerTimezone = flex.StringToFramework(s.ServerTimezone)
 	if keepWildcard {
@@ -653,6 +709,17 @@ func setStringPtr(dst *types.String, v string) {
 	*dst = flex.StringToFramework(v)
 }
 
+func setNullableString(dst *types.String, api *string) {
+	if dst == nil {
+		return
+	}
+	if api != nil && *api != "" {
+		*dst = types.StringValue(*api)
+		return
+	}
+	*dst = types.StringNull()
+}
+
 func setIntPtr(dst *types.Int64, v *int) {
 	if dst == nil {
 		return
@@ -678,7 +745,9 @@ func HasNonDefaultSettings(p ServerCommonPtrs) bool {
 		diskIntervalConfigured(p) ||
 		stringConfigured(p.WildcardDomain) ||
 		stringConfigured(p.ServerTimezone) ||
-		intConfigured(p.BackupCompressionCPUPercentage)
+		intConfigured(p.BackupCompressionCPUPercentage) ||
+		stringConfigured(p.PublicIPv4) ||
+		stringConfigured(p.PublicIPv6)
 }
 
 func stringConfigured(v *types.String) bool {
@@ -716,6 +785,14 @@ func BuildPostCreateSettingsInput(p ServerCommonPtrs) client.UpdateServerInput {
 	if intConfigured(p.BackupCompressionCPUPercentage) {
 		v := int(p.BackupCompressionCPUPercentage.ValueInt64())
 		input.BackupCompressionCPUPercentage = &v
+	}
+	if stringConfigured(p.PublicIPv4) {
+		v := p.PublicIPv4.ValueString()
+		input.PublicIPv4 = &v
+	}
+	if stringConfigured(p.PublicIPv6) {
+		v := p.PublicIPv6.ValueString()
+		input.PublicIPv6 = &v
 	}
 	return input
 }
@@ -779,6 +856,9 @@ func NormalizeUnknownCloudServerPlanFields(p ServerCommonPtrs) {
 func ApplyPostCreateCloudProviderSettings(ctx context.Context, c *client.Client, uuid string, p ServerCommonPtrs, diags *diag.Diagnostics) error {
 	if p.ServerDiskUsageNotificationIntervalHours != nil {
 		WarnDiskUsageInterval(c, *p.ServerDiskUsageNotificationIntervalHours, diags)
+	}
+	if err := RejectUnsupportedServerPublicIPs(c, p); err != nil {
+		return fmt.Errorf("server %s: %w", uuid, err)
 	}
 	WarnUnsupportedServerV451(c, p, diags)
 	if !HasNonDefaultCloudProviderSettings(p) {
@@ -914,5 +994,27 @@ func BuildServerUpdateInput(plan, state ServerCommonPtrs) client.UpdateServerInp
 	if plan.BackupCompressionCPUPercentage != nil && state.BackupCompressionCPUPercentage != nil {
 		input.BackupCompressionCPUPercentage = flex.IntIfChanged(*plan.BackupCompressionCPUPercentage, *state.BackupCompressionCPUPercentage)
 	}
+	if plan.PublicIPv4 != nil && state.PublicIPv4 != nil {
+		input.PublicIPv4 = flex.StringIfChanged(*plan.PublicIPv4, *state.PublicIPv4)
+	}
+	if plan.PublicIPv6 != nil && state.PublicIPv6 != nil {
+		input.PublicIPv6 = flex.StringIfChanged(*plan.PublicIPv6, *state.PublicIPv6)
+	}
 	return input
+}
+
+// RejectUnsupportedServerPublicIPs reports when public_ipv4 or public_ipv6
+// is set and this Coolify would reject the keys.
+func RejectUnsupportedServerPublicIPs(c *client.Client, p ServerCommonPtrs) error {
+	if c == nil || c.SupportsServerPublicIPs() {
+		return nil
+	}
+	if !stringConfigured(p.PublicIPv4) && !stringConfigured(p.PublicIPv6) {
+		return nil
+	}
+	ver := c.CoolifyVersion
+	if ver == "" {
+		ver = "unknown"
+	}
+	return fmt.Errorf("this Coolify instance (%s) does not accept public_ipv4 or public_ipv6 (added in Coolify v4.8.0, including the 4.8.0-alpha nightly). Upgrade Coolify, or remove public_ipv4 and public_ipv6", ver)
 }
