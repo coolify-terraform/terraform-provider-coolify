@@ -350,6 +350,33 @@ func (c *Client) SupportsCoolify47() bool {
 	return IsVersionAtLeast(c.CoolifyVersion, minCoolify47Version)
 }
 
+// minImageScanLimitsVersion is the first Coolify tag whose
+// PATCH /servers/{uuid}/image-scanning accepts scanner memory, CPU, and
+// Syft/Grype time limits. v4.7.0 through v4.7.2 accept only the on/off flag.
+// v4.7.3 and v4.7.5 use the same allow list.
+const minImageScanLimitsVersion = "4.7.3"
+
+// SupportsImageScanLimits reports whether PATCH /servers/{uuid}/image-scanning
+// accepts image_scan_memory_mb, image_scan_cpus, image_scan_syft_timeout, and
+// image_scan_grype_timeout.
+//
+// Empty CoolifyVersion reports true so unit tests that never call Configure
+// exercise the new payload. A 4.3.0 version string reports true because CI
+// edge has used that string while shipping later APIs. 4.7 pre-releases and
+// releases before v4.7.3 report false.
+func (c *Client) SupportsImageScanLimits() bool {
+	if c == nil || c.CoolifyVersion == "" {
+		return true
+	}
+	if versionIs44Prerelease(c.CoolifyVersion) || versionIs46Prerelease(c.CoolifyVersion) || versionIs47Prerelease(c.CoolifyVersion) {
+		return false
+	}
+	if versionStringLagsTip(c.CoolifyVersion) {
+		return true
+	}
+	return IsVersionAtLeast(c.CoolifyVersion, minImageScanLimitsVersion)
+}
+
 // SupportsHighlightLogDrain reports whether GET server settings still include
 // the Highlight log drain columns. Coolify 4.5.1 dropped them.
 //

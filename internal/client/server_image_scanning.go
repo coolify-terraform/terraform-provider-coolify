@@ -8,19 +8,28 @@ import (
 )
 
 // ServerImageScanning is GET/PATCH /servers/{uuid}/image-scanning.
-// Coolify >= v4.7.0. The only writable field is IsImageScanEnabled.
+// Coolify >= v4.7.0. Scanner limit fields are present on >= v4.7.3.
+// Pointers stay nil when an older response omits the key.
 type ServerImageScanning struct {
-	IsImageScanEnabled   bool   `json:"is_image_scan_enabled"`
-	ScannerState         string `json:"scanner_state,omitempty"`
-	ScannerFailedStep    string `json:"scanner_failed_step,omitempty"`
-	ScannerBuiltAt       string `json:"scanner_built_at,omitempty"`
-	ScannerDiskUsedBytes *int64 `json:"scanner_disk_used_bytes,omitempty"`
+	IsImageScanEnabled    bool     `json:"is_image_scan_enabled"`
+	ImageScanMemoryMB     *int64   `json:"image_scan_memory_mb,omitempty"`
+	ImageScanSyftTimeout  *int64   `json:"image_scan_syft_timeout,omitempty"`
+	ImageScanGrypeTimeout *int64   `json:"image_scan_grype_timeout,omitempty"`
+	ImageScanCPUs         *float64 `json:"image_scan_cpus,omitempty"`
+	ScannerState          string   `json:"scanner_state,omitempty"`
+	ScannerFailedStep     string   `json:"scanner_failed_step,omitempty"`
+	ScannerBuiltAt        string   `json:"scanner_built_at,omitempty"`
+	ScannerDiskUsedBytes  *int64   `json:"scanner_disk_used_bytes,omitempty"`
 }
 
-// UpdateServerImageScanningInput is the PATCH body. The bool is required
-// when the request is sent. A nil pointer means the caller should skip PATCH.
+// UpdateServerImageScanningInput is the PATCH body. Send at least one field.
+// A nil pointer is omitted. Limits are rejected before v4.7.3.
 type UpdateServerImageScanningInput struct {
-	IsImageScanEnabled *bool `json:"is_image_scan_enabled,omitempty"`
+	IsImageScanEnabled    *bool    `json:"is_image_scan_enabled,omitempty"`
+	ImageScanMemoryMB     *int64   `json:"image_scan_memory_mb,omitempty"`
+	ImageScanSyftTimeout  *int64   `json:"image_scan_syft_timeout,omitempty"`
+	ImageScanGrypeTimeout *int64   `json:"image_scan_grype_timeout,omitempty"`
+	ImageScanCPUs         *float64 `json:"image_scan_cpus,omitempty"`
 }
 
 // GetServerImageScanning returns image scanning settings for one server.

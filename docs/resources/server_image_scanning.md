@@ -3,12 +3,12 @@
 page_title: "coolify_server_image_scanning Resource - coolify"
 subcategory: ""
 description: |-
-  Manages image vulnerability scanning for one Coolify server (GET/PATCH /servers/{uuid}/image-scanning). Requires Coolify >= v4.7.0. Turning scanning on prepares the scanner on the server in the background. Destroy turns scanning off. The scanner state fields are read-only.
+  Manages image vulnerability scanning for one Coolify server (GET/PATCH /servers/{uuid}/image-scanning). Requires Coolify >= v4.7.0. Turning scanning on prepares the scanner on the server in the background. Memory, CPU, and Syft/Grype time limits require Coolify >= v4.7.3. Destroy turns scanning off. The scanner state fields are read-only.
 ---
 
 # coolify_server_image_scanning (Resource)
 
-Manages image vulnerability scanning for one Coolify server (`GET`/`PATCH /servers/{uuid}/image-scanning`). Requires Coolify >= v4.7.0. Turning scanning on prepares the scanner on the server in the background. Destroy turns scanning off. The scanner state fields are read-only.
+Manages image vulnerability scanning for one Coolify server (`GET`/`PATCH /servers/{uuid}/image-scanning`). Requires Coolify >= v4.7.0. Turning scanning on prepares the scanner on the server in the background. Memory, CPU, and Syft/Grype time limits require Coolify >= v4.7.3. Destroy turns scanning off. The scanner state fields are read-only.
 
 ## Example Usage
 
@@ -16,6 +16,12 @@ Manages image vulnerability scanning for one Coolify server (`GET`/`PATCH /serve
 resource "coolify_server_image_scanning" "example" {
   server_uuid           = coolify_server.example.uuid
   is_image_scan_enabled = true
+
+  # Coolify >= v4.7.3. Each value must be one of the scanner's fixed options.
+  image_scan_memory_mb     = 2048
+  image_scan_cpus          = 1
+  image_scan_syft_timeout  = 600
+  image_scan_grype_timeout = 600
 }
 ```
 
@@ -28,6 +34,10 @@ resource "coolify_server_image_scanning" "example" {
 
 ### Optional
 
+- `image_scan_cpus` (Number) CPU limit of each scanner step. One of 0.5, 1, 2, or 4. Coolify's stored default is 1. The server refuses a value above its CPU count. Requires Coolify >= v4.7.3. Setting this on Coolify v4.7.0 through v4.7.2 fails the apply.
+- `image_scan_grype_timeout` (Number) Time limit of one Grype run (the vulnerability match), in seconds. One of 300, 600, 1200, 1800, or 3600. Coolify's stored default is 600. Requires Coolify >= v4.7.3. Setting this on Coolify v4.7.0 through v4.7.2 fails the apply.
+- `image_scan_memory_mb` (Number) Memory limit of each scanner step, in MB. One of 1024, 2048, 4096, or 8192. Coolify's stored default is 1024. The server refuses a value above its own memory. Requires Coolify >= v4.7.3. Setting this on Coolify v4.7.0 through v4.7.2 fails the apply.
+- `image_scan_syft_timeout` (Number) Time limit of one Syft run (the package list of an image), in seconds. One of 300, 600, 1200, 1800, or 3600. Coolify's stored default is 600. Requires Coolify >= v4.7.3. Setting this on Coolify v4.7.0 through v4.7.2 fails the apply.
 - `is_image_scan_enabled` (Boolean) Whether this server scans images of its resources. The server setting default is false. Leaving it unset keeps the value Coolify already stored.
 
 ### Read-Only

@@ -960,6 +960,81 @@ class ApplicationsController {
         )
         self.assertNotIn("is_gzip_enabled", result["update_by_uuid"])
 
+    def test_connection_fields_spread_and_validate_body_argument(self):
+        php = """<?php
+class S3StoragesController {
+    private function connectionFields($type): array {
+        return match ($type) {
+            's3' => ['endpoint', 'bucket', 'region', 'key', 'secret', 'use_path_style_endpoint', 'skip_tls_verification'],
+            'sftp' => ['endpoint', 'key', 'secret', 'private_key_uuid'],
+            default => ['endpoint', 'key', 'secret'],
+        };
+    }
+    private function validateBody(array $body, array $allowedFields, array $rules): mixed {
+        return null;
+    }
+    public function store(Request $request) {
+        $connectionFields = $this->connectionFields($type);
+        $this->validateBody($body, ['type', 'name', 'description', 'is_usable', ...$connectionFields], []);
+    }
+    public function update(Request $request) {
+        $allowedFields = ['name', 'description', 'is_usable', ...$this->connectionFields($storage->type)];
+        $this->validateBody($body, $allowedFields, []);
+    }
+}
+"""
+        result = ec.extract_allowed_fields(php)
+        self.assertEqual(
+            result["store"],
+            [
+                "type",
+                "name",
+                "description",
+                "is_usable",
+                "endpoint",
+                "bucket",
+                "region",
+                "key",
+                "secret",
+                "use_path_style_endpoint",
+                "skip_tls_verification",
+                "private_key_uuid",
+            ],
+        )
+        self.assertEqual(
+            result["update"],
+            [
+                "name",
+                "description",
+                "is_usable",
+                "endpoint",
+                "bucket",
+                "region",
+                "key",
+                "secret",
+                "use_path_style_endpoint",
+                "skip_tls_verification",
+                "private_key_uuid",
+            ],
+        )
+
+    def test_validate_body_rules_are_not_an_allow_list(self):
+        php = """<?php
+class DnsController {
+    private function validateBody(Request $request, array $rules): mixed {
+        return null;
+    }
+    private function create(Request $request): mixed {
+        $body = $this->validateBody($request, [
+            'hostname' => ['required', 'string', 'max:255'],
+        ]);
+        return $body;
+    }
+}
+"""
+        result = ec.extract_allowed_fields(php)
+        self.assertNotIn("create", result)
+
 
 class TestExtractPhpStringListConstants(unittest.TestCase):
     def test_private_const_array(self):
