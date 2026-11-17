@@ -83,6 +83,12 @@ KNOWN_VERSION_DEPENDENT: dict[str, set[str]] = {
         # Coolify >= v4.6.0. Password is never returned on GET.
         "git_https_username",
         "git_https_password",
+        # Coolify >= v4.7.0. No schema Default; older instances omit the keys.
+        "gitea_app_uuid",
+        "include_network_hosts_in_build",
+        "is_auto_cancel_building_deployments_enabled",
+        "is_auto_cancel_queued_deployments_enabled",
+        "is_image_scan_enabled",
     },
     "ApplicationsController::update_by_uuid": {
         "is_preview_deployments_enabled",
@@ -124,6 +130,12 @@ KNOWN_VERSION_DEPENDENT: dict[str, set[str]] = {
         # Coolify >= v4.6.0. Password is never returned on GET.
         "git_https_username",
         "git_https_password",
+        # Coolify >= v4.7.0. No schema Default; older instances omit the keys.
+        "gitea_app_uuid",
+        "include_network_hosts_in_build",
+        "is_auto_cancel_building_deployments_enabled",
+        "is_auto_cancel_queued_deployments_enabled",
+        "is_image_scan_enabled",
     },
     "DatabasesController::create_database": {
         "tags",
@@ -205,24 +217,71 @@ KNOWN_VERSION_DEPENDENT: dict[str, set[str]] = {
     # v4.3.14 and from v4.4-rc.1 (cut before that stable line).
     "NotificationsController::update_discord": {
         "restart_limit_reached_discord_notifications",
+        # Coolify >= v4.7.0.
+        "image_vulnerabilities_discord_notifications",
     },
     "NotificationsController::update_email": {
         "restart_limit_reached_email_notifications",
         # Coolify >= v4.5.0. Omitted unless the server reports that version.
         "deployment_commit_details_email_notifications",
+        # Coolify >= v4.7.0.
+        "image_vulnerabilities_email_notifications",
+        "resend_from_address",
+        "resend_from_name",
     },
     "NotificationsController::update_pushover": {
         "restart_limit_reached_pushover_notifications",
+        "image_vulnerabilities_pushover_notifications",
     },
     "NotificationsController::update_slack": {
         "restart_limit_reached_slack_notifications",
+        "image_vulnerabilities_slack_notifications",
     },
     "NotificationsController::update_telegram": {
         "restart_limit_reached_telegram_notifications",
         "telegram_notifications_restart_limit_reached_thread_id",
+        "image_vulnerabilities_telegram_notifications",
+        "telegram_notifications_image_vulnerabilities_thread_id",
     },
     "NotificationsController::update_webhook": {
         "restart_limit_reached_webhook_notifications",
+        "image_vulnerabilities_webhook_notifications",
+    },
+    # Coolify >= v4.7.0. Show and update share the sender fields.
+    "InstanceEmailSettingsController::show": {
+        "notification_from_address",
+        "notification_from_name",
+        "resend_from_address",
+        "resend_from_name",
+    },
+    "InstanceEmailSettingsController::update": {
+        "notification_from_address",
+        "notification_from_name",
+        "resend_from_address",
+        "resend_from_name",
+    },
+    # type, skip_tls_verification, and private_key_uuid are Coolify >= v4.7.0.
+    # connectionFields() still accepts the 4.6.0 connection keys.
+    "S3StoragesController::store": {
+        "type",
+        "skip_tls_verification",
+        "private_key_uuid",
+    },
+    "S3StoragesController::update": {
+        "skip_tls_verification",
+        "private_key_uuid",
+    },
+    "ScheduledTasksController::createTask": {
+        "use_shell",
+    },
+    "ScheduledTasksController::updateTask": {
+        "use_shell",
+    },
+    "ServersController::create_server": {
+        "ssh_host_key",
+    },
+    "TeamController::update_current_team": {
+        "scan_images_on_new_servers",
     },
 }
 

@@ -355,14 +355,52 @@ def extract_php_string_list_constants(content: str) -> dict[str, list[str]]:
     return result
 
 
+_CONNECTION_SPREAD_RE = re.compile(
+    r"\.\.\.\$(?:this->connectionFields\s*\(|connectionFields\b)"
+)
+
+
+def _connection_field_names(content: str) -> list[str]:
+    """Union of string literals in ``connectionFields()``.
+
+    Coolify 4.7 S3 storage builds the write list as
+    ``[...$this->connectionFields($type)]``. Each match arm is one storage
+    type. The contract records the union, which is every field the endpoint
+    can accept.
+    """
+    body = _php_named_method_bodies(content).get("connectionFields")
+    if not body:
+        return []
+    names: list[str] = []
+    seen: set[str] = set()
+    start = 0
+    while True:
+        bracket = body.find("[", start)
+        if bracket < 0:
+            break
+        close = _bracket_end(body, bracket)
+        if close is None:
+            break
+        for name in re.findall(r"'([^']+)'", body[bracket + 1 : close]):
+            if not _FIELD_IDENT_RE.match(name) or name in seen:
+                continue
+            seen.add(name)
+            names.append(name)
+        start = close + 1
+    return names
+
+
 def expand_allowed_field_list(
-    array_body: str, constants: dict[str, list[str]]
+    array_body: str,
+    constants: dict[str, list[str]],
+    connection_fields: list[str] | None = None,
 ) -> list[str]:
     """Expand string literals and PHP spreads inside an allow-list array body.
 
-    Supports ``...self::CONST`` and ``...static::CONST``. Unknown constants are
-    skipped (no phantom fields). Order is literals then spread members, with
-    duplicates removed while preserving first-seen order.
+    Supports ``...self::CONST``, ``...static::CONST``, and
+    ``...$this->connectionFields(...)``. Unknown constants are skipped (no
+    phantom fields). Order is literals, then constant spreads, then connection
+    fields, with duplicates removed while preserving first-seen order.
     """
     fields: list[str] = []
     seen: set[str] = set()
@@ -379,6 +417,9 @@ def expand_allowed_field_list(
     ):
         const_name = match.group(1)
         for name in constants.get(const_name, []):
+            add(name)
+    if connection_fields and _CONNECTION_SPREAD_RE.search(array_body):
+        for name in connection_fields:
             add(name)
     return fields
 
@@ -595,6 +636,7 @@ def extract_allowed_fields(content: str) -> dict[str, list[str]]:
     from class constants in the same file (#661).
     """
     constants = extract_php_string_list_constants(content)
+    connection_fields = _connection_field_names(content)
     result: dict[str, list[str]] = {}
     # Find the enclosing method for context. The closing bracket is balanced,
     # not "the next ];". A default parameter `= ['name'])` has no semicolon,
@@ -607,7 +649,9 @@ def extract_allowed_fields(content: str) -> dict[str, list[str]]:
         rest = content[close_idx + 1 :].lstrip()
         if not rest.startswith(";") and not rest.startswith(")"):
             continue
-        fields = expand_allowed_field_list(content[open_idx + 1 : close_idx], constants)
+        fields = expand_allowed_field_list(
+            content[open_idx + 1 : close_idx], constants, connection_fields
+        )
         # Try to find the method name above this position
         preceding = content[:match.start()]
         method_matches = re.findall(r"function\s+(\w+)\s*\(", preceding)
@@ -631,7 +675,7 @@ def extract_allowed_fields(content: str) -> dict[str, list[str]]:
         re.DOTALL,
     )
     for match in merge_pattern.finditer(content):
-        extra = expand_allowed_field_list(match.group(1), constants)
+        extra = expand_allowed_field_list(match.group(1), constants, connection_fields)
         preceding = content[:match.start()]
         method_matches = re.findall(r"function\s+(\w+)\s*\(", preceding)
         method = method_matches[-1] if method_matches else "unknown"
@@ -642,6 +686,30 @@ def extract_allowed_fields(content: str) -> dict[str, list[str]]:
                     existing.append(f)
         else:
             result[method] = extra
+
+    # Coolify 4.7 storage store() passes the allow list as the second
+    # argument of validateBody() instead of assigning $allowedFields.
+    # update() still assigns $allowedFields, so this only fills callers
+    # that do not already have a list.
+    inline_body = re.compile(r"\$this->validateBody\s*\(\s*\$\w+\s*,\s*\[")
+    for match in inline_body.finditer(content):
+        open_idx = match.end() - 1
+        close_idx = _bracket_end(content, open_idx)
+        if close_idx is None:
+            continue
+        array_body = content[open_idx + 1 : close_idx]
+        # Rule maps (`'hostname' => ['required', ...]`) are not allow lists.
+        if "=>" in array_body:
+            continue
+        fields = expand_allowed_field_list(array_body, constants, connection_fields)
+        if not fields:
+            continue
+        preceding = content[: match.start()]
+        methods = re.findall(r"function\s+(\w+)\s*\(", preceding)
+        caller = methods[-1] if methods else None
+        if not caller or caller in result:
+            continue
+        result[caller] = fields
 
     # $request->validate / customApiValidator rule keys fill methods that
     # never assign $allowedFields. Keep validate* helpers so the alias below

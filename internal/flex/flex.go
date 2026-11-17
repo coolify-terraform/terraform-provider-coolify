@@ -277,6 +277,18 @@ func Int64IfChanged(plan, state types.Int64) *int64 {
 	return Int64PtrFromFramework(plan)
 }
 
+// Float64IfChanged returns a pointer to the plan value only if it differs from state.
+func Float64IfChanged(plan, state types.Float64) *float64 {
+	if plan.Equal(state) {
+		return nil
+	}
+	if plan.IsNull() || plan.IsUnknown() {
+		return nil
+	}
+	v := plan.ValueFloat64()
+	return &v
+}
+
 // BoolIfNonDefault returns a pointer to the value only if it differs from the
 // given default. Used to skip sending fields that already match the API's
 // create-time default.
