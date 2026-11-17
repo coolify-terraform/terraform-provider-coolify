@@ -54,13 +54,14 @@ func (r *res) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "Manages image vulnerability scanning for one Coolify server (`GET`/`PATCH /servers/{uuid}/image-scanning`). " +
 			"Requires Coolify >= v4.7.0. Turning scanning on prepares the scanner on the server in the background. " +
-			"Memory, CPU, and Syft/Grype time limits require Coolify >= v4.7.3. " +
+			"Memory requires Coolify >= v4.7.2. CPU and Syft/Grype time limits require Coolify >= v4.7.3. " +
 			"Destroy turns scanning off. The scanner state fields are read-only.",
 		Attributes: imageScanAttrs(),
 	}
 }
 
 func imageScanAttrs() map[string]schema.Attribute {
+	const needs472 = "Requires Coolify >= v4.7.2. Setting this on Coolify v4.7.0 or v4.7.1 fails the apply. "
 	const needs473 = "Requires Coolify >= v4.7.3. Setting this on Coolify v4.7.0 through v4.7.2 fails the apply. "
 	attrs := map[string]schema.Attribute{
 		"server_uuid": schema.StringAttribute{
@@ -93,7 +94,7 @@ func imageScanAttrs() map[string]schema.Attribute {
 			Computed:            true,
 		},
 		"image_scan_memory_mb": schema.Int64Attribute{
-			MarkdownDescription: "Memory limit of each scanner step, in MB. One of 1024, 2048, 4096, or 8192. Coolify's stored default is 1024. The server refuses a value above its own memory. " + needs473,
+			MarkdownDescription: "Memory limit of each scanner step, in MB. One of 1024, 2048, 4096, or 8192. Coolify's stored default is 1024. The server refuses a value above its own memory. " + needs472,
 			Optional:            true,
 			Computed:            true,
 			PlanModifiers:       []planmodifier.Int64{int64planmodifier.UseStateForUnknown()},
@@ -227,11 +228,16 @@ func (r *res) ImportState(ctx context.Context, req resource.ImportStateRequest, 
 
 func rejectUnsupportedLimits(diags *diag.Diagnostics, c *client.Client, plan, state model, updating bool) bool {
 	input, _ := scanPatch(plan, state, updating)
-	if !patchHasLimits(input) || c.SupportsImageScanLimits() {
-		return false
+	rejected := false
+	if input.ImageScanMemoryMB != nil && !c.SupportsImageScanMemory() {
+		diags.AddError("Coolify version cannot set image scan memory", memoryVersionDetail(c))
+		rejected = true
 	}
-	diags.AddError("Coolify version cannot set image scan limits", limitsVersionDetail(c))
-	return true
+	if patchHasRuntimeLimits(input) && !c.SupportsImageScanLimits() {
+		diags.AddError("Coolify version cannot set image scan CPU or time limits", limitsVersionDetail(c))
+		rejected = true
+	}
+	return rejected
 }
 
 func applyScanPatch(ctx context.Context, c *client.Client, uuid string, plan, state model, updating bool) error {
@@ -263,7 +269,11 @@ func scanPatch(plan, state model, updating bool) (client.UpdateServerImageScanni
 }
 
 func patchHasLimits(in client.UpdateServerImageScanningInput) bool {
-	return in.ImageScanMemoryMB != nil || in.ImageScanSyftTimeout != nil || in.ImageScanGrypeTimeout != nil || in.ImageScanCPUs != nil
+	return in.ImageScanMemoryMB != nil || patchHasRuntimeLimits(in)
+}
+
+func patchHasRuntimeLimits(in client.UpdateServerImageScanningInput) bool {
+	return in.ImageScanSyftTimeout != nil || in.ImageScanGrypeTimeout != nil || in.ImageScanCPUs != nil
 }
 
 func readInto(ctx context.Context, c *client.Client, uuid string, m *model) error {
@@ -322,13 +332,21 @@ func floatFromAPI(v *float64, prev types.Float64) types.Float64 {
 	return types.Float64Null()
 }
 
-func limitsVersionDetail(c *client.Client) string {
-	ver := "unknown"
+func coolifyVersionLabel(c *client.Client) string {
 	if c != nil && c.CoolifyVersion != "" {
-		ver = c.CoolifyVersion
+		return c.CoolifyVersion
 	}
-	return fmt.Sprintf("This Coolify instance (%s) does not accept image scan memory, CPU, or time limits (added in Coolify v4.7.3). "+
-		"Upgrade to Coolify v4.7.3 or later, or remove image_scan_memory_mb, image_scan_cpus, image_scan_syft_timeout, and image_scan_grype_timeout.", ver)
+	return "unknown"
+}
+
+func memoryVersionDetail(c *client.Client) string {
+	return fmt.Sprintf("This Coolify instance (%s) does not accept image_scan_memory_mb (added in Coolify v4.7.2). "+
+		"Upgrade to Coolify v4.7.2 or later, or remove image_scan_memory_mb.", coolifyVersionLabel(c))
+}
+
+func limitsVersionDetail(c *client.Client) string {
+	return fmt.Sprintf("This Coolify instance (%s) does not accept image_scan_cpus, image_scan_syft_timeout, or image_scan_grype_timeout (added in Coolify v4.7.3). "+
+		"Upgrade to Coolify v4.7.3 or later, or remove those attributes.", coolifyVersionLabel(c))
 }
 
 func versionDetail(c *client.Client) string {

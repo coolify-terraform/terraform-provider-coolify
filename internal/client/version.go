@@ -350,21 +350,34 @@ func (c *Client) SupportsCoolify47() bool {
 	return IsVersionAtLeast(c.CoolifyVersion, minCoolify47Version)
 }
 
-// minImageScanLimitsVersion is the first Coolify tag whose
-// PATCH /servers/{uuid}/image-scanning accepts scanner memory, CPU, and
-// Syft/Grype time limits. v4.7.0 through v4.7.2 accept only the on/off flag.
-// v4.7.3 and v4.7.5 use the same allow list.
+// minImageScanMemoryVersion is the first tag that accepts image_scan_memory_mb
+// on PATCH /servers/{uuid}/image-scanning. v4.7.0 and v4.7.1 accept only the
+// on/off flag.
+const minImageScanMemoryVersion = "4.7.2"
+
+// minImageScanLimitsVersion is the first tag that also accepts image_scan_cpus
+// and the Syft and Grype timeouts. v4.7.2 still rejects those three keys.
 const minImageScanLimitsVersion = "4.7.3"
 
-// SupportsImageScanLimits reports whether PATCH /servers/{uuid}/image-scanning
-// accepts image_scan_memory_mb, image_scan_cpus, image_scan_syft_timeout, and
-// image_scan_grype_timeout.
+// SupportsImageScanMemory reports whether PATCH /servers/{uuid}/image-scanning
+// accepts image_scan_memory_mb.
 //
 // Empty CoolifyVersion reports true so unit tests that never call Configure
 // exercise the new payload. A 4.3.0 version string reports true because CI
 // edge has used that string while shipping later APIs. 4.7 pre-releases and
-// releases before v4.7.3 report false.
+// releases before v4.7.2 report false.
+func (c *Client) SupportsImageScanMemory() bool {
+	return c.supportsSince(minImageScanMemoryVersion)
+}
+
+// SupportsImageScanLimits reports whether the same route accepts
+// image_scan_cpus, image_scan_syft_timeout, and image_scan_grype_timeout.
+// Memory uses SupportsImageScanMemory, which is one release earlier.
 func (c *Client) SupportsImageScanLimits() bool {
+	return c.supportsSince(minImageScanLimitsVersion)
+}
+
+func (c *Client) supportsSince(min string) bool {
 	if c == nil || c.CoolifyVersion == "" {
 		return true
 	}
@@ -374,7 +387,7 @@ func (c *Client) SupportsImageScanLimits() bool {
 	if versionStringLagsTip(c.CoolifyVersion) {
 		return true
 	}
-	return IsVersionAtLeast(c.CoolifyVersion, minImageScanLimitsVersion)
+	return IsVersionAtLeast(c.CoolifyVersion, min)
 }
 
 // SupportsHighlightLogDrain reports whether GET server settings still include

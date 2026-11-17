@@ -487,6 +487,34 @@ func TestSupportsCoolify47(t *testing.T) {
 	}
 }
 
+func TestSupportsImageScanMemory(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		version string
+		want    bool
+	}{
+		{"4.7.0", false},
+		{"4.7.1", false},
+		{"4.7.2", true},
+		{"4.7.3", true},
+		{"4.7.5", true},
+		{"4.7-rc.1", false},
+		{"4.7.0-beta", false},
+		{"4.3.0", true},
+		{"", true},
+	}
+	for _, tt := range tests {
+		c := &Client{CoolifyVersion: tt.version}
+		if got := c.SupportsImageScanMemory(); got != tt.want {
+			t.Errorf("SupportsImageScanMemory(%q) = %v, want %v", tt.version, got, tt.want)
+		}
+	}
+	var nilClient *Client
+	if !nilClient.SupportsImageScanMemory() {
+		t.Error("nil client should assume newest behaviour rather than panic")
+	}
+}
+
 func TestSupportsImageScanLimits(t *testing.T) {
 	t.Parallel()
 	tests := []struct {

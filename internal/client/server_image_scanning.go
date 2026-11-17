@@ -8,7 +8,8 @@ import (
 )
 
 // ServerImageScanning is GET/PATCH /servers/{uuid}/image-scanning.
-// Coolify >= v4.7.0. Scanner limit fields are present on >= v4.7.3.
+// Coolify >= v4.7.0. image_scan_memory_mb is present on >= v4.7.2.
+// CPU and the Syft and Grype timeouts are present on >= v4.7.3.
 // Pointers stay nil when an older response omits the key.
 type ServerImageScanning struct {
 	IsImageScanEnabled    bool     `json:"is_image_scan_enabled"`
@@ -23,7 +24,8 @@ type ServerImageScanning struct {
 }
 
 // UpdateServerImageScanningInput is the PATCH body. Send at least one field.
-// A nil pointer is omitted. Limits are rejected before v4.7.3.
+// A nil pointer is omitted. Memory is rejected before v4.7.2.
+// CPU and the timeouts are rejected before v4.7.3.
 type UpdateServerImageScanningInput struct {
 	IsImageScanEnabled    *bool    `json:"is_image_scan_enabled,omitempty"`
 	ImageScanMemoryMB     *int64   `json:"image_scan_memory_mb,omitempty"`
