@@ -294,6 +294,12 @@ application, null uses the server setting. `none` turns the resolver off.
 | `git_https_username` and `git_https_password` on applications | HTTPS Git credentials for a private repository that is not a GitHub App. The password is not returned on read. 4.6 release candidates keep a configured value in state and do not send it. |
 | `coolify_integration_token` | Cloudflare, Doppler, Infisical, and Vault tokens. Create checks the secret with that provider. The secret and metadata are not returned. `POST .../sync-zones` stays an operator action. |
 
+### Requires Coolify ≥ 4.8.0
+
+| Resource / attribute | Role |
+|----------------------|------|
+| `public_ipv4` and `public_ipv6` on servers | Public addresses DNS checks and DNS records use when Coolify reaches the server over a private network. Null removes the stored address. Localhost ignores them. The 4.8.0-alpha nightly accepts them. v4.7.5 and older fail the apply when either attribute is set. Removing the attribute later does not clear a stored value. |
+
 ### Requires Coolify ≥ 4.7.0
 
 | Resource / attribute | Role |

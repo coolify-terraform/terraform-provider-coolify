@@ -87,6 +87,11 @@ type ServerSettings struct {
 	// Coolify >= v4.7.0. Nil when the instance omits the keys.
 	SSHHostKeyFingerprints        []string `json:"ssh_host_key_fingerprints,omitempty"`
 	SSHHostKeyPendingFingerprints []string `json:"ssh_host_key_pending_fingerprints,omitempty"`
+	// Public IPs used for DNS when Coolify reaches the server privately.
+	// Coolify >= v4.8.0, including 4.8.0-alpha. Pointers so a GET that
+	// omits the columns stays null.
+	PublicIPv4 *string `json:"public_ipv4,omitempty"`
+	PublicIPv6 *string `json:"public_ipv6,omitempty"`
 }
 
 type Server struct {
@@ -152,6 +157,10 @@ type UpdateServerInput struct {
 	WildcardDomain                 *string `json:"wildcard_domain,omitempty"`
 	ServerTimezone                 *string `json:"server_timezone,omitempty"`
 	BackupCompressionCPUPercentage *int    `json:"backup_compression_cpu_percentage,omitempty"`
+	// PublicIPv4 and PublicIPv6 are accepted on PATCH from Coolify >= v4.8.0.
+	// UpdateServer drops them on older instances.
+	PublicIPv4 *string `json:"public_ipv4,omitempty"`
+	PublicIPv6 *string `json:"public_ipv6,omitempty"`
 }
 
 func (c *Client) ListServers(ctx context.Context) ([]Server, error) {
@@ -204,6 +213,10 @@ func (c *Client) UpdateServer(ctx context.Context, uuid string, input UpdateServ
 		input.WildcardDomain = nil
 		input.ServerTimezone = nil
 		input.BackupCompressionCPUPercentage = nil
+	}
+	if !c.SupportsServerPublicIPs() {
+		input.PublicIPv4 = nil
+		input.PublicIPv6 = nil
 	}
 	if jsonObjectEmpty(input) {
 		tflog.Debug(ctx, "skipping server update: empty body", map[string]interface{}{"uuid": uuid})

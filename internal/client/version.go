@@ -377,6 +377,23 @@ func (c *Client) SupportsImageScanLimits() bool {
 	return c.supportsSince(minImageScanLimitsVersion)
 }
 
+// minServerPublicIPVersion is the first Coolify line whose
+// PATCH /servers/{uuid} accepts public_ipv4 and public_ipv6.
+// The columns landed on the 4.8.0-alpha nightly (migration 2026-11-16).
+// v4.7.5 rejects the keys. 4.8.0-alpha.0.* parses as 4.8.0.
+const minServerPublicIPVersion = "4.8.0"
+
+// SupportsServerPublicIPs reports whether PATCH /servers/{uuid} accepts
+// public_ipv4 and public_ipv6.
+//
+// Empty CoolifyVersion reports true so unit tests that never call Configure
+// exercise the new payload. A 4.3.0 version string reports true because CI
+// edge has used that string while shipping later APIs. Releases before
+// v4.8.0 report false.
+func (c *Client) SupportsServerPublicIPs() bool {
+	return c.supportsSince(minServerPublicIPVersion)
+}
+
 func (c *Client) supportsSince(min string) bool {
 	if c == nil || c.CoolifyVersion == "" {
 		return true
