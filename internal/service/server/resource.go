@@ -198,6 +198,10 @@ func (r *serverResource) Create(ctx context.Context, req resource.CreateRequest,
 		resp.Diagnostics.AddError("Coolify version cannot set server public IPs", err.Error())
 		return
 	}
+	if err := RejectLocalhostServerPublicIPs(ctx, r.client, "", plan.IP.ValueString(), plan.commonPtrs()); err != nil {
+		resp.Diagnostics.AddError("Server public IPs are ignored on localhost", err.Error())
+		return
+	}
 
 	tflog.Debug(ctx, "creating resource", map[string]interface{}{"resource_type": "coolify_server"})
 
@@ -332,6 +336,10 @@ func (r *serverResource) Update(ctx context.Context, req resource.UpdateRequest,
 	tflog.Debug(ctx, "updating resource", map[string]interface{}{"resource_type": "coolify_server", "uuid": state.UUID.ValueString()})
 	if err := RejectUnsupportedServerPublicIPs(r.client, plan.commonPtrs()); err != nil {
 		resp.Diagnostics.AddError("Coolify version cannot set server public IPs", err.Error())
+		return
+	}
+	if err := RejectLocalhostServerPublicIPs(ctx, r.client, state.UUID.ValueString(), plan.IP.ValueString(), plan.commonPtrs()); err != nil {
+		resp.Diagnostics.AddError("Server public IPs are ignored on localhost", err.Error())
 		return
 	}
 	WarnDiskUsageInterval(r.client, plan.ServerDiskUsageNotificationIntervalHours, &resp.Diagnostics)
