@@ -387,14 +387,14 @@ if [[ "$IS_REACHABLE" != "t" ]]; then
 fi
 
 # Coolify reads API_RATE_LIMIT from env_file when the container is created.
-# ci-coolify-boot.sh sets 1000 before compose up. Writing the key here does
+# ci-coolify-boot.sh sets 10000 before compose up. Writing the key here does
 # not change a container that is already running.
-log "Ensuring API_RATE_LIMIT=1000 is in .env"
+log "Ensuring API_RATE_LIMIT=10000 is in .env"
 if grep -qE '^API_RATE_LIMIT=' "$COOLIFY_DATA_DIR/source/.env" 2>/dev/null; then
   log "API_RATE_LIMIT already set. The running container keeps the value from its start"
 else
-  echo "API_RATE_LIMIT=1000" >> "$COOLIFY_DATA_DIR/source/.env"
-  log "Wrote API_RATE_LIMIT=1000. Recreate the coolify container before this value applies"
+  echo "API_RATE_LIMIT=10000" >> "$COOLIFY_DATA_DIR/source/.env"
+  log "Wrote API_RATE_LIMIT=10000. Recreate the coolify container before this value applies"
 fi
 
 # --- Step 7: MinIO S3 storage for backup tests ---

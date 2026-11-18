@@ -67,7 +67,8 @@ class TestCICoolifyBoot(unittest.TestCase):
         src = SCRIPT.read_text()
         prepare = src[src.index("step_prepare()"): src.index("step_ssh()")]
         up = src[src.index("step_up()"): src.index("step_wait_ready()")]
-        self.assertIn("API_RATE_LIMIT=1000", prepare)
+        self.assertIn("API_RATE_LIMIT=10000", prepare)
+        self.assertIn("API_RATE_LIMIT=10000", prepare[prepare.index("docker-compose.override.yml") - 200:])
         self.assertNotIn("docker compose", prepare)
         self.assertNotIn("API_RATE_LIMIT", up)
 

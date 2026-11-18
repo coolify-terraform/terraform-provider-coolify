@@ -107,15 +107,16 @@ step_prepare() {
   else
     echo "LATEST_IMAGE=${COOLIFY_IMAGE_TAG}" >> .env
   fi
-  # env_file is applied when the container is created. The default is
-  # 200 requests per minute per token, and a later append does not
-  # change the running process. Acceptance runs several packages at once.
+  # env_file and the compose environment are applied when the container
+  # is created. The default is 200 requests per minute per token. A later
+  # append does not change the running process. 1000 was still crossed by
+  # four packages at once (acceptance shard 1, POST /databases/postgresql).
   if grep -qE '^API_RATE_LIMIT=' .env; then
-    sed -i 's|^API_RATE_LIMIT=.*|API_RATE_LIMIT=1000|' .env
+    sed -i 's|^API_RATE_LIMIT=.*|API_RATE_LIMIT=10000|' .env
   else
-    echo "API_RATE_LIMIT=1000" >> .env
+    echo "API_RATE_LIMIT=10000" >> .env
   fi
-  log "OK: Coolify image tag ${COOLIFY_IMAGE_TAG} API_RATE_LIMIT=1000"
+  log "OK: Coolify image tag ${COOLIFY_IMAGE_TAG} API_RATE_LIMIT=10000"
 
   if [[ ! -f "$COOLIFY_DATA_DIR/ssh/keys/id.root@host.docker.internal" ]]; then
     ssh-keygen -t ed25519 -f "$COOLIFY_DATA_DIR/ssh/keys/id.root@host.docker.internal" -N "" -q
@@ -125,7 +126,7 @@ step_prepare() {
   if [[ -d /root/.ssh ]]; then
     sudo sh -c "cat $COOLIFY_DATA_DIR/ssh/keys/id.root@host.docker.internal.pub >> /root/.ssh/authorized_keys"
   fi
-  printf 'services:\n  coolify:\n    extra_hosts:\n      - "host.docker.internal:host-gateway"\n' \
+  printf 'services:\n  coolify:\n    extra_hosts:\n      - "host.docker.internal:host-gateway"\n    environment:\n      - API_RATE_LIMIT=10000\n' \
     > docker-compose.override.yml
   sudo chown -R 9999:9999 "$COOLIFY_DATA_DIR/ssh"
   docker network create --attachable coolify >/dev/null 2>&1 || true
