@@ -298,7 +298,7 @@ application, null uses the server setting. `none` turns the resolver off.
 
 | Resource / attribute | Role |
 |----------------------|------|
-| `public_ipv4` and `public_ipv6` on servers | Public addresses DNS checks and DNS records use when Coolify reaches the server over a private network. Omit the attribute, or set it to null, to remove a stored address on the next apply. Setting either attribute on localhost (`host.docker.internal` or server id 0) fails the apply, because Coolify ignores the write and still returns success. The 4.8.0-alpha nightly accepts them. v4.7.5 and older fail the apply when either attribute is set. |
+| `public_ipv4` and `public_ipv6` on servers | Public addresses DNS checks and DNS records use when Coolify reaches the server over a private network. IPv6 is stored in the compressed form Coolify saves, for example `2001:db8::10`. Omit the attribute, or set it to null, to remove a stored address on the next apply. Setting or clearing either attribute on localhost (`host.docker.internal` or the Coolify host) fails the apply, because Coolify ignores the write and still returns success. Changing the server IP to `host.docker.internal` in the same apply clears the address first. The 4.8.0-alpha nightly accepts them. v4.7.5 and older fail the apply when either attribute is set. |
 
 ### Requires Coolify ≥ 4.7.0
 

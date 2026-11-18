@@ -702,33 +702,107 @@ func TestPublicIPValidators(t *testing.T) {
 	}
 }
 
+func TestPublicIPPlanModifier_CanonicalIPv6(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		in, want string
+	}{
+		{in: "2001:0DB8::10", want: "2001:db8::10"},
+		{in: "2A01:04F8::0001", want: "2a01:4f8::1"},
+		{in: "203.0.113.10", want: "203.0.113.10"},
+	}
+	for _, tc := range cases {
+		var resp planmodifier.StringResponse
+		publicIPPlanModifier{}.PlanModifyString(context.Background(), planmodifier.StringRequest{
+			ConfigValue: types.StringValue(tc.in),
+		}, &resp)
+		if resp.PlanValue.ValueString() != tc.want {
+			t.Errorf("plan %q = %q, want %q", tc.in, resp.PlanValue.ValueString(), tc.want)
+		}
+	}
+}
+
 func TestRejectLocalhostServerPublicIPs(t *testing.T) {
 	t.Parallel()
 	ptrs, m := newTestPtrs()
 	m.PublicIPv4 = types.StringValue("203.0.113.10")
-	if err := RejectLocalhostServerPublicIPs(context.Background(), nil, "", "host.docker.internal", ptrs); err == nil {
+	if err := RejectLocalhostServerPublicIPs(context.Background(), nil, "", "host.docker.internal", ptrs, NullPublicIPState(ptrs)); err == nil {
 		t.Fatal("expected localhost IP to reject public_ipv4")
 	}
 
-	id := int64(0)
-	var gotPath string
+	host := true
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		gotPath = r.URL.Path
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(map[string]any{
-			"uuid": "s1",
-			"ip":   "10.0.0.5",
-			"id":   id,
+			"uuid":            "s1",
+			"ip":              "10.0.0.5",
+			"is_coolify_host": host,
 		})
 	}))
 	defer srv.Close()
 	c := client.New(srv.URL, "test-token")
 	m.IP = types.StringValue("10.0.0.5")
-	if err := RejectLocalhostServerPublicIPs(context.Background(), c, "s1", "10.0.0.5", ptrs); err == nil {
-		t.Fatal("expected server id 0 to reject public_ipv4")
+	if err := RejectLocalhostServerPublicIPs(context.Background(), c, "s1", "10.0.0.5", ptrs, NullPublicIPState(ptrs)); err == nil {
+		t.Fatal("expected is_coolify_host to reject public_ipv4 without id")
 	}
-	if gotPath != "/api/v1/servers/s1" {
-		t.Fatalf("GET path = %q", gotPath)
+	host = false
+	if err := RejectLocalhostServerPublicIPs(context.Background(), c, "s1", "10.0.0.5", ptrs, NullPublicIPState(ptrs)); err != nil {
+		t.Fatalf("normal server rejected public_ipv4: %v", err)
+	}
+
+	plan, planModel := newTestPtrs()
+	state, stateModel := newTestPtrs()
+	stateModel.PublicIPv4 = types.StringValue("203.0.113.10")
+	planModel.PublicIPv4 = types.StringNull()
+	planModel.IP = types.StringValue("10.0.0.5")
+	host = true
+	if err := RejectLocalhostServerPublicIPs(context.Background(), c, "s1", "10.0.0.5", plan, state); err == nil {
+		t.Fatal("expected clearing a public IP on the Coolify host to fail")
+	}
+	host = false
+	planModel.IP = types.StringValue("host.docker.internal")
+	if err := RejectLocalhostServerPublicIPs(context.Background(), c, "s1", "host.docker.internal", plan, state); err != nil {
+		t.Fatalf("clear before becoming localhost should be allowed: %v", err)
+	}
+}
+
+func TestSendServerUpdate_ClearsPublicIPBeforeLocalhost(t *testing.T) {
+	t.Parallel()
+	var bodies []map[string]any
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPatch {
+			var decoded map[string]any
+			if err := json.NewDecoder(r.Body).Decode(&decoded); err != nil {
+				t.Errorf("decode: %v", err)
+			}
+			bodies = append(bodies, decoded)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"uuid":"s1"}`))
+	}))
+	defer srv.Close()
+	c := client.New(srv.URL, "test-token")
+	c.CoolifyVersion = "4.8.0"
+	plan, planModel := newTestPtrs()
+	planModel.IP = types.StringValue("host.docker.internal")
+	input := client.UpdateServerInput{
+		IP:         strPtr("host.docker.internal"),
+		PublicIPv4: client.NewJSONNull(),
+	}
+	if err := SendServerUpdate(context.Background(), c, "s1", plan, input); err != nil {
+		t.Fatalf("send: %v", err)
+	}
+	if len(bodies) != 2 {
+		t.Fatalf("PATCH count = %d, bodies %v", len(bodies), bodies)
+	}
+	if _, ok := bodies[0]["ip"]; ok || bodies[0]["public_ipv4"] != nil {
+		t.Fatalf("first PATCH = %v, want public_ipv4 null and no ip", bodies[0])
+	}
+	if bodies[1]["ip"] != "host.docker.internal" {
+		t.Fatalf("second PATCH = %v, want ip only", bodies[1])
+	}
+	if _, ok := bodies[1]["public_ipv4"]; ok {
+		t.Fatalf("second PATCH still has public_ipv4: %v", bodies[1])
 	}
 }
 

@@ -226,7 +226,7 @@ func addExtendedSettingsAttrs(attrs map[string]schema.Attribute) {
 }
 
 func addCoreExtendedSettingsAttrs(attrs map[string]schema.Attribute) {
-	const needs48 = "Requires Coolify >= v4.8.0, including the 4.8.0-alpha nightly. Setting this on Coolify v4.7.5 and older fails the apply. Omitting the attribute, or setting it to null, removes a stored address on the next apply. Setting this on localhost (host.docker.internal or server id 0) fails the apply, because Coolify ignores the write and still returns success."
+	const needs48 = "Requires Coolify >= v4.8.0, including the 4.8.0-alpha nightly. Setting this on Coolify v4.7.5 and older fails the apply. Omitting the attribute, or setting it to null, removes a stored address on the next apply. Setting or clearing this on localhost (host.docker.internal or the Coolify host) fails the apply, because Coolify ignores the write and still returns success."
 	attrs["public_ipv4"] = schema.StringAttribute{
 		MarkdownDescription: "Public IPv4 that DNS checks and DNS records use instead of the server IP, when Coolify reaches this server over a private network. " + needs48,
 		Optional:            true,
@@ -235,7 +235,7 @@ func addCoreExtendedSettingsAttrs(attrs map[string]schema.Attribute) {
 		Validators:          []validator.String{publicIPv4Validator{}},
 	}
 	attrs["public_ipv6"] = schema.StringAttribute{
-		MarkdownDescription: "Public IPv6 that DNS checks and DNS records use instead of the server IP, when Coolify reaches this server over a private network. " + needs48,
+		MarkdownDescription: "Public IPv6 that DNS checks and DNS records use instead of the server IP, when Coolify reaches this server over a private network. Coolify stores the compressed form, for example `2001:db8::10`. " + needs48,
 		Optional:            true,
 		Computed:            true,
 		PlanModifiers:       []planmodifier.String{publicIPPlanModifier{}},
@@ -516,7 +516,17 @@ func (publicIPPlanModifier) PlanModifyString(_ context.Context, req planmodifier
 		resp.PlanValue = types.StringNull()
 		return
 	}
-	resp.PlanValue = req.ConfigValue
+	resp.PlanValue = types.StringValue(canonicalPublicIP(req.ConfigValue.ValueString()))
+}
+
+// canonicalPublicIP matches Coolify's inet_ntop(inet_pton) for IPv6.
+// IPv4 text is left unchanged. Go's IP.String uses the compressed form.
+func canonicalPublicIP(raw string) string {
+	ip := net.ParseIP(raw)
+	if ip == nil || ip.To4() != nil {
+		return raw
+	}
+	return ip.String()
 }
 
 func (serverTimezoneValidator) ValidateString(_ context.Context, req validator.StringRequest, resp *validator.StringResponse) {
@@ -888,7 +898,7 @@ func ApplyPostCreateCloudProviderSettings(ctx context.Context, c *client.Client,
 	if err := RejectUnsupportedServerPublicIPs(c, p); err != nil {
 		return fmt.Errorf("server %s: %w", uuid, err)
 	}
-	if err := RejectLocalhostServerPublicIPs(ctx, c, uuid, planIP(p), p); err != nil {
+	if err := RejectLocalhostServerPublicIPs(ctx, c, uuid, planIP(p), p, NullPublicIPState(p)); err != nil {
 		return fmt.Errorf("server %s: %w", uuid, err)
 	}
 	WarnUnsupportedServerV451(c, p, diags)
@@ -1042,7 +1052,7 @@ func publicIPIfChanged(plan, state *types.String) *client.JSONString {
 		}
 		return client.NewJSONNull()
 	}
-	return client.NewJSONString(plan.ValueString())
+	return client.NewJSONString(canonicalPublicIP(plan.ValueString()))
 }
 
 // RejectUnsupportedServerPublicIPs reports when public_ipv4 or public_ipv6
@@ -1066,11 +1076,13 @@ const localhostServerIP = "host.docker.internal"
 // RejectLocalhostServerPublicIPs fails the apply when a public address is
 // set on a server Coolify treats as localhost. Coolify skips the write and
 // still returns success, so a later read would store null.
-func RejectLocalhostServerPublicIPs(ctx context.Context, c *client.Client, uuid, planIP string, p ServerCommonPtrs) error {
-	if !stringConfigured(p.PublicIPv4) && !stringConfigured(p.PublicIPv6) {
+func RejectLocalhostServerPublicIPs(ctx context.Context, c *client.Client, uuid, planIP string, plan, state ServerCommonPtrs) error {
+	setting := stringConfigured(plan.PublicIPv4) || stringConfigured(plan.PublicIPv6)
+	clearing := publicIPClears(plan, state)
+	if !setting && !clearing {
 		return nil
 	}
-	if planIP == localhostServerIP {
+	if planIP == localhostServerIP && setting {
 		return errLocalhostPublicIP
 	}
 	if c == nil || uuid == "" {
@@ -1086,6 +1098,40 @@ func RejectLocalhostServerPublicIPs(ctx context.Context, c *client.Client, uuid,
 	return nil
 }
 
+func publicIPClears(plan, state ServerCommonPtrs) bool {
+	return jsonNull(publicIPIfChanged(plan.PublicIPv4, state.PublicIPv4)) ||
+		jsonNull(publicIPIfChanged(plan.PublicIPv6, state.PublicIPv6))
+}
+
+func jsonNull(v *client.JSONString) bool {
+	return v != nil && v.Null
+}
+
+// SendServerUpdate patches public-IP clears before an IP change to
+// host.docker.internal. Coolify applies ip first and then ignores
+// public_ipv4 and public_ipv6 once the server is localhost.
+func SendServerUpdate(ctx context.Context, c *client.Client, uuid string, plan ServerCommonPtrs, input client.UpdateServerInput) error {
+	if planIP(plan) == localhostServerIP && (jsonNull(input.PublicIPv4) || jsonNull(input.PublicIPv6)) {
+		clear := client.UpdateServerInput{PublicIPv4: input.PublicIPv4, PublicIPv6: input.PublicIPv6}
+		if _, err := c.UpdateServer(ctx, uuid, clear); err != nil {
+			return err
+		}
+		input.PublicIPv4 = nil
+		input.PublicIPv6 = nil
+	}
+	_, err := c.UpdateServer(ctx, uuid, input)
+	return err
+}
+
+func NullPublicIPState(plan ServerCommonPtrs) ServerCommonPtrs {
+	state := plan
+	v4 := types.StringNull()
+	v6 := types.StringNull()
+	state.PublicIPv4 = &v4
+	state.PublicIPv6 = &v6
+	return state
+}
+
 func planIP(p ServerCommonPtrs) string {
 	if p.IP == nil || p.IP.IsNull() || p.IP.IsUnknown() {
 		return ""
@@ -1097,7 +1143,7 @@ func serverIsLocalhost(srv *client.Server) bool {
 	if srv.IP == localhostServerIP {
 		return true
 	}
-	return srv.ID != nil && *srv.ID == 0
+	return srv.IsCoolifyHost != nil && *srv.IsCoolifyHost
 }
 
-var errLocalhostPublicIP = fmt.Errorf("public_ipv4 and public_ipv6 are ignored on localhost (host.docker.internal or server id 0) and Coolify still returns success; remove public_ipv4 and public_ipv6")
+var errLocalhostPublicIP = fmt.Errorf("public_ipv4 and public_ipv6 are ignored on localhost (host.docker.internal or the Coolify host) and Coolify still returns success; remove public_ipv4 and public_ipv6")

@@ -219,7 +219,7 @@ func (r *digitalOceanServerResource) Create(ctx context.Context, req resource.Cr
 		resp.Diagnostics.AddError("Coolify version cannot set server public IPs", err.Error())
 		return
 	}
-	if err := server.RejectLocalhostServerPublicIPs(ctx, r.client, "", plan.IP.ValueString(), plan.commonPtrs()); err != nil {
+	if err := server.RejectLocalhostServerPublicIPs(ctx, r.client, "", plan.IP.ValueString(), plan.commonPtrs(), server.NullPublicIPState(plan.commonPtrs())); err != nil {
 		resp.Diagnostics.AddError("Server public IPs are ignored on localhost", err.Error())
 		return
 	}
@@ -352,7 +352,7 @@ func (r *digitalOceanServerResource) Update(ctx context.Context, req resource.Up
 		resp.Diagnostics.AddError("Coolify version cannot set server public IPs", err.Error())
 		return
 	}
-	if err := server.RejectLocalhostServerPublicIPs(ctx, r.client, state.UUID.ValueString(), plan.IP.ValueString(), plan.commonPtrs()); err != nil {
+	if err := server.RejectLocalhostServerPublicIPs(ctx, r.client, state.UUID.ValueString(), plan.IP.ValueString(), plan.commonPtrs(), state.commonPtrs()); err != nil {
 		resp.Diagnostics.AddError("Server public IPs are ignored on localhost", err.Error())
 		return
 	}
@@ -360,7 +360,7 @@ func (r *digitalOceanServerResource) Update(ctx context.Context, req resource.Up
 	server.WarnUnsupportedServerV451(r.client, plan.commonPtrs(), &resp.Diagnostics)
 	input := server.BuildServerUpdateInput(plan.commonPtrs(), state.commonPtrs())
 
-	if _, err := r.client.UpdateServer(ctx, state.UUID.ValueString(), input); err != nil {
+	if err := server.SendServerUpdate(ctx, r.client, state.UUID.ValueString(), plan.commonPtrs(), input); err != nil {
 		resp.Diagnostics.AddError("Error updating DigitalOcean server", fmt.Sprintf("server %s: %s", state.UUID.ValueString(), err))
 		return
 	}

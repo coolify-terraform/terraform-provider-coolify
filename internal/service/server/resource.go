@@ -198,7 +198,7 @@ func (r *serverResource) Create(ctx context.Context, req resource.CreateRequest,
 		resp.Diagnostics.AddError("Coolify version cannot set server public IPs", err.Error())
 		return
 	}
-	if err := RejectLocalhostServerPublicIPs(ctx, r.client, "", plan.IP.ValueString(), plan.commonPtrs()); err != nil {
+	if err := RejectLocalhostServerPublicIPs(ctx, r.client, "", plan.IP.ValueString(), plan.commonPtrs(), NullPublicIPState(plan.commonPtrs())); err != nil {
 		resp.Diagnostics.AddError("Server public IPs are ignored on localhost", err.Error())
 		return
 	}
@@ -338,7 +338,7 @@ func (r *serverResource) Update(ctx context.Context, req resource.UpdateRequest,
 		resp.Diagnostics.AddError("Coolify version cannot set server public IPs", err.Error())
 		return
 	}
-	if err := RejectLocalhostServerPublicIPs(ctx, r.client, state.UUID.ValueString(), plan.IP.ValueString(), plan.commonPtrs()); err != nil {
+	if err := RejectLocalhostServerPublicIPs(ctx, r.client, state.UUID.ValueString(), plan.IP.ValueString(), plan.commonPtrs(), state.commonPtrs()); err != nil {
 		resp.Diagnostics.AddError("Server public IPs are ignored on localhost", err.Error())
 		return
 	}
@@ -347,7 +347,7 @@ func (r *serverResource) Update(ctx context.Context, req resource.UpdateRequest,
 
 	input := BuildServerUpdateInput(plan.commonPtrs(), state.commonPtrs())
 
-	_, err := r.client.UpdateServer(ctx, state.UUID.ValueString(), input)
+	err := SendServerUpdate(ctx, r.client, state.UUID.ValueString(), plan.commonPtrs(), input)
 	if err != nil {
 		resp.Diagnostics.AddError("Error updating server", fmt.Sprintf("server %s: %s", state.UUID.ValueString(), err))
 		return
