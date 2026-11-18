@@ -386,10 +386,15 @@ if [[ "$IS_REACHABLE" != "t" ]]; then
   psql_exec "UPDATE server_settings SET is_reachable = true WHERE server_id = (SELECT id FROM servers LIMIT 1);" > /dev/null
 fi
 
-# Increase API rate limit for test suite
-log "Setting API rate limit to 1000"
-if ! grep -q "API_RATE_LIMIT" "$COOLIFY_DATA_DIR/source/.env" 2>/dev/null; then
-  echo "API_RATE_LIMIT=1000" >> "$COOLIFY_DATA_DIR/source/.env"
+# Coolify reads API_RATE_LIMIT from env_file when the container is created.
+# ci-coolify-boot.sh sets 10000 before compose up. Writing the key here does
+# not change a container that is already running.
+log "Ensuring API_RATE_LIMIT=10000 is in .env"
+if grep -qE '^API_RATE_LIMIT=' "$COOLIFY_DATA_DIR/source/.env" 2>/dev/null; then
+  log "API_RATE_LIMIT already set. The running container keeps the value from its start"
+else
+  echo "API_RATE_LIMIT=10000" >> "$COOLIFY_DATA_DIR/source/.env"
+  log "Wrote API_RATE_LIMIT=10000. Recreate the coolify container before this value applies"
 fi
 
 # --- Step 7: MinIO S3 storage for backup tests ---

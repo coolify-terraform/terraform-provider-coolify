@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -286,6 +287,16 @@ func CheckDestroy(serverURL, resourceType, apiPathPrefix string) resource.TestCh
 	}
 }
 
+// A 429 during cleanup is the API rate limit, not proof the resource remains.
+// Retry a few times. Retry-After is capped so one blocked token cannot stall
+// the suite for the full Coolify window.
+const (
+	accDestroy429Attempts = 4
+	accDestroy429MaxWait  = 2 * time.Second
+)
+
+var waitAfterRateLimit = time.Sleep
+
 // AccCheckDestroy returns a TestCheckFunc that verifies a resource no longer
 // exists via the real Coolify API after the test completes. Unlike CheckDestroy
 // (for mock servers), this includes Bearer token authentication.
@@ -301,22 +312,66 @@ func AccCheckDestroy(resourceType, apiPathPrefix string) resource.TestCheckFunc 
 			if uuid == "" {
 				continue
 			}
-			req, err := http.NewRequest(http.MethodGet, endpoint+apiPathPrefix+uuid, nil)
-			if err != nil {
+			if err := accConfirmDeleted(endpoint, token, resourceType, apiPathPrefix, uuid); err != nil {
 				return err
-			}
-			req.Header.Set("Authorization", "Bearer "+token)
-			resp, err := http.DefaultClient.Do(req)
-			if err != nil {
-				return fmt.Errorf("error checking destroy for %s/%s: %w", resourceType, uuid, err)
-			}
-			_ = resp.Body.Close()
-			if resp.StatusCode != http.StatusNotFound {
-				return fmt.Errorf("%s %s still exists (status %d)", resourceType, uuid, resp.StatusCode)
 			}
 		}
 		return nil
 	}
+}
+
+func accConfirmDeleted(endpoint, token, resourceType, apiPathPrefix, uuid string) error {
+	for attempt := 0; attempt < accDestroy429Attempts; attempt++ {
+		status, retryAfter, err := accGET(endpoint+apiPathPrefix+uuid, token)
+		if err != nil {
+			return fmt.Errorf("error checking destroy for %s/%s: %w", resourceType, uuid, err)
+		}
+		if status == http.StatusNotFound {
+			return nil
+		}
+		if status != http.StatusTooManyRequests {
+			return fmt.Errorf("%s %s still exists (status %d)", resourceType, uuid, status)
+		}
+		if attempt == accDestroy429Attempts-1 {
+			return fmt.Errorf("%s %s destroy check was rate limited (status %d)", resourceType, uuid, status)
+		}
+		waitAfterRateLimit(destroy429Wait(attempt, retryAfter))
+	}
+	return fmt.Errorf("%s %s destroy check was rate limited (status %d)", resourceType, uuid, http.StatusTooManyRequests)
+}
+
+func accGET(rawURL, token string) (int, time.Duration, error) {
+	req, err := http.NewRequest(http.MethodGet, rawURL, nil)
+	if err != nil {
+		return 0, 0, err
+	}
+	req.Header.Set("Authorization", "Bearer "+token)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return 0, 0, err
+	}
+	_, _ = io.Copy(io.Discard, resp.Body)
+	_ = resp.Body.Close()
+	return resp.StatusCode, retryAfterHeader(resp.Header.Get("Retry-After")), nil
+}
+
+func retryAfterHeader(raw string) time.Duration {
+	secs, err := strconv.Atoi(strings.TrimSpace(raw))
+	if err != nil || secs <= 0 {
+		return 0
+	}
+	return time.Duration(secs) * time.Second
+}
+
+func destroy429Wait(attempt int, retryAfter time.Duration) time.Duration {
+	wait := retryAfter
+	if wait <= 0 {
+		wait = time.Duration(attempt+1) * 200 * time.Millisecond
+	}
+	if wait > accDestroy429MaxWait {
+		return accDestroy429MaxWait
+	}
+	return wait
 }
 
 // AccCheckNestedDestroy verifies a nested resource no longer exists by
