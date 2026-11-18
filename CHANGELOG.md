@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.33](https://github.com/coolify-terraform/terraform-provider-coolify/compare/v0.1.32...v0.1.33) (2026-11-18)
+
+
+### Features
+
+* add Coolify 4.7.3 image scan limits ([#1067](https://github.com/coolify-terraform/terraform-provider-coolify/issues/1067)) ([34ce72e](https://github.com/coolify-terraform/terraform-provider-coolify/commit/34ce72e281b6050fc0ec787d686f17de30b2f45c))
+* set server public IPv4 and IPv6 ([#1069](https://github.com/coolify-terraform/terraform-provider-coolify/issues/1069)) ([5c9cb39](https://github.com/coolify-terraform/terraform-provider-coolify/commit/5c9cb390ea31a2e73d4e2347ec5810303d9455de))
+
+
+### Bug Fixes
+
+* accept image scan memory on Coolify 4.7.2 ([#1068](https://github.com/coolify-terraform/terraform-provider-coolify/issues/1068)) ([05f7752](https://github.com/coolify-terraform/terraform-provider-coolify/commit/05f77527c1a6d301c2aed019048bb3726a90a6b2))
+* bump Go 1.26.10 to 1.26.11 for GO-2026-6859 ([#1065](https://github.com/coolify-terraform/terraform-provider-coolify/issues/1065)) ([43f17fb](https://github.com/coolify-terraform/terraform-provider-coolify/commit/43f17fbbe47f1dfcfa78a6b93c5a37ae7cd97936))
+* clear server public IPs and reject localhost ([#1070](https://github.com/coolify-terraform/terraform-provider-coolify/issues/1070)) ([385877b](https://github.com/coolify-terraform/terraform-provider-coolify/commit/385877b51861645147032a1e7fd0340147c40ec8))
+* match Coolify public IPv6 and localhost checks ([#1071](https://github.com/coolify-terraform/terraform-provider-coolify/issues/1071)) ([a52e0c2](https://github.com/coolify-terraform/terraform-provider-coolify/commit/a52e0c20ef607bdbda911318df66834526bfcdff))
+
 ## [0.1.32](https://github.com/coolify-terraform/terraform-provider-coolify/compare/v0.1.31...v0.1.32) (2026-11-10)
 
 
