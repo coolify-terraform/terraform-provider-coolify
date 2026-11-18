@@ -96,19 +96,18 @@ type ServerSettings struct {
 }
 
 type Server struct {
-	// ID is the database id. Coolify treats id 0 as localhost even when
-	// the IP is not host.docker.internal. A pointer so a missing id is
-	// not mistaken for 0.
-	ID                            *int64          `json:"id,omitempty"`
-	UUID                          string          `json:"uuid,omitempty"`
-	Name                          string          `json:"name"`
-	Description                   string          `json:"description,omitempty"`
-	IP                            string          `json:"ip"`
-	Port                          int             `json:"port,omitempty"`
-	User                          string          `json:"user,omitempty"`
-	PrivateKeyUUID                string          `json:"private_key_uuid,omitempty"`
-	IsBuildServer                 bool            `json:"is_build_server"`
-	ServerRole                    string          `json:"server_role,omitempty"`
+	UUID           string `json:"uuid,omitempty"`
+	Name           string `json:"name"`
+	Description    string `json:"description,omitempty"`
+	IP             string `json:"ip"`
+	Port           int    `json:"port,omitempty"`
+	User           string `json:"user,omitempty"`
+	PrivateKeyUUID string `json:"private_key_uuid,omitempty"`
+	IsBuildServer  bool   `json:"is_build_server"`
+	ServerRole     string `json:"server_role,omitempty"`
+	// IsCoolifyHost is true when the database id is 0. GET hides id and
+	// returns this flag instead.
+	IsCoolifyHost                 *bool           `json:"is_coolify_host,omitempty"`
 	IsReachable                   bool            `json:"is_reachable"`
 	IsUsable                      bool            `json:"is_usable"`
 	DigitalOceanDropletID         *int64          `json:"digitalocean_droplet_id,omitempty"`
