@@ -107,7 +107,15 @@ step_prepare() {
   else
     echo "LATEST_IMAGE=${COOLIFY_IMAGE_TAG}" >> .env
   fi
-  log "OK: Coolify image tag ${COOLIFY_IMAGE_TAG}"
+  # env_file is applied when the container is created. The default is
+  # 200 requests per minute per token, and a later append does not
+  # change the running process. Acceptance runs several packages at once.
+  if grep -qE '^API_RATE_LIMIT=' .env; then
+    sed -i 's|^API_RATE_LIMIT=.*|API_RATE_LIMIT=1000|' .env
+  else
+    echo "API_RATE_LIMIT=1000" >> .env
+  fi
+  log "OK: Coolify image tag ${COOLIFY_IMAGE_TAG} API_RATE_LIMIT=1000"
 
   if [[ ! -f "$COOLIFY_DATA_DIR/ssh/keys/id.root@host.docker.internal" ]]; then
     ssh-keygen -t ed25519 -f "$COOLIFY_DATA_DIR/ssh/keys/id.root@host.docker.internal" -N "" -q

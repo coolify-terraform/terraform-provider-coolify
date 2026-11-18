@@ -63,6 +63,14 @@ class TestCICoolifyBoot(unittest.TestCase):
         self.assertIn("curl", ready)
         self.assertIn("--max-time 10", ready)
 
+    def test_prepare_sets_api_rate_limit_before_compose_up(self) -> None:
+        src = SCRIPT.read_text()
+        prepare = src[src.index("step_prepare()"): src.index("step_ssh()")]
+        up = src[src.index("step_up()"): src.index("step_wait_ready()")]
+        self.assertIn("API_RATE_LIMIT=1000", prepare)
+        self.assertNotIn("docker compose", prepare)
+        self.assertNotIn("API_RATE_LIMIT", up)
+
 
 if __name__ == "__main__":
     unittest.main()
