@@ -32,10 +32,15 @@ var registryExtrasNotInContract = map[string]bool{
 	"GET /servers/{uuid}/export":                true,
 	"POST /servers/{uuid}/export/mailbox":       true,
 	// Coolify 4.7 routes. The pin contract is still v4.6.0.
-	"POST /applications/private-gitea-app": true,
-	"GET /servers/{uuid}/image-scanning":   true,
-	"PATCH /servers/{uuid}/image-scanning": true,
-	"POST /servers/{uuid}/host-key/reset":  true,
+	"POST /applications/private-gitea-app":     true,
+	"GET /servers/{uuid}/image-scanning":       true,
+	"PATCH /servers/{uuid}/image-scanning":     true,
+	"POST /servers/{uuid}/host-key/reset":      true,
+	"GET /vulnerabilities":                     true,
+	"GET /applications/{uuid}/vulnerabilities": true,
+	"GET /services/{uuid}/vulnerabilities":     true,
+	"GET /databases/{uuid}/vulnerabilities":    true,
+	"GET /gitea-apps":                          true,
 }
 
 // coveredEndpoints returns the provider's route coverage registry.
@@ -238,6 +243,11 @@ func coveredEndpoints() map[string]coverageStatus {
 		"DELETE /github-apps/{github_app_id}":                                   covered("coolify_github_app", "v0.2.0"),
 		"GET /github-apps/{github_app_id}/repositories":                         covered("data.coolify_github_app_repositories", "v0.2.0"),
 		"GET /github-apps/{github_app_id}/repositories/{owner}/{repo}/branches": covered("data.coolify_github_app_branches", "v0.2.0"),
+		"GET /gitea-apps":                                                       covered("data.coolify_gitea_apps", "v0.1.34"),
+		"GET /vulnerabilities":                                                  covered("data.coolify_vulnerabilities", "v0.1.34"),
+		"GET /applications/{uuid}/vulnerabilities":                              covered("data.coolify_resource_vulnerabilities", "v0.1.34"),
+		"GET /services/{uuid}/vulnerabilities":                                  covered("data.coolify_resource_vulnerabilities", "v0.1.34"),
+		"GET /databases/{uuid}/vulnerabilities":                                 covered("data.coolify_resource_vulnerabilities", "v0.1.34"),
 
 		// ── Hetzner ──
 		"GET /hetzner/images":       covered("data.coolify_hetzner_images", "v0.2.0"),

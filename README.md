@@ -30,8 +30,8 @@ Provision Coolify with Terraform. Manage applications, databases, servers, backu
 | Area | Coverage |
 |---|---|
 | Managed resources | 66 |
-| Data sources | 81 |
-| Tests | 2020+ unit and acceptance tests |
+| Data sources | 84 |
+| Tests | 2040+ unit and acceptance tests |
 | Scenario examples | 18 ACME Corp setups |
 | Adoption path | New stacks and incremental import of existing Coolify resources |
 
@@ -193,6 +193,8 @@ For a working end-to-end setup, start with the [Quick Start](docs/guides/quickst
 | `coolify_cloud_token` / `coolify_cloud_tokens` | Read cloud token(s) |
 | `coolify_github_app` / `coolify_github_apps` / `coolify_github_app_repositories` / `coolify_github_app_branches` | Read GitHub App(s), repos, branches |
 | `coolify_gitlab_app` / `coolify_gitlab_apps` | Read GitLab App(s) (Coolify >= v4.3.0) |
+| `coolify_gitea_apps` | List Gitea sources for the team (Coolify >= v4.7.0). Secrets are not read |
+| `coolify_vulnerabilities` / `coolify_resource_vulnerabilities` | Read image-scan status for the team, or findings for one application, service, or database (Coolify >= v4.7.0) |
 | `coolify_tag` / `coolify_tags` | Read team tag(s) (Coolify >= v4.2.0) |
 | `coolify_cloud_init_script` / `coolify_cloud_init_scripts` | Read / list cloud-init scripts (Coolify >= v4.3.0) |
 | `coolify_backup_executions` | List backup execution history |

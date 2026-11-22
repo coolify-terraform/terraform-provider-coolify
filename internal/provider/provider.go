@@ -36,6 +36,7 @@ import (
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/environment"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/environmentvariable"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/envsbulk"
+	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/giteaapp"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/githubapp"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/gitlabapp"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/health"
@@ -76,6 +77,7 @@ import (
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/teamsettings"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/version"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/volumebackup"
+	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/vulnerability"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/vultr"
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
@@ -378,6 +380,7 @@ func (p *coolifyProvider) DataSources(_ context.Context) []func() datasource.Dat
 		githubapp.NewDataSource,
 		githubapp.NewListDataSource,
 		githubapp.NewReposDataSource,
+		giteaapp.NewListDataSource,
 		gitlabapp.NewDataSource,
 		gitlabapp.NewListDataSource,
 		health.NewDataSource,
@@ -433,6 +436,8 @@ func (p *coolifyProvider) DataSources(_ context.Context) []func() datasource.Dat
 		vultr.NewRegionsDataSource,
 		vultr.NewSSHKeysDataSource,
 		version.NewDataSource,
+		vulnerability.NewDataSource,
+		vulnerability.NewListDataSource,
 	}
 }
 

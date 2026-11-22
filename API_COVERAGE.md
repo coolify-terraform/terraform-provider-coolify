@@ -11,9 +11,9 @@ It is a **route inventory** against Coolify source (`testdata/contracts/coolify-
 - **Resource and attribute docs:** [docs/](docs/) (also on the Terraform Registry)
 - **Field-level gaps** (numeric FKs, UI-only columns on an existing GET) live in `internal/spectest/contract_skips.go`, not in this route list.
 
-**Coverage**: 274 covered / 350 registry entries (78.3%)  
+**Coverage**: 279 covered / 355 registry entries (78.6%)  
 **Planned**: 0 | **Skipped**: 76  
-**Registry size**: 350 (contract routes + allowlisted extras)
+**Registry size**: 355 (contract routes + allowlisted extras)
 
 ## What Terraform does not wrap
 
@@ -892,6 +892,12 @@ A row here means the provider calls that Coolify route. `client.*` helpers are u
 |-------|-------|
 | `GET /projects/{uuid}/environments` | v0.2.0 |
 
+### `data.coolify_gitea_apps`
+
+| Route | Since |
+|-------|-------|
+| `GET /gitea-apps` | v0.1.34 |
+
 ### `data.coolify_github_app_branches`
 
 | Route | Since |
@@ -1018,6 +1024,14 @@ A row here means the provider calls that Coolify route. `client.*` helpers are u
 |-------|-------|
 | `GET /projects` | v0.1.0 |
 
+### `data.coolify_resource_vulnerabilities`
+
+| Route | Since |
+|-------|-------|
+| `GET /applications/{uuid}/vulnerabilities` | v0.1.34 |
+| `GET /databases/{uuid}/vulnerabilities` | v0.1.34 |
+| `GET /services/{uuid}/vulnerabilities` | v0.1.34 |
+
 ### `data.coolify_resources`
 
 | Route | Since |
@@ -1132,6 +1146,12 @@ A row here means the provider calls that Coolify route. `client.*` helpers are u
 |-------|-------|
 | `GET /version` | v0.1.0 |
 
+### `data.coolify_vulnerabilities`
+
+| Route | Since |
+|-------|-------|
+| `GET /vulnerabilities` | v0.1.34 |
+
 ### `data.coolify_vultr_os`
 
 | Route | Since |
@@ -1220,6 +1240,7 @@ Completeness tests use this list. Sorted by `METHOD /path`.
 | `GET /applications/{uuid}/stop` | covered | `coolify_resource_action` |
 | `GET /applications/{uuid}/storages` | covered | `data.coolify_storages` |
 | `GET /applications/{uuid}/tags` | covered | `coolify_tag + coolify_resource_tag` |
+| `GET /applications/{uuid}/vulnerabilities` | covered | `data.coolify_resource_vulnerabilities` |
 | `GET /audit-events` | skipped | `operator` |
 | `GET /cloud-init-scripts` | covered | `coolify_cloud_init_scripts` |
 | `GET /cloud-init-scripts/{uuid}` | covered | `coolify_cloud_init_script` |
@@ -1237,6 +1258,7 @@ Completeness tests use this list. Sorted by `METHOD /path`.
 | `GET /databases/{uuid}/stop` | covered | `coolify_resource_action` |
 | `GET /databases/{uuid}/storages` | covered | `data.coolify_storages` |
 | `GET /databases/{uuid}/tags` | covered | `coolify_tag + coolify_resource_tag` |
+| `GET /databases/{uuid}/vulnerabilities` | covered | `data.coolify_resource_vulnerabilities` |
 | `GET /deploy` | covered | `client.Deploy` |
 | `GET /deployments` | covered | `data.coolify_deployments` |
 | `GET /deployments/applications/{uuid}` | covered | `data.coolify_deployments` |
@@ -1250,6 +1272,7 @@ Completeness tests use this list. Sorted by `METHOD /path`.
 | `GET /disable` | covered | `client.DisableAPI` |
 | `GET /dns/zones` | skipped | `operator` |
 | `GET /enable` | covered | `client.EnableAPI` |
+| `GET /gitea-apps` | covered | `data.coolify_gitea_apps` |
 | `GET /github-apps` | covered | `data.coolify_github_apps` |
 | `GET /github-apps/{github_app_id}/repositories` | covered | `data.coolify_github_app_repositories` |
 | `GET /github-apps/{github_app_id}/repositories/{owner}/{repo}/branches` | covered | `data.coolify_github_app_branches` |
@@ -1325,6 +1348,7 @@ Completeness tests use this list. Sorted by `METHOD /path`.
 | `GET /services/{uuid}/stop` | covered | `coolify_resource_action` |
 | `GET /services/{uuid}/storages` | covered | `data.coolify_storages` |
 | `GET /services/{uuid}/tags` | covered | `coolify_tag + coolify_resource_tag` |
+| `GET /services/{uuid}/vulnerabilities` | covered | `data.coolify_resource_vulnerabilities` |
 | `GET /settings/email` | covered | `coolify_instance_email_settings` |
 | `GET /tags` | covered | `coolify_tag + coolify_resource_tag` |
 | `GET /team` | skipped | `alias` |
@@ -1336,6 +1360,7 @@ Completeness tests use this list. Sorted by `METHOD /path`.
 | `GET /teams/{id}` | covered | `data.coolify_team` |
 | `GET /teams/{id}/members` | covered | `data.coolify_team_members` |
 | `GET /version` | covered | `data.coolify_version` |
+| `GET /vulnerabilities` | covered | `data.coolify_vulnerabilities` |
 | `GET /vultr/os` | covered | `data.coolify_vultr_os` |
 | `GET /vultr/plans` | covered | `data.coolify_vultr_plans` |
 | `GET /vultr/regions` | covered | `data.coolify_vultr_regions` |
