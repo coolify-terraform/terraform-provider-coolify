@@ -27,6 +27,7 @@ type environmentDataSource struct {
 // environmentDataSourceModel maps the data source schema data.
 type environmentDataSourceModel struct {
 	ID          types.Int64  `tfsdk:"id"`
+	UUID        types.String `tfsdk:"uuid"`
 	ProjectUUID types.String `tfsdk:"project_uuid"`
 	Name        types.String `tfsdk:"name"`
 	Description types.String `tfsdk:"description"`
@@ -43,7 +44,7 @@ func (d *environmentDataSource) Metadata(_ context.Context, req datasource.Metad
 
 func (d *environmentDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Use this data source to retrieve information about a single Coolify environment by project UUID and name.",
+		MarkdownDescription: "Reads one Coolify environment by project UUID and name. `uuid` is the value to pass as `environment_uuid` on applications, databases, and services. `name` is the lookup key. Coolify also accepts an environment UUID in that path, but this data source stores the name Coolify returns, so keep a name in `name`.",
 		Attributes: map[string]schema.Attribute{
 			"project_uuid": schema.StringAttribute{
 				MarkdownDescription: "The UUID of the project.",
@@ -59,7 +60,11 @@ func (d *environmentDataSource) Schema(_ context.Context, _ datasource.SchemaReq
 				Computed:            true,
 			},
 			"id": schema.Int64Attribute{
-				MarkdownDescription: "The numeric ID of the environment.",
+				MarkdownDescription: "The numeric database ID of the environment. This is not the environment UUID.",
+				Computed:            true,
+			},
+			"uuid": schema.StringAttribute{
+				MarkdownDescription: "The Coolify environment UUID. Use this as `environment_uuid` on applications, databases, and services so renaming the environment does not replace those resources.",
 				Computed:            true,
 			},
 		},
@@ -87,7 +92,12 @@ func (d *environmentDataSource) Read(ctx context.Context, req datasource.ReadReq
 		return
 	}
 
+	if env.UUID == "" {
+		resp.Diagnostics.AddError("Error reading environment", fmt.Sprintf("Coolify returned environment %q in project %s without a uuid.", name, projectUUID))
+		return
+	}
 	config.ID = types.Int64Value(env.ID)
+	config.UUID = types.StringValue(env.UUID)
 	config.Name = types.StringValue(env.Name)
 	config.Description = types.StringValue(env.Description)
 

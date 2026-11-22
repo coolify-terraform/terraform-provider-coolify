@@ -36,6 +36,10 @@ data "coolify_environment" "test" {
 						"data.coolify_environment.test", "id",
 						"coolify_environment.source", "id",
 					),
+					resource.TestCheckResourceAttrPair(
+						"data.coolify_environment.test", "uuid",
+						"coolify_environment.source", "uuid",
+					),
 					resource.TestCheckResourceAttr("data.coolify_environment.test", "name", "ds-test-env"),
 					resource.TestCheckResourceAttr("data.coolify_environment.test", "description", "data source test"),
 				),
@@ -63,5 +67,29 @@ data "coolify_environment" "test" {
 				ExpectError: regexp.MustCompile(`(?s)Error reading environment.*"nonexistent".*00000000-0000-4000-8000-000000000000`),
 			},
 		},
+	})
+}
+
+func TestEnvironmentDataSource_MissingUUID(t *testing.T) {
+	t.Parallel()
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/v1/projects/{projectUUID}/{envName}", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"id":1,"name":"production","description":"default"}`))
+	})
+	server := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer server.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{{
+			Config: acctest.ProviderBlockForURL(server.URL) + `
+data "coolify_environment" "test" {
+  project_uuid = "aaaa0001-0001-4000-8000-000000000001"
+  name         = "production"
+}
+`,
+			ExpectError: regexp.MustCompile(`without a uuid`),
+		}},
 	})
 }

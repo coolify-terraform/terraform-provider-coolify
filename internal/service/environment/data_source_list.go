@@ -35,6 +35,7 @@ type environmentListDataSourceModel struct {
 // environmentItemModel maps a single environment in the list.
 type environmentItemModel struct {
 	ID          types.Int64  `tfsdk:"id"`
+	UUID        types.String `tfsdk:"uuid"`
 	Name        types.String `tfsdk:"name"`
 	Description types.String `tfsdk:"description"`
 }
@@ -50,7 +51,7 @@ func (d *environmentListDataSource) Metadata(_ context.Context, req datasource.M
 
 func (d *environmentListDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Use this data source to list all Coolify environments in a project.",
+		MarkdownDescription: "Lists Coolify environments in a project. Each item's `uuid` is the value to pass as `environment_uuid` on applications, databases, and services. `id` is only the numeric database key.",
 		Attributes: map[string]schema.Attribute{
 			"project_uuid": schema.StringAttribute{
 				MarkdownDescription: "The UUID of the project.",
@@ -63,7 +64,11 @@ func (d *environmentListDataSource) Schema(_ context.Context, _ datasource.Schem
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"id": schema.Int64Attribute{
-							MarkdownDescription: "The numeric ID of the environment.",
+							MarkdownDescription: "The numeric database ID of the environment. This is not the environment UUID.",
+							Computed:            true,
+						},
+						"uuid": schema.StringAttribute{
+							MarkdownDescription: "The Coolify environment UUID. Use this as `environment_uuid` on applications, databases, and services so renaming the environment does not replace those resources.",
 							Computed:            true,
 						},
 						"name": schema.StringAttribute{
@@ -107,6 +112,8 @@ func (d *environmentListDataSource) Read(ctx context.Context, req datasource.Rea
 		switch field {
 		case "id":
 			return filter.Int64ToString(e.ID), true
+		case "uuid":
+			return e.UUID, true
 		case "name":
 			return e.Name, true
 		case "description":
@@ -120,8 +127,13 @@ func (d *environmentListDataSource) Read(ctx context.Context, req datasource.Rea
 	state.ProjectUUID = config.ProjectUUID
 	state.Filters = config.Filters
 	for _, e := range envs {
+		if e.UUID == "" {
+			resp.Diagnostics.AddError("Error listing environments", fmt.Sprintf("Coolify returned environment %q in project %s without a uuid.", e.Name, config.ProjectUUID.ValueString()))
+			return
+		}
 		item := environmentItemModel{
 			ID:   types.Int64Value(e.ID),
+			UUID: types.StringValue(e.UUID),
 			Name: types.StringValue(e.Name),
 		}
 		item.Description = flex.StringToFramework(e.Description)

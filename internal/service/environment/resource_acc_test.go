@@ -166,6 +166,10 @@ data "coolify_environments" "all" {
 						"data.coolify_environment.test", "id",
 						"coolify_environment.test", "id",
 					),
+					resource.TestCheckResourceAttrPair(
+						"data.coolify_environment.test", "uuid",
+						"coolify_environment.test", "uuid",
+					),
 					resource.TestCheckResourceAttr("data.coolify_environment.test", "name", "ds-test"),
 					// List data source
 					resource.TestCheckResourceAttrSet("data.coolify_environments.all", "environments.#"),

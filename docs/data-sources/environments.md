@@ -3,12 +3,12 @@
 page_title: "coolify_environments Data Source - coolify"
 subcategory: ""
 description: |-
-  Use this data source to list all Coolify environments in a project.
+  Lists Coolify environments in a project. Each item's uuid is the value to pass as environment_uuid on applications, databases, and services. id is only the numeric database key.
 ---
 
 # coolify_environments (Data Source)
 
-Use this data source to list all Coolify environments in a project.
+Lists Coolify environments in a project. Each item's `uuid` is the value to pass as `environment_uuid` on applications, databases, and services. `id` is only the numeric database key.
 
 ## Example Usage
 
@@ -19,6 +19,10 @@ data "coolify_environments" "all" {
 
 output "environment_names" {
   value = [for e in data.coolify_environments.all.environments : e.name]
+}
+
+output "environment_uuids" {
+  value = [for e in data.coolify_environments.all.environments : e.uuid]
 }
 ```
 
@@ -52,5 +56,6 @@ Required:
 Read-Only:
 
 - `description` (String) A description of the environment.
-- `id` (Number) The numeric ID of the environment.
+- `id` (Number) The numeric database ID of the environment. This is not the environment UUID.
 - `name` (String) The name of the environment.
+- `uuid` (String) The Coolify environment UUID. Use this as `environment_uuid` on applications, databases, and services so renaming the environment does not replace those resources.
