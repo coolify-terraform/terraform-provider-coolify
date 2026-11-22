@@ -64,7 +64,7 @@ func (r *integrationTokenResource) Metadata(_ context.Context, req resource.Meta
 
 func (r *integrationTokenResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Manages a Coolify integration token for Cloudflare, Doppler, Infisical, or Vault. Requires Coolify >= v4.6.0. Create checks the secret with that provider. The secret and metadata are not returned on read.",
+		MarkdownDescription: "Manages a Coolify integration token for Cloudflare, Doppler, Infisical, or Vault. Requires Coolify >= v4.6.0. Create checks the secret with that provider. The secret and metadata are not returned on read. Link a Doppler, Infisical, or Vault token to an application, service, or database with coolify_secret_manager_source.",
 		Attributes:          integrationTokenAttributes(),
 	}
 }

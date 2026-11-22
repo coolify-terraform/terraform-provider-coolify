@@ -43,7 +43,7 @@ output "coolify_version" {
 | **≥ 4.3.18** | `missing_backup_notification_days` on `coolify_database_backup` (0 disables alerts). GET-only `last_execution_at` and `missing_backup_notification_sent_at`. |
 | **≥ 4.5.0** | `POST /api/v1/enable` is gone. `coolify_api_settings` with `enabled = true` leaves the API unchanged. `enabled = false` still disables it. Turn the API back on in the Coolify UI. Destroy does not re-enable the API. `coolify_server_hostinger` and the Hostinger catalog data sources require this version. `coolify_service_application` can send `is_permanent_redirect_enabled` and `traefik_certificate_resolver`. |
 | **≥ 4.5.1** | `coolify_s3_storage.use_path_style_endpoint`, `coolify_server_log_drain.logdrain_axiom_domain`, and application `rolling_update_drain_seconds` are sent. Older instances keep those values in state and do not send them. Highlight log drain columns are gone, so the read-only server attributes are null. Also sent from this version: application `include_coolify_default_variables` and `is_container_label_readonly_enabled`, service `include_coolify_default_variables`, service application `redirect`, server proxy `proxy_error_page`, database backup `disable_local_backup`, and server `wildcard_domain`, `server_timezone`, and `backup_compression_cpu_percentage`. |
-| **≥ 4.6.0** | Application `git_https_username` and `git_https_password` are sent. `coolify_integration_token` can read, update, and delete tokens. v4.6-rc.1 does not accept those writes. |
+| **≥ 4.6.0** | Application `git_https_username` and `git_https_password` are sent. `coolify_integration_token` can read, update, and delete tokens. `coolify_secret_manager_source` links an application, service, or database to a Doppler, Infisical, or Vault token. v4.6-rc.1 does not accept those writes. |
 
 Pinned API contract today: Coolify **v4.6.0** (`testdata/contracts/coolify-v4.json`).
 Tag extracts through `coolify-v4.6.0.json` match those git tags. Tag v4.5.0 removed
@@ -293,6 +293,7 @@ application, null uses the server setting. `none` turns the resolver off.
 |----------------------|------|
 | `git_https_username` and `git_https_password` on applications | HTTPS Git credentials for a private repository that is not a GitHub App. The password is not returned on read. 4.6 release candidates keep a configured value in state and do not send it. |
 | `coolify_integration_token` | Cloudflare, Doppler, Infisical, and Vault tokens. Create checks the secret with that provider. The secret and metadata are not returned. `POST .../sync-zones` stays an operator action. |
+| `coolify_secret_manager_source` | Links one application, service, or database to a Doppler, Infisical, or Vault token. The credential stays on `coolify_integration_token`. `{{vault.KEY}}` references stay on `coolify_environment_variable`. |
 
 ### Requires Coolify ≥ 4.8.0
 

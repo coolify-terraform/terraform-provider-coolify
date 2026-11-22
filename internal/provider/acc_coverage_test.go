@@ -23,8 +23,10 @@ func TestAccCoverage_AllResourcesHaveAccTests(t *testing.T) {
 	accContent := loadAccTestContent(t)
 	// Create calls Cloudflare, Doppler, Infisical, or Vault. CI Coolify
 	// cannot satisfy that check, so acceptance is not run for this resource.
+	// The secret manager source needs one of those tokens, so it is exempt too.
 	noAcc := map[string]bool{
-		"coolify_integration_token": true,
+		"coolify_integration_token":     true,
+		"coolify_secret_manager_source": true,
 	}
 	seen := map[string]bool{}
 
@@ -59,8 +61,9 @@ func TestAccCoverage_AllDataSourcesHaveAccTests(t *testing.T) {
 	// These read the same tokens. Listing them still needs Coolify >= v4.6.0
 	// and a token the acceptance instance does not create.
 	noAcc := map[string]bool{
-		"coolify_integration_token":  true,
-		"coolify_integration_tokens": true,
+		"coolify_integration_token":     true,
+		"coolify_integration_tokens":    true,
+		"coolify_secret_manager_source": true,
 	}
 	seen := map[string]bool{}
 

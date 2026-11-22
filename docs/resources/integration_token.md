@@ -3,12 +3,12 @@
 page_title: "coolify_integration_token Resource - coolify"
 subcategory: ""
 description: |-
-  Manages a Coolify integration token for Cloudflare, Doppler, Infisical, or Vault. Requires Coolify >= v4.6.0. Create checks the secret with that provider. The secret and metadata are not returned on read.
+  Manages a Coolify integration token for Cloudflare, Doppler, Infisical, or Vault. Requires Coolify >= v4.6.0. Create checks the secret with that provider. The secret and metadata are not returned on read. Link a Doppler, Infisical, or Vault token to an application, service, or database with coolify_secret_manager_source.
 ---
 
 # coolify_integration_token (Resource)
 
-Manages a Coolify integration token for Cloudflare, Doppler, Infisical, or Vault. Requires Coolify >= v4.6.0. Create checks the secret with that provider. The secret and metadata are not returned on read.
+Manages a Coolify integration token for Cloudflare, Doppler, Infisical, or Vault. Requires Coolify >= v4.6.0. Create checks the secret with that provider. The secret and metadata are not returned on read. Link a Doppler, Infisical, or Vault token to an application, service, or database with coolify_secret_manager_source.
 
 ## Example Usage
 
