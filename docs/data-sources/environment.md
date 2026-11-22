@@ -3,12 +3,12 @@
 page_title: "coolify_environment Data Source - coolify"
 subcategory: ""
 description: |-
-  Use this data source to retrieve information about a single Coolify environment by project UUID and name.
+  Reads one Coolify environment by project UUID and name. uuid is the value to pass as environment_uuid on applications, databases, and services. name is the lookup key. Coolify also accepts an environment UUID in that path, but this data source stores the name Coolify returns, so keep a name in name.
 ---
 
 # coolify_environment (Data Source)
 
-Use this data source to retrieve information about a single Coolify environment by project UUID and name.
+Reads one Coolify environment by project UUID and name. `uuid` is the value to pass as `environment_uuid` on applications, databases, and services. `name` is the lookup key. Coolify also accepts an environment UUID in that path, but this data source stores the name Coolify returns, so keep a name in `name`.
 
 ## Example Usage
 
@@ -16,6 +16,10 @@ Use this data source to retrieve information about a single Coolify environment 
 data "coolify_environment" "example" {
   project_uuid = "550e8400-e29b-41d4-a716-446655440006"
   name         = "production"
+}
+
+output "environment_uuid" {
+  value = data.coolify_environment.example.uuid
 }
 ```
 
@@ -30,4 +34,5 @@ data "coolify_environment" "example" {
 ### Read-Only
 
 - `description` (String) A description of the environment.
-- `id` (Number) The numeric ID of the environment.
+- `id` (Number) The numeric database ID of the environment. This is not the environment UUID.
+- `uuid` (String) The Coolify environment UUID. Use this as `environment_uuid` on applications, databases, and services so renaming the environment does not replace those resources.

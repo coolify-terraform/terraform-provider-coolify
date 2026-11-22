@@ -5,3 +5,7 @@ data "coolify_environments" "all" {
 output "environment_names" {
   value = [for e in data.coolify_environments.all.environments : e.name]
 }
+
+output "environment_uuids" {
+  value = [for e in data.coolify_environments.all.environments : e.uuid]
+}
