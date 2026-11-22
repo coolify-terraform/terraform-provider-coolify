@@ -1,0 +1,1 @@
+terraform import coolify_secret_manager_source.app application:cccccccc-cccc-4ccc-8ccc-cccccccccccc

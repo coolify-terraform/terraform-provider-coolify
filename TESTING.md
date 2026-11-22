@@ -367,7 +367,7 @@ ImportStateVerifyIgnore: []string{"private_key", "postgres_password"},
 
 ## Acceptance Test Coverage
 
-### Resources (65 total)
+### Resources (66 total)
 
 | Resource | Acc Test | Create | Update | Import | Notes |
 |----------|----------|--------|--------|--------|-------|
@@ -384,6 +384,7 @@ ImportStateVerifyIgnore: []string{"private_key", "postgres_password"},
 | `coolify_application_docker_image` | Yes | Yes | Yes | Yes | Uses nginx:alpine |
 | `coolify_cloud_token` | Yes | Yes | Yes | Yes | |
 | `coolify_scheduled_task` | Yes | Yes | Yes | Yes | Attached to dockerfile app |
+| `coolify_secret_manager_source` | Unit | Yes | Yes | Yes | Requires Coolify >= v4.6.0. Linking needs an integration token, and creating that token calls the remote secret manager, so acceptance is not run here |
 | `coolify_storage` | Yes | Yes | Yes | Yes | Attached to dockerfile app |
 | `coolify_s3_storage` | Yes | Yes | Yes | Yes | Requires Coolify >= v4.3.0 |
 | `coolify_database_mysql` | Yes | Yes | Yes | Yes | Second DB type for coverage |
@@ -433,7 +434,7 @@ ImportStateVerifyIgnore: []string{"private_key", "postgres_password"},
 | `coolify_server_docker_registry` | Yes | Yes | Yes | Yes | Coolify 4.4 tip only. Skips when the registry route is absent. Login steps also skip unless `COOLIFY_DOCKER_REGISTRY_USERNAME` and `COOLIFY_DOCKER_REGISTRY_PASSWORD` are set, because Coolify runs `docker login` on the server |
 | `coolify_application_destination` | Unit | Yes | N/A | Yes | Extra destination only; requires Coolify >= v4.2.0 |
 
-### Data Sources (80 total)
+### Data Sources (81 total)
 
 | Data Source | Acc Test | Notes |
 |-------------|----------|-------|
@@ -485,6 +486,7 @@ ImportStateVerifyIgnore: []string{"private_key", "postgres_password"},
 | `coolify_s3_storages` | Yes | Via s3_storage test; requires Coolify >= v4.3.0 |
 | `coolify_scheduled_task` | Yes | Via scheduled_task test |
 | `coolify_scheduled_tasks` | Yes | Via scheduled_task test |
+| `coolify_secret_manager_source` | No | Requires Coolify >= v4.6.0 |
 | `coolify_cloud_token` | Yes | Via cloud_token test |
 | `coolify_cloud_tokens` | Yes | Via cloud_token test |
 | `coolify_resources` | Yes | |

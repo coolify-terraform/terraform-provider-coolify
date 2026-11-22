@@ -133,6 +133,9 @@ var skipKindCatalog = []skipKind{
 			"Audit events, a live registry login check, Cloudflare zone sync, " +
 			"and PATCH /team (current team profile) are operator actions, not resource settings.",
 		instead: "`coolify_integration_token` for Cloudflare, Doppler, Infisical, and Vault tokens. " +
+			"`coolify_secret_manager_source` links an application, service, or database to a Doppler, Infisical, or Vault token. " +
+			"`coolify_environment_variable` stores `{{vault.KEY}}` references. " +
+			"Key listing and reference import stay in Coolify because they call the remote secret manager. " +
 			"`coolify_application_preview` to track a preview, patch its domains, and delete it. " +
 			"`coolify_server_docker_registry` for saved registry logins. " +
 			"`data.coolify_team` to read the current team. Use the Coolify UI for imports, audit, and team profile edits.",

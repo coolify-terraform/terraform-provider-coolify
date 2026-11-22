@@ -11,8 +11,8 @@ It is a **route inventory** against Coolify source (`testdata/contracts/coolify-
 - **Resource and attribute docs:** [docs/](docs/) (also on the Terraform Registry)
 - **Field-level gaps** (numeric FKs, UI-only columns on an existing GET) live in `internal/spectest/contract_skips.go`, not in this route list.
 
-**Coverage**: 270 covered / 350 registry entries (77.1%)  
-**Planned**: 0 | **Skipped**: 80  
+**Coverage**: 274 covered / 350 registry entries (78.3%)  
+**Planned**: 0 | **Skipped**: 76  
 **Registry size**: 350 (contract routes + allowlisted extras)
 
 ## What Terraform does not wrap
@@ -180,23 +180,19 @@ Upload and import routes restore a dump into an existing database. They are a on
 
 Preview list, get, and create are owned by Coolify when a pull request opens. Audit events, a live registry login check, Cloudflare zone sync, and PATCH /team (current team profile) are operator actions, not resource settings.
 
-**Use this instead:** `coolify_integration_token` for Cloudflare, Doppler, Infisical, and Vault tokens. `coolify_application_preview` to track a preview, patch its domains, and delete it. `coolify_server_docker_registry` for saved registry logins. `data.coolify_team` to read the current team. Use the Coolify UI for imports, audit, and team profile edits.
+**Use this instead:** `coolify_integration_token` for Cloudflare, Doppler, Infisical, and Vault tokens. `coolify_secret_manager_source` links an application, service, or database to a Doppler, Infisical, or Vault token. `coolify_environment_variable` stores `{{vault.KEY}}` references. Key listing and reference import stay in Coolify because they call the remote secret manager. `coolify_application_preview` to track a preview, patch its domains, and delete it. `coolify_server_docker_registry` for saved registry logins. `data.coolify_team` to read the current team. Use the Coolify UI for imports, audit, and team profile edits.
 
 | Route |
 |-------|
 | `DELETE /applications/{uuid}/dns/{hostname}` |
 | `DELETE /services/{uuid}/dns/{hostname}` |
-| `DELETE /{resource_type}/{uuid}/secret-manager` |
 | `GET /applications/{uuid}/dns` |
 | `GET /applications/{uuid}/previews` |
 | `GET /applications/{uuid}/previews/{pull_request_id}` |
 | `GET /audit-events` |
 | `GET /dns/zones` |
 | `GET /services/{uuid}/dns` |
-| `GET /{resource_type}/{uuid}/secret-manager` |
 | `GET /{resource_type}/{uuid}/secret-manager/keys` |
-| `PATCH /applications/{uuid}/secret-manager` |
-| `PATCH /{resource_type}/{uuid}/secret-manager` |
 | `POST /applications/{uuid}/dns` |
 | `POST /applications/{uuid}/dns/replace` |
 | `POST /applications/{uuid}/previews` |
@@ -599,6 +595,15 @@ A row here means the provider calls that Coolify route. `client.*` helpers are u
 | `PATCH /services/{uuid}/scheduled-tasks/{task_uuid}` | v0.2.0 |
 | `POST /applications/{uuid}/scheduled-tasks` | v0.2.0 |
 | `POST /services/{uuid}/scheduled-tasks` | v0.2.0 |
+
+### `coolify_secret_manager_source`
+
+| Route | Since |
+|-------|-------|
+| `DELETE /{resource_type}/{uuid}/secret-manager` | v0.1.34 |
+| `GET /{resource_type}/{uuid}/secret-manager` | v0.1.34 |
+| `PATCH /applications/{uuid}/secret-manager` | v0.1.34 |
+| `PATCH /{resource_type}/{uuid}/secret-manager` | v0.1.34 |
 
 ### `coolify_server`
 
@@ -1197,7 +1202,7 @@ Completeness tests use this list. Sorted by `METHOD /path`.
 | `DELETE /services/{uuid}/tags/{tag_uuid}` | covered | `coolify_tag + coolify_resource_tag` |
 | `DELETE /tags/{uuid}` | covered | `coolify_tag + coolify_resource_tag` |
 | `DELETE /team/envs/{env_id}` | covered | `coolify_shared_environment_variable` |
-| `DELETE /{resource_type}/{uuid}/secret-manager` | skipped | `operator` |
+| `DELETE /{resource_type}/{uuid}/secret-manager` | covered | `coolify_secret_manager_source` |
 | `GET /applications` | covered | `data.coolify_applications` |
 | `GET /applications/{uuid}` | covered | `data.coolify_application` |
 | `GET /applications/{uuid}/destinations` | covered | `coolify_application_destination` |
@@ -1335,14 +1340,14 @@ Completeness tests use this list. Sorted by `METHOD /path`.
 | `GET /vultr/plans` | covered | `data.coolify_vultr_plans` |
 | `GET /vultr/regions` | covered | `data.coolify_vultr_regions` |
 | `GET /vultr/ssh-keys` | covered | `data.coolify_vultr_ssh_keys` |
-| `GET /{resource_type}/{uuid}/secret-manager` | skipped | `operator` |
+| `GET /{resource_type}/{uuid}/secret-manager` | covered | `coolify_secret_manager_source` |
 | `GET /{resource_type}/{uuid}/secret-manager/keys` | skipped | `operator` |
 | `PATCH /applications/{uuid}` | covered | `coolify_application + variants` |
 | `PATCH /applications/{uuid}/envs` | covered | `coolify_environment_variable` |
 | `PATCH /applications/{uuid}/envs/bulk` | covered | `client.BulkUpdateEnvVars` |
 | `PATCH /applications/{uuid}/previews/{pull_request_id}` | covered | `coolify_application_preview` |
 | `PATCH /applications/{uuid}/scheduled-tasks/{task_uuid}` | covered | `coolify_scheduled_task` |
-| `PATCH /applications/{uuid}/secret-manager` | skipped | `operator` |
+| `PATCH /applications/{uuid}/secret-manager` | covered | `coolify_secret_manager_source` |
 | `PATCH /applications/{uuid}/storages` | covered | `coolify_storage` |
 | `PATCH /cloud-init-scripts/{uuid}` | covered | `coolify_cloud_init_script` |
 | `PATCH /cloud-tokens/{uuid}` | covered | `coolify_cloud_token` |
@@ -1386,7 +1391,7 @@ Completeness tests use this list. Sorted by `METHOD /path`.
 | `PATCH /tags/{uuid}` | covered | `coolify_tag + coolify_resource_tag` |
 | `PATCH /team` | covered | `coolify_team_settings` |
 | `PATCH /team/envs/{env_id}` | covered | `coolify_shared_environment_variable` |
-| `PATCH /{resource_type}/{uuid}/secret-manager` | skipped | `operator` |
+| `PATCH /{resource_type}/{uuid}/secret-manager` | covered | `coolify_secret_manager_source` |
 | `POST /applications/dockercompose` | skipped | `deprecated` |
 | `POST /applications/dockerfile` | covered | `coolify_application_dockerfile` |
 | `POST /applications/dockerimage` | covered | `coolify_application_docker_image` |

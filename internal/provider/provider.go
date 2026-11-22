@@ -57,6 +57,7 @@ import (
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/s3storage"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/s3storagevalidate"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/scheduledtask"
+	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/secretmanagersource"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/server"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/servercftunnel"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/serverdockercleanup"
@@ -312,6 +313,7 @@ func (p *coolifyProvider) Resources(_ context.Context) []func() resource.Resourc
 		gitlabapp.NewResource,              // coolify_gitlab_app
 		instanceemail.NewResource,          // coolify_instance_email_settings
 		integrationtoken.NewResource,       // coolify_integration_token
+		secretmanagersource.NewResource,    // coolify_secret_manager_source
 		notificationdiscord.NewResource,    // coolify_notification_discord
 		notificationemail.NewResource,      // coolify_notification_email
 		notificationpushover.NewResource,   // coolify_notification_pushover
@@ -393,6 +395,7 @@ func (p *coolifyProvider) DataSources(_ context.Context) []func() datasource.Dat
 		instanceemail.NewDataSource,
 		integrationtoken.NewDataSource,
 		integrationtoken.NewListDataSource,
+		secretmanagersource.NewDataSource,
 		notificationdiscord.NewDataSource,
 		notificationemail.NewDataSource,
 		notificationpushover.NewDataSource,
