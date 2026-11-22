@@ -434,7 +434,7 @@ ImportStateVerifyIgnore: []string{"private_key", "postgres_password"},
 | `coolify_server_docker_registry` | Yes | Yes | Yes | Yes | Coolify 4.4 tip only. Skips when the registry route is absent. Login steps also skip unless `COOLIFY_DOCKER_REGISTRY_USERNAME` and `COOLIFY_DOCKER_REGISTRY_PASSWORD` are set, because Coolify runs `docker login` on the server |
 | `coolify_application_destination` | Unit | Yes | N/A | Yes | Extra destination only; requires Coolify >= v4.2.0 |
 
-### Data Sources (81 total)
+### Data Sources (84 total)
 
 | Data Source | Acc Test | Notes |
 |-------------|----------|-------|
@@ -447,6 +447,9 @@ ImportStateVerifyIgnore: []string{"private_key", "postgres_password"},
 | `coolify_notification_pushover` | Yes | Team singleton; Coolify >= v4.3.0 |
 | `coolify_gitlab_app` | Unit | Requires Coolify >= v4.3.0 |
 | `coolify_gitlab_apps` | Unit | Requires Coolify >= v4.3.0 |
+| `coolify_gitea_apps` | Yes | Requires Coolify >= v4.7.0. Skips on older instances. Secrets are not in state |
+| `coolify_vulnerabilities` | Yes | Requires Coolify >= v4.7.0. Skips on older instances |
+| `coolify_resource_vulnerabilities` | Yes | Requires Coolify >= v4.7.0. Skips on older instances |
 | `coolify_tag` | Unit | Requires Coolify >= v4.2.0 |
 | `coolify_tags` | Unit | Requires Coolify >= v4.2.0 |
 | `coolify_cloud_init_script` | Unit | Requires Coolify >= v4.3.0 |
@@ -514,7 +517,7 @@ ImportStateVerifyIgnore: []string{"private_key", "postgres_password"},
 
 - **Resources**: 47/47 direct acceptance coverage
 - **Data Sources**: 45/45 direct acceptance coverage
-- **Total acceptance test functions**: 162
+- **Total acceptance test functions**: 165
 
 ### Primary-field update coverage
 
