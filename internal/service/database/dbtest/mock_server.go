@@ -14,15 +14,16 @@ import (
 
 // MockState holds the mutable state of a mock database server.
 type MockState struct {
-	mu          sync.Mutex
-	UUID        string
-	Name        string
-	Description string
-	Image       string
-	ExtraFields map[string]interface{}
-	Deleted     bool
-	LastCreate  map[string]interface{}
-	LastPatch   map[string]interface{}
+	mu              sync.Mutex
+	UUID            string
+	Name            string
+	Description     string
+	Image           string
+	ExtraFields     map[string]interface{}
+	Deleted         bool
+	LastCreate      map[string]interface{}
+	LastPatch       map[string]interface{}
+	LastDeleteQuery string
 }
 
 // databaseUpdateAllowed is Coolify DatabasesController::update_by_uuid
@@ -156,6 +157,10 @@ func validateCreateBody(w http.ResponseWriter, r *http.Request) (map[string]inte
 			return nil, false
 		}
 	}
+	if _, ok := body["delete_backups"]; ok {
+		http.Error(w, `{"error":"delete_backups is destroy-only"}`, http.StatusUnprocessableEntity)
+		return nil, false
+	}
 	return body, true
 }
 
@@ -213,6 +218,7 @@ func NewMockServerVersion(dbType, name, image string, extraFields map[string]int
 			state.handlePatch(w, r)
 
 		case r.Method == http.MethodDelete && r.URL.Path == dbPath:
+			state.LastDeleteQuery = r.URL.RawQuery
 			state.Deleted = true
 			writeJSON(w, http.StatusOK, map[string]string{"message": "deleted"})
 
@@ -247,6 +253,12 @@ func (s *MockState) CreateBody() map[string]interface{} {
 		out[k] = v
 	}
 	return out
+}
+
+func (s *MockState) DeleteQuery() string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.LastDeleteQuery
 }
 
 func (s *MockState) PatchBody() map[string]interface{} {

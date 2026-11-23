@@ -165,6 +165,10 @@ func newMockServiceServer() (*httptest.Server, *mockServiceState) {
 			})
 
 		case r.Method == http.MethodDelete && r.URL.Path == fmt.Sprintf("/api/v1/services/%s", state.uuid):
+			if r.URL.RawQuery != "" {
+				http.Error(w, `{"message":"default destroy must omit delete_backups"}`, http.StatusBadRequest)
+				return
+			}
 			state.deleted = true
 			w.WriteHeader(http.StatusOK)
 			json.NewEncoder(w).Encode(map[string]string{"message": "deleted"})

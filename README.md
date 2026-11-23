@@ -124,6 +124,7 @@ For a working end-to-end setup, start with the [Quick Start](docs/guides/quickst
 | `coolify_application_github_app` | Deploy apps via GitHub App integration |
 | `coolify_environment` | Manage project environments |
 | `coolify_environment_variable` | Manage env vars for applications, services, and databases |
+| `coolify_secret_manager_source` | Link an application, service, or database to a Doppler, Infisical, or Vault token (Coolify >= v4.6.0). Destroy unlinks the source and leaves the token and variables |
 | `coolify_deployment` | Trigger application deployments |
 | `coolify_service` | Deploy catalog services or custom Docker Compose stacks |
 | `coolify_service_application` | Configure one application inside a compose service. Destroy removes Terraform state only |
@@ -185,6 +186,7 @@ For a working end-to-end setup, start with the [Quick Start](docs/guides/quickst
 | `coolify_database` / `coolify_databases` | Read database(s) |
 | `coolify_environment` / `coolify_environments` | Read environment(s) |
 | `coolify_environment_variable` / `coolify_environment_variables` | Read / list env vars for an application, service, or database |
+| `coolify_secret_manager_source` | Read the secret manager link for an application, service, or database (Coolify >= v4.6.0) |
 | `coolify_deployment` / `coolify_deployments` | Read / list deployments for an application |
 | `coolify_service` / `coolify_services` | Read service(s) |
 | `coolify_scheduled_task` / `coolify_scheduled_tasks` / `coolify_task_executions` | Read scheduled task(s) and executions |
