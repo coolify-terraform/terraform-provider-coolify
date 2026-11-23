@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.34](https://github.com/coolify-terraform/terraform-provider-coolify/compare/v0.1.33...v0.1.34) (2026-11-23)
+
+
+### Features
+
+* add Coolify 4.8 destroy flags ([#1084](https://github.com/coolify-terraform/terraform-provider-coolify/issues/1084)) ([d86412c](https://github.com/coolify-terraform/terraform-provider-coolify/commit/d86412c13616e4d334063e9b9129f0ecd5af1538))
+* manage Coolify secret manager sources ([#1080](https://github.com/coolify-terraform/terraform-provider-coolify/issues/1080)) ([133890d](https://github.com/coolify-terraform/terraform-provider-coolify/commit/133890dfd2be08c97d462f374644971c0d2eea53))
+* read Coolify 4.7 vulnerabilities and Gitea apps ([#1083](https://github.com/coolify-terraform/terraform-provider-coolify/issues/1083)) ([704dd6c](https://github.com/coolify-terraform/terraform-provider-coolify/commit/704dd6c7d8d5b87e39fd68625130f99bf9b1bd29))
+
+
+### Bug Fixes
+
+* expose environment UUID on environment data sources ([#1082](https://github.com/coolify-terraform/terraform-provider-coolify/issues/1082)) ([24b9b4c](https://github.com/coolify-terraform/terraform-provider-coolify/commit/24b9b4c252753a49e9e6e47368b3175ddd3984f0))
+
 ## [0.1.33](https://github.com/coolify-terraform/terraform-provider-coolify/compare/v0.1.32...v0.1.33) (2026-11-18)
 
 
