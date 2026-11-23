@@ -311,10 +311,13 @@ func (c *Client) UpdateDatabase(ctx context.Context, uuid string, input UpdateDa
 	return &d, nil
 }
 func (c *Client) DeleteDatabase(ctx context.Context, uuid string) error {
-	if err := c.do(ctx, http.MethodDelete, fmt.Sprintf("/api/v1/databases/%s", url.PathEscape(uuid)), nil, nil); err != nil {
-		return fmt.Errorf("deleting database %s: %w", uuid, err)
-	}
-	return nil
+	return c.DeleteDatabaseWithOptions(ctx, uuid, DeleteBackupsOptions{})
+}
+
+// DeleteDatabaseWithOptions deletes a database. DeleteBackups asks Coolify
+// >= v4.8.0 to remove database backups and storage backups as well.
+func (c *Client) DeleteDatabaseWithOptions(ctx context.Context, uuid string, opts DeleteBackupsOptions) error {
+	return c.deleteWithBackups(ctx, "database", "/api/v1/databases/", uuid, opts)
 }
 func (c *Client) StartDatabase(ctx context.Context, uuid string) error {
 	if err := c.do(ctx, http.MethodPost, fmt.Sprintf("/api/v1/databases/%s/start", url.PathEscape(uuid)), nil, nil); err != nil {

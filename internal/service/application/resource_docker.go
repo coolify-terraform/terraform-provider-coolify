@@ -229,7 +229,7 @@ func (r *dockerImageApplicationResource) Delete(ctx context.Context, req resourc
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	deleteApplication(ctx, r.client, "coolify_application_docker_image", state.UUID.ValueString(), state.Timeouts, resp)
+	deleteApplication(ctx, r.client, "coolify_application_docker_image", state.UUID.ValueString(), state.DeleteBackups.ValueBool(), state.Timeouts, resp)
 }
 
 func (r *dockerImageApplicationResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {

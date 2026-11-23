@@ -165,10 +165,13 @@ func (c *Client) UpdateService(ctx context.Context, uuid string, input UpdateSer
 	return &s, nil
 }
 func (c *Client) DeleteService(ctx context.Context, uuid string) error {
-	if err := c.do(ctx, http.MethodDelete, fmt.Sprintf("/api/v1/services/%s", url.PathEscape(uuid)), nil, nil); err != nil {
-		return fmt.Errorf("deleting service %s: %w", uuid, err)
-	}
-	return nil
+	return c.DeleteServiceWithOptions(ctx, uuid, DeleteBackupsOptions{})
+}
+
+// DeleteServiceWithOptions deletes a service. DeleteBackups asks Coolify
+// >= v4.8.0 to remove database backups and storage backups as well.
+func (c *Client) DeleteServiceWithOptions(ctx context.Context, uuid string, opts DeleteBackupsOptions) error {
+	return c.deleteWithBackups(ctx, "service", "/api/v1/services/", uuid, opts)
 }
 func (c *Client) StartService(ctx context.Context, uuid string) error {
 	if err := c.do(ctx, http.MethodPost, fmt.Sprintf("/api/v1/services/%s/start", url.PathEscape(uuid)), nil, nil); err != nil {

@@ -459,6 +459,7 @@ func TestDeleteService_AddsWarningWhenPollingTimesOut(t *testing.T) {
 		IncludeCoolifyDefaultVariables types.Bool        `tfsdk:"include_coolify_default_variables"`
 		ConfigHash                     types.String      `tfsdk:"config_hash"`
 		InstantDeploy                  types.Bool        `tfsdk:"instant_deploy"`
+		DeleteBackups                  types.Bool        `tfsdk:"delete_backups"`
 		URLs                           []serviceURLEntry `tfsdk:"urls"`
 		ForceDomainOverride            types.Bool        `tfsdk:"force_domain_override"`
 	}{
@@ -574,6 +575,7 @@ func TestDeleteService_ErrorsWhenGetReturnsEmptyBody(t *testing.T) {
 		IncludeCoolifyDefaultVariables types.Bool        `tfsdk:"include_coolify_default_variables"`
 		ConfigHash                     types.String      `tfsdk:"config_hash"`
 		InstantDeploy                  types.Bool        `tfsdk:"instant_deploy"`
+		DeleteBackups                  types.Bool        `tfsdk:"delete_backups"`
 		URLs                           []serviceURLEntry `tfsdk:"urls"`
 		ForceDomainOverride            types.Bool        `tfsdk:"force_domain_override"`
 	}{

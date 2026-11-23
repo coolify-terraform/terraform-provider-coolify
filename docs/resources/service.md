@@ -29,6 +29,9 @@ resource "coolify_service" "catalog" {
 
   # Optional: connect service containers to the Coolify Docker network
   # connect_to_docker_network = true
+
+  # On destroy, also delete database and storage backups (Coolify >= v4.8.0). Default false.
+  # delete_backups = true
 }
 
 # Option 2: Deploy a custom Docker Compose stack.
@@ -72,6 +75,7 @@ resource "coolify_service" "custom" {
 ### Optional
 
 - `connect_to_docker_network` (Boolean) Whether the service containers connect to the Coolify Docker network.
+- `delete_backups` (Boolean) On destroy, also delete this service's database backups and storage backups on the server and on S3. Requires Coolify >= v4.8.0, including the 4.8.0-alpha nightly. v4.7.6 ignores the query, so destroy fails instead of leaving the backups behind. Default `false`.
 - `description` (String) A description of the service.
 - `destination_uuid` (String) UUID of the Coolify destination (Docker network) on the server. Create-only; changing forces a new resource. Coolify requires this when the server has multiple destinations and ignores a mismatched value when only one destination exists. Supported on service create for all Coolify versions this provider supports (v4.1.0+; field is in create `$allowedFields`, not update). When omitted on a multi-destination server, the client auto-resolves after Coolify returns the multi-destination error (prefers network `coolify`). Manage destinations with `coolify_destination`. Import cannot recover this value (GET does not return destination UUID). Setting it after import stores the configuration value in place. Omit it unless you know the UUID: a wrong value is kept, and changing a known value forces a new resource.
 - `docker_compose_raw` (String, Sensitive) The raw Docker Compose YAML content. Can be used instead of `type` to create a service from a custom compose file, or to customize a catalog service after creation. The provider accepts plain YAML or pre-encoded base64; encoding is handled automatically. Requires API token with `read:sensitive` permission.

@@ -197,6 +197,7 @@ func deleteApplication(
 	c *client.Client,
 	resourceType string,
 	uuid string,
+	deleteBackups bool,
 	t timeouts.Value,
 	resp *resource.DeleteResponse,
 ) {
@@ -209,7 +210,7 @@ func deleteApplication(
 	defer cancel()
 
 	tflog.Debug(ctx, "deleting resource", map[string]interface{}{"resource_type": resourceType, "uuid": uuid})
-	if err := c.DeleteApplication(ctx, uuid); err != nil {
+	if err := c.DeleteApplicationWithOptions(ctx, uuid, client.DeleteBackupsOptions{DeleteBackups: deleteBackups}); err != nil {
 		if client.IsNotFound(err) {
 			return
 		}

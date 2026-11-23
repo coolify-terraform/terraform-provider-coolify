@@ -4,14 +4,14 @@ page_title: "coolify_server Resource - coolify"
 subcategory: ""
 description: |-
   Manages a Coolify server.
-  ~> Warning: Deleting a server will cascade-delete all applications, databases, and services deployed on it.
+  ~> Warning: Deleting a server removes its Coolify record and, by default, the containers, volumes, and files of the resources on that machine. Set remove_resources_from_server to false (Coolify >= v4.8.0) to leave those workloads running.
 ---
 
 # coolify_server (Resource)
 
 Manages a Coolify server.
 
-~> **Warning:** Deleting a server will cascade-delete all applications, databases, and services deployed on it.
+~> **Warning:** Deleting a server removes its Coolify record and, by default, the containers, volumes, and files of the resources on that machine. Set `remove_resources_from_server` to `false` (Coolify >= v4.8.0) to leave those workloads running.
 
 ## Example Usage
 
@@ -36,6 +36,7 @@ resource "coolify_server" "example" {
   # is_terminal_enabled                    = true    # Web terminal (Coolify >= v4.3.0, default true)
   # public_ipv4                            = "203.0.113.10"  # DNS address when the server IP is private (Coolify >= v4.8.0)
   # public_ipv6                            = "2001:db8::10"
+  # remove_resources_from_server           = false  # On destroy, leave containers running (Coolify >= v4.8.0). Default true.
 
   # Additional server settings such as wildcard domains, Sentinel flags,
   # and Docker cleanup options are exposed as read-only attributes because
@@ -66,6 +67,7 @@ resource "coolify_server" "example" {
 - `port` (Number) The SSH port of the server.
 - `public_ipv4` (String) Public IPv4 that DNS checks and DNS records use instead of the server IP, when Coolify reaches this server over a private network. Requires Coolify >= v4.8.0, including the 4.8.0-alpha nightly. Setting this on Coolify v4.7.5 and older fails the apply. Omitting the attribute, or setting it to null, removes a stored address on the next apply. Setting or clearing this on localhost (host.docker.internal or the Coolify host) fails the apply, because Coolify ignores the write and still returns success.
 - `public_ipv6` (String) Public IPv6 that DNS checks and DNS records use instead of the server IP, when Coolify reaches this server over a private network. Coolify stores the compressed form, for example `2001:db8::10`. Requires Coolify >= v4.8.0, including the 4.8.0-alpha nightly. Setting this on Coolify v4.7.5 and older fails the apply. Omitting the attribute, or setting it to null, removes a stored address on the next apply. Setting or clearing this on localhost (host.docker.internal or the Coolify host) fails the apply, because Coolify ignores the write and still returns success.
+- `remove_resources_from_server` (Boolean) On destroy, with force delete, also remove the containers, volumes, and files of this server's resources from the machine. Set `false` to delete those resources only from Coolify and leave them running. Requires Coolify >= v4.8.0, including the 4.8.0-alpha nightly, when set to `false`. Default `true`, which matches Coolify and is not sent on the request. Cloud server resources do not expose this attribute and keep the default.
 - `remove_ssh_key` (Boolean) On destroy, remove this server's SSH public key from `~/.ssh/authorized_keys` before deleting the Coolify server. Coolify refuses the delete when the server still has resources. Requires Coolify >= v4.7.0. Default `false`.
 - `server_disk_usage_check_frequency` (String) Cron or Coolify human schedule for how often disk usage is checked (e.g., `*/5 * * * *`, `daily`, `@daily`).
 - `server_disk_usage_notification_interval_hours` (Number) Minimum hours between high disk usage notifications (1-720). Coolify's default is 24. Requires Coolify 4.4 tip (not v4.3.23 and not v4.4-rc.1). On older instances the value stays in state and is not sent.

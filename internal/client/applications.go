@@ -872,10 +872,13 @@ func (i UpdateApplicationInput) encodedFieldCount() int {
 	return len(body)
 }
 func (c *Client) DeleteApplication(ctx context.Context, uuid string) error {
-	if err := c.do(ctx, http.MethodDelete, fmt.Sprintf("/api/v1/applications/%s", url.PathEscape(uuid)), nil, nil); err != nil {
-		return fmt.Errorf("deleting application %s: %w", uuid, err)
-	}
-	return nil
+	return c.DeleteApplicationWithOptions(ctx, uuid, DeleteBackupsOptions{})
+}
+
+// DeleteApplicationWithOptions deletes an application. DeleteBackups asks
+// Coolify >= v4.8.0 to remove the application's storage backups as well.
+func (c *Client) DeleteApplicationWithOptions(ctx context.Context, uuid string, opts DeleteBackupsOptions) error {
+	return c.deleteWithBackups(ctx, "application", "/api/v1/applications/", uuid, opts)
 }
 
 func (c *Client) StartApplication(ctx context.Context, uuid string) error {

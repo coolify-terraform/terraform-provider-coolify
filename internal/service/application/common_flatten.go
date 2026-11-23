@@ -166,13 +166,19 @@ func flattenApplicationCommon(app *client.Application, f commonAppFields) {
 	}
 	flattenLimitsAndHealth(app, f)
 	flattenExtendedFields(app, f)
-	// redeploy_on_update is a Terraform-only flag not returned by the API.
-	// Preserve the existing state value; default to false on import.
-	if f.RedeployOnUpdate != nil {
-		if f.RedeployOnUpdate.IsNull() || f.RedeployOnUpdate.IsUnknown() {
-			*f.RedeployOnUpdate = types.BoolValue(false)
-		}
+	// Terraform-only flags. The API does not return them. Preserve a known
+	// value, and use false on import when state is null or unknown.
+	preserveUnsetBool(f.RedeployOnUpdate, false)
+	preserveUnsetBool(f.DeleteBackups, false)
+}
+
+// preserveUnsetBool keeps a Terraform-only bool the API does not return.
+// Null and unknown become fallback. A known value stays.
+func preserveUnsetBool(dst *types.Bool, fallback bool) {
+	if dst == nil || (!dst.IsNull() && !dst.IsUnknown()) {
+		return
 	}
+	*dst = types.BoolValue(fallback)
 }
 
 // flattenLimitsAndHealth sets resource limits, health checks, and auto-deploy

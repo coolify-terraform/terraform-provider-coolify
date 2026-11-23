@@ -45,6 +45,7 @@ resource "coolify_database_mysql" "example" {
 
 ### Optional
 
+- `delete_backups` (Boolean) On destroy, also delete this database's backups and its storage backups on the server and on S3. Requires Coolify >= v4.8.0, including the 4.8.0-alpha nightly. v4.7.6 ignores the query, so destroy fails instead of leaving the backups behind. Default `false`.
 - `description` (String) A description of the database.
 - `destination_uuid` (String) UUID of the Coolify destination (Docker network) on the server. Create-only; changing forces a new resource. Coolify requires this when the server has multiple destinations and ignores a mismatched value when only one destination exists. Supported on database create for all Coolify versions this provider supports (v4.1.0+). When omitted on a multi-destination server, the client may auto-resolve after Coolify returns the multi-destination error (prefers network `coolify`). Manage destinations with `coolify_destination`. Import cannot recover this value (GET does not return destination UUID). Setting it after import stores the configuration value in place. Omit it unless you know the UUID: a wrong value is kept, and changing a known value forces a new resource.
 - `enable_ssl` (Boolean) When `true`, enables SSL/TLS encryption for database connections. Defaults to `false`. The Coolify public API does not accept this field on create or update; set it in the Coolify UI.

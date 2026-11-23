@@ -301,8 +301,13 @@ func applyDiskIntervalWrite(c *Client, hours *int) *int {
 // that still has resources can be deleted. RemoveSSHKey asks Coolify >= v4.7.0
 // to drop the server's public key from authorized_keys first. Coolify rejects
 // that flag when the server still has resources.
+//
+// RemoveResourcesFromServer nil or true omits the query. Coolify's default is
+// true: force delete also removes containers, volumes, and files. A false
+// pointer sends remove_resources_from_server=false and requires Coolify >= v4.8.0.
 type DeleteServerOptions struct {
-	RemoveSSHKey bool
+	RemoveSSHKey              bool
+	RemoveResourcesFromServer *bool
 }
 
 func (c *Client) DeleteServer(ctx context.Context, uuid string) error {
@@ -310,16 +315,29 @@ func (c *Client) DeleteServer(ctx context.Context, uuid string) error {
 }
 
 func (c *Client) DeleteServerWithOptions(ctx context.Context, uuid string, opts DeleteServerOptions) error {
+	if err := c.rejectLeaveServerResources(uuid, opts); err != nil {
+		return err
+	}
 	q := url.Values{}
 	q.Set("force", "true")
 	if opts.RemoveSSHKey {
 		q.Set("remove_ssh_key", "true")
+	}
+	if opts.RemoveResourcesFromServer != nil && !*opts.RemoveResourcesFromServer {
+		q.Set("remove_resources_from_server", "false")
 	}
 	path := fmt.Sprintf("/api/v1/servers/%s?%s", url.PathEscape(uuid), q.Encode())
 	if err := c.do(ctx, http.MethodDelete, path, nil, nil); err != nil {
 		return fmt.Errorf("deleting server %s: %w", uuid, err)
 	}
 	return nil
+}
+
+func (c *Client) rejectLeaveServerResources(uuid string, opts DeleteServerOptions) error {
+	if opts.RemoveResourcesFromServer == nil || *opts.RemoveResourcesFromServer || c.SupportsResourceDeleteFlags() {
+		return nil
+	}
+	return fmt.Errorf("deleting server %s: remove_resources_from_server requires Coolify >= v%s (this instance is %s)", uuid, minResourceDeleteFlagsVersion, reportedCoolifyVersion(c))
 }
 
 // ServerValidation represents the result of a server connectivity check.

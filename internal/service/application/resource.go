@@ -213,7 +213,7 @@ func (r *applicationResource) Delete(ctx context.Context, req resource.DeleteReq
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	deleteApplication(ctx, r.client, "coolify_application", state.UUID.ValueString(), state.Timeouts, resp)
+	deleteApplication(ctx, r.client, "coolify_application", state.UUID.ValueString(), state.DeleteBackups.ValueBool(), state.Timeouts, resp)
 }
 
 func (r *applicationResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
