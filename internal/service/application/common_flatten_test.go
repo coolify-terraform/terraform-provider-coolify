@@ -994,6 +994,8 @@ func TestFlattenApplicationCommon_PreservesEquivalentDomains(t *testing.T) {
 		configured string
 		known      bool
 		api        string
+		ports      string
+		isStatic   bool
 		overrides  client.DomainPortOverridesMap
 		want       string
 	}{
@@ -1046,10 +1048,44 @@ func TestFlattenApplicationCommon_PreservesEquivalentDomains(t *testing.T) {
 			want:       "https://App.Example.com:8443/Path",
 		},
 		{
+			name:       "port kept when first exposed port matches",
+			configured: "https://app.example.com:8000",
+			known:      true,
+			api:        "https://app.example.com",
+			ports:      "8000,8080",
+			want:       "https://app.example.com:8000",
+		},
+		{
+			name:       "port dropped when only a secondary exposed port matches",
+			configured: "https://app.example.com:8000",
+			known:      true,
+			api:        "https://app.example.com",
+			ports:      "8080,8000",
+			want:       "https://app.example.com",
+		},
+		{
+			name:       "static app uses port 80",
+			configured: "https://app.example.com:80",
+			known:      true,
+			api:        "https://app.example.com",
+			ports:      "8000",
+			isStatic:   true,
+			want:       "https://app.example.com:80",
+		},
+		{
+			name:       "legacy inline API port takes precedence over exposed ports",
+			configured: "https://app.example.com:8000",
+			known:      true,
+			api:        "https://app.example.com:9000",
+			ports:      "8000",
+			want:       "https://app.example.com:9000",
+		},
+		{
 			name:       "port dropped when override differs",
 			configured: "https://app.example.com:8443",
 			known:      true,
 			api:        "https://app.example.com",
+			ports:      "8443",
 			overrides:  client.DomainPortOverridesMap{"https://app.example.com": 9000},
 			want:       "https://app.example.com",
 		},
@@ -1066,6 +1102,8 @@ func TestFlattenApplicationCommon_PreservesEquivalentDomains(t *testing.T) {
 				UUID:                "uuid-1",
 				Name:                "app",
 				Domains:             tt.api,
+				PortsExposes:        tt.ports,
+				IsStatic:            &tt.isStatic,
 				DomainPortOverrides: tt.overrides,
 			}, f)
 			if f.Domains.ValueString() != tt.want {

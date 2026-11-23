@@ -124,7 +124,7 @@ func composeDomainsURLEquivalent(configured, api string, overrides client.Domain
 		if configuredItems[i].Name != apiItems[i].Name {
 			return false
 		}
-		if !applicationDomainsEquivalent(configuredItems[i].Domain, apiItems[i].Domain, overrides) {
+		if !applicationDomainsEquivalent(configuredItems[i].Domain, apiItems[i].Domain, overrides, 0) {
 			return false
 		}
 	}

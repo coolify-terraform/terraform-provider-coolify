@@ -7416,6 +7416,7 @@ func TestClient_GetApplication_PromotesNestedSettings(t *testing.T) {
 			"uuid": "app-nested-1",
 			"name": "nested-app",
 			"settings": {
+				"is_static": true,
 				"is_preview_deployments_enabled": true,
 				"use_build_secrets": true,
 				"stop_grace_period": 42,
@@ -7431,6 +7432,9 @@ func TestClient_GetApplication_PromotesNestedSettings(t *testing.T) {
 	app, err := c.GetApplication(context.Background(), "app-nested-1")
 	if err != nil {
 		t.Fatal(err)
+	}
+	if app.IsStatic == nil || !*app.IsStatic {
+		t.Fatalf("IsStatic = %v", app.IsStatic)
 	}
 	if app.IsPreviewDeploymentsEnabled == nil || !*app.IsPreviewDeploymentsEnabled {
 		t.Fatalf("IsPreviewDeploymentsEnabled = %v", app.IsPreviewDeploymentsEnabled)
