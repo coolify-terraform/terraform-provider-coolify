@@ -61,6 +61,7 @@ type CommonModel struct {
 	Status                  types.String `tfsdk:"status"`
 	InternalDBUrl           types.String `tfsdk:"internal_db_url"`
 	InstantDeploy           types.Bool   `tfsdk:"instant_deploy"`
+	DeleteBackups           types.Bool   `tfsdk:"delete_backups"`
 	MaxRestartCount         types.Int64  `tfsdk:"max_restart_count"`
 	RestartLimitReached     types.Bool   `tfsdk:"restart_limit_reached"`
 }
@@ -98,6 +99,7 @@ func (m *CommonModel) ExtFields() DatabaseExtendedPtrs {
 		Status:                  &m.Status,
 		InternalDBUrl:           &m.InternalDBUrl,
 		InstantDeploy:           &m.InstantDeploy,
+		DeleteBackups:           &m.DeleteBackups,
 		MaxRestartCount:         &m.MaxRestartCount,
 		RestartLimitReached:     &m.RestartLimitReached,
 	}
@@ -220,11 +222,21 @@ func CommonDatabaseAttrs(ctx context.Context, extra map[string]schema.Attribute)
 		},
 		"internal_db_url": schema.StringAttribute{MarkdownDescription: "Internal connection URL for the database, accessible from other containers on the same server. Contains credentials; requires an API token with sensitive-data read permission.", Computed: true, Sensitive: true},
 		"instant_deploy":  schema.BoolAttribute{MarkdownDescription: "Whether to immediately deploy the database after creation. When `true`, Coolify starts the database container right away. When `false` (default), the database is created but not started.", Optional: true, Computed: true, Default: booldefault.StaticBool(false)},
+		"delete_backups":  databaseDeleteBackupsAttr(),
 	}
 	for k, v := range extra {
 		attrs[k] = v
 	}
 	return attrs
+}
+
+func databaseDeleteBackupsAttr() schema.BoolAttribute {
+	return schema.BoolAttribute{
+		MarkdownDescription: "On destroy, also delete this database's backups and its storage backups on the server and on S3. Requires Coolify >= v4.8.0, including the 4.8.0-alpha nightly. v4.7.6 ignores the query, so destroy fails instead of leaving the backups behind. Default `false`.",
+		Optional:            true,
+		Computed:            true,
+		Default:             booldefault.StaticBool(false),
+	}
 }
 
 // IsIncludeTimestampsAttr returns the schema attribute for is_include_timestamps,
@@ -331,7 +343,7 @@ func addDeletePollingError(resp *resource.DeleteResponse, resourceType, uuid str
 	resp.Diagnostics.AddError(deletePollingErrorSummary, detail)
 }
 
-func DeleteDatabase(ctx context.Context, c *client.Client, resourceType, uuid string, t timeouts.Value, resp *resource.DeleteResponse) error {
+func DeleteDatabase(ctx context.Context, c *client.Client, resourceType, uuid string, deleteBackups bool, t timeouts.Value, resp *resource.DeleteResponse) error {
 	deleteTimeout, diags := t.Delete(ctx, 2*time.Minute)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -340,7 +352,7 @@ func DeleteDatabase(ctx context.Context, c *client.Client, resourceType, uuid st
 	ctx, cancel := context.WithTimeout(ctx, deleteTimeout)
 	defer cancel()
 
-	if err := c.DeleteDatabase(ctx, uuid); err != nil {
+	if err := c.DeleteDatabaseWithOptions(ctx, uuid, client.DeleteBackupsOptions{DeleteBackups: deleteBackups}); err != nil {
 		if client.IsNotFound(err) {
 			return nil
 		}
@@ -385,11 +397,12 @@ func DeleteDatabaseState(
 	c *client.Client,
 	resourceType string,
 	uuid string,
+	deleteBackups bool,
 	t timeouts.Value,
 	resp *resource.DeleteResponse,
 ) {
 	tflog.Debug(ctx, "deleting resource", map[string]interface{}{"resource_type": resourceType, "uuid": uuid})
-	if err := DeleteDatabase(ctx, c, resourceType, uuid, t, resp); err != nil {
+	if err := DeleteDatabase(ctx, c, resourceType, uuid, deleteBackups, t, resp); err != nil {
 		resp.Diagnostics.AddError(fmt.Sprintf("Error deleting %s", resourceType), fmt.Sprintf("%s %s: %s", resourceType, uuid, err))
 	}
 }
@@ -517,6 +530,7 @@ type DatabaseExtendedPtrs struct {
 	Status                  *types.String
 	InternalDBUrl           *types.String
 	InstantDeploy           *types.Bool
+	DeleteBackups           *types.Bool
 	MaxRestartCount         *types.Int64
 	RestartLimitReached     *types.Bool
 }
@@ -597,11 +611,10 @@ func FlattenDatabaseExtended(db *client.Database, f DatabaseExtendedPtrs) {
 	if f.InternalDBUrl != nil {
 		*f.InternalDBUrl = flex.StringToFramework(db.InternalDBUrl)
 	}
-	// instant_deploy is create-only and never returned by the API.
-	// Preserve state value when set; default to false otherwise (import).
-	if f.InstantDeploy != nil && (f.InstantDeploy.IsNull() || f.InstantDeploy.IsUnknown()) {
-		*f.InstantDeploy = types.BoolValue(false)
-	}
+	// instant_deploy and delete_backups are not returned by GET.
+	// Preserve a known value; default to false on import.
+	preserveOrSetBool(f.InstantDeploy, false)
+	preserveOrSetBool(f.DeleteBackups, false)
 	if f.MaxRestartCount != nil {
 		*f.MaxRestartCount = flex.Int64PtrToFramework(db.MaxRestartCount)
 	}

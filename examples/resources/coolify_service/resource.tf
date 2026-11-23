@@ -14,6 +14,9 @@ resource "coolify_service" "catalog" {
 
   # Optional: connect service containers to the Coolify Docker network
   # connect_to_docker_network = true
+
+  # On destroy, also delete database and storage backups (Coolify >= v4.8.0). Default false.
+  # delete_backups = true
 }
 
 # Option 2: Deploy a custom Docker Compose stack.

@@ -342,7 +342,7 @@ func TestDeleteApplication_AddsWarningWhenPollingTimesOut(t *testing.T) {
 	defer cancel()
 	resp := &resource.DeleteResponse{}
 
-	deleteApplication(ctx, c, "coolify_application", uuid, timeouts.Value{}, resp)
+	deleteApplication(ctx, c, "coolify_application", uuid, false, timeouts.Value{}, resp)
 
 	if !resp.Diagnostics.HasError() {
 		t.Fatal("expected delete error when resource is still present after polling")

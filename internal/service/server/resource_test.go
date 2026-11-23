@@ -621,6 +621,10 @@ func TestServerResource_DeleteUsesForce(t *testing.T) {
 				http.Error(w, `{"message":"Server has resources. Use ?force=true to delete all resources and the server, or delete resources manually first."}`, http.StatusBadRequest)
 				return
 			}
+			if r.URL.Query().Has("remove_resources_from_server") {
+				http.Error(w, `{"message":"default destroy must omit remove_resources_from_server"}`, http.StatusBadRequest)
+				return
+			}
 			uuid := strings.TrimPrefix(r.URL.Path, "/api/v1/servers/")
 			delete(servers, uuid)
 			w.WriteHeader(http.StatusOK)

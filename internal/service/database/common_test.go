@@ -403,7 +403,7 @@ func TestDeleteDatabase_AddsWarningWhenPollingTimesOut(t *testing.T) {
 	defer cancel()
 	resp := &resource.DeleteResponse{}
 
-	err := DeleteDatabase(ctx, c, "coolify_database_postgresql", uuid, timeouts.Value{}, resp)
+	err := DeleteDatabase(ctx, c, "coolify_database_postgresql", uuid, false, timeouts.Value{}, resp)
 	if err != nil {
 		t.Fatalf("unexpected delete error: %v", err)
 	}

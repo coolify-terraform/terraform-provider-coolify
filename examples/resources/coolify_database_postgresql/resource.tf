@@ -13,4 +13,5 @@ resource "coolify_database_postgresql" "example" {
   postgres_password = var.postgres_password
   postgres_db       = "myapp"
   is_public         = false
+  # delete_backups = true  # On destroy, also delete backups (Coolify >= v4.8.0). Default false.
 }

@@ -29,7 +29,17 @@ func CommonAppAttrs(ctx context.Context, extra map[string]schema.Attribute) map[
 	mergeAttrs(attrs, extendedHealthCheckAttrs())
 	mergeAttrs(attrs, securityNetworkAttrs())
 	mergeAttrs(attrs, extra)
+	attrs["delete_backups"] = applicationDeleteBackupsAttr()
 	return attrs
+}
+
+func applicationDeleteBackupsAttr() schema.BoolAttribute {
+	return schema.BoolAttribute{
+		MarkdownDescription: "On destroy, also delete this application's storage backups on the server and on S3. Requires Coolify >= v4.8.0, including the 4.8.0-alpha nightly. v4.7.6 ignores the query, so destroy fails instead of leaving the backups behind. Default `false`.",
+		Optional:            true,
+		Computed:            true,
+		Default:             booldefault.StaticBool(false),
+	}
 }
 
 func mergeAttrs(dst, src map[string]schema.Attribute) {

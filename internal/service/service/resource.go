@@ -57,6 +57,7 @@ type serviceResourceModel struct {
 	IsContainerLabelEscapeEnabled  types.Bool        `tfsdk:"is_container_label_escape_enabled"`
 	ConfigHash                     types.String      `tfsdk:"config_hash"`
 	InstantDeploy                  types.Bool        `tfsdk:"instant_deploy"`
+	DeleteBackups                  types.Bool        `tfsdk:"delete_backups"`
 	RedactAllEnvValuesInLogs       types.Bool        `tfsdk:"redact_all_env_values_in_logs"`
 	IncludeCoolifyDefaultVariables types.Bool        `tfsdk:"include_coolify_default_variables"`
 	URLs                           []serviceURLModel `tfsdk:"urls"`
@@ -74,6 +75,21 @@ func NewResource() resource.Resource {
 
 func (r *serviceResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_service"
+}
+
+func serviceDeleteBackupsAttr() schema.BoolAttribute {
+	return schema.BoolAttribute{
+		MarkdownDescription: "On destroy, also delete this service's database backups and storage backups on the server and on S3. Requires Coolify >= v4.8.0, including the 4.8.0-alpha nightly. v4.7.6 ignores the query, so destroy fails instead of leaving the backups behind. Default `false`.",
+		Optional:            true,
+		Computed:            true,
+		Default:             booldefault.StaticBool(false),
+	}
+}
+
+func preserveServiceOnlyBool(v *types.Bool, fallback bool) {
+	if v.IsNull() || v.IsUnknown() {
+		*v = types.BoolValue(fallback)
+	}
 }
 
 func serviceRedactAllEnvAttr() schema.BoolAttribute {
@@ -205,6 +221,7 @@ func (r *serviceResource) Schema(ctx context.Context, _ resource.SchemaRequest, 
 				Computed:            true,
 				Default:             booldefault.StaticBool(false),
 			},
+			"delete_backups": serviceDeleteBackupsAttr(),
 			"urls": schema.ListNestedAttribute{
 				MarkdownDescription: "Domain URL mappings for service containers. Each entry maps a compose service name to one or more comma-separated URLs (e.g., `https://app.example.com`). " +
 					"Read-back matches Coolify application FQDNs by container name and keeps this list's configured order. " +
@@ -218,8 +235,7 @@ func (r *serviceResource) Schema(ctx context.Context, _ resource.SchemaRequest, 
 						},
 						"url": schema.StringAttribute{
 							MarkdownDescription: "Comma-separated list of URLs to assign to this container (e.g., `https://app.example.com,https://www.example.com`). " +
-								"Coolify may store an explicit port separately and return it on the container URL. " +
-								"The provider keeps your string, including host case and comma order, when an explicit port is still that returned port. " +
+								"Coolify may store an explicit port separately and return it on the container URL. The provider keeps your string, including host case and comma order, when an explicit port is still that returned port. " +
 								"A URL written without a port matches even if Coolify still has a port, because sending it without a port leaves that port in place. " +
 								"A different port, path, query, or fragment is stored as Coolify returned it, so the next apply writes your value back.",
 							Optional: true,
@@ -510,7 +526,7 @@ func addDeletePollingError(resp *resource.DeleteResponse, resourceType, uuid str
 	resp.Diagnostics.AddError(deletePollingErrorSummary, detail)
 }
 
-func deleteService(ctx context.Context, c *client.Client, resourceType, uuid string, t timeouts.Value, resp *resource.DeleteResponse) {
+func deleteService(ctx context.Context, c *client.Client, resourceType, uuid string, deleteBackups bool, t timeouts.Value, resp *resource.DeleteResponse) {
 	deleteTimeout, diags := t.Delete(ctx, 2*time.Minute)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -521,7 +537,7 @@ func deleteService(ctx context.Context, c *client.Client, resourceType, uuid str
 
 	tflog.Debug(ctx, "deleting resource", map[string]interface{}{"resource_type": resourceType, "uuid": uuid})
 
-	if err := c.DeleteService(ctx, uuid); err != nil {
+	if err := c.DeleteServiceWithOptions(ctx, uuid, client.DeleteBackupsOptions{DeleteBackups: deleteBackups}); err != nil {
 		if client.IsNotFound(err) {
 			return
 		}
@@ -543,7 +559,7 @@ func (r *serviceResource) Delete(ctx context.Context, req resource.DeleteRequest
 		return
 	}
 
-	deleteService(ctx, r.client, "coolify_service", state.UUID.ValueString(), state.Timeouts, resp)
+	deleteService(ctx, r.client, "coolify_service", state.UUID.ValueString(), state.DeleteBackups.ValueBool(), state.Timeouts, resp)
 }
 
 func (r *serviceResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
@@ -641,11 +657,10 @@ func flattenService(c *client.Client, svc *client.Service, model *serviceResourc
 	model.Name = flex.StringToFramework(svc.Name)
 	model.Description = flex.StringFromAPI(svc.Description, model.Description)
 	model.Status = flex.StringToFramework(svc.Status)
-	// instant_deploy is create-only and never returned by the API.
-	// Preserve state value when set; default to false otherwise (import).
-	if model.InstantDeploy.IsNull() || model.InstantDeploy.IsUnknown() {
-		model.InstantDeploy = types.BoolValue(false)
-	}
+	// instant_deploy and delete_backups are not returned by GET.
+	// Preserve a known value; default to false on import.
+	preserveServiceOnlyBool(&model.InstantDeploy, false)
+	preserveServiceOnlyBool(&model.DeleteBackups, false)
 	model.DockerCompose = flex.StringToFramework(svc.DockerCompose)
 	model.DockerComposeRaw = preserveDockerComposeRaw(model.DockerComposeRaw, svc.DockerComposeRaw)
 	model.ConfigHash = flex.StringToFramework(svc.ConfigHash)

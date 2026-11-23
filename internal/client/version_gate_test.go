@@ -513,6 +513,33 @@ func TestSupportsServerPublicIPs(t *testing.T) {
 	}
 }
 
+func TestSupportsResourceDeleteFlags(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		version string
+		want    bool
+	}{
+		{"4.7.6", false},
+		{"v4.7.6", false},
+		{"4.8.0", true},
+		{"4.8.0-alpha.0.20261121.1", true},
+		{"v4.8.0-alpha.0.20261121.1", true},
+		{"4.7-rc.1", false},
+		{"4.3.0", true},
+		{"", true},
+	}
+	for _, tt := range tests {
+		c := &Client{CoolifyVersion: tt.version}
+		if got := c.SupportsResourceDeleteFlags(); got != tt.want {
+			t.Errorf("SupportsResourceDeleteFlags(%q) = %v, want %v", tt.version, got, tt.want)
+		}
+	}
+	var nilClient *Client
+	if !nilClient.SupportsResourceDeleteFlags() {
+		t.Error("nil client should assume newest behaviour rather than panic")
+	}
+}
+
 func TestSupportsImageScanMemory(t *testing.T) {
 	t.Parallel()
 	tests := []struct {

@@ -301,6 +301,8 @@ application, null uses the server setting. `none` turns the resolver off.
 | Resource / attribute | Role |
 |----------------------|------|
 | `public_ipv4` and `public_ipv6` on servers | Public addresses DNS checks and DNS records use when Coolify reaches the server over a private network. IPv6 is stored in the compressed form Coolify saves, for example `2001:db8::10`. Omit the attribute, or set it to null, to remove a stored address on the next apply. Setting or clearing either attribute on localhost (`host.docker.internal` or the Coolify host) fails the apply, because Coolify ignores the write and still returns success. Changing the server IP to `host.docker.internal` in the same apply clears the address first. The 4.8.0-alpha nightly accepts them. v4.7.5 and older fail the apply when either attribute is set. |
+| `delete_backups` on applications, databases, and `coolify_service` | On destroy, also delete storage backups on the server and on S3. Database and service deletes also delete database backups. Default `false` is omitted from the request. v4.7.6 ignores the query, so `true` fails destroy on older instances instead of leaving the backups behind. The 4.8.0-alpha nightly accepts `true`. |
+| `remove_resources_from_server` on `coolify_server` | On destroy, with force delete, also remove containers, volumes, and files from the machine. Set `false` to delete the Coolify records and leave the workloads running. Default `true` matches Coolify and is omitted from the request. `false` requires the 4.8.0-alpha nightly or newer. v4.7.6 fails destroy when `false` is set. Cloud server resources do not expose this attribute and keep the default. |
 
 ### Requires Coolify ≥ 4.7.0
 

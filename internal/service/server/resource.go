@@ -98,6 +98,7 @@ type serverResourceModel struct {
 	SSHHostKeyFingerprints            types.List   `tfsdk:"ssh_host_key_fingerprints"`
 	SSHHostKeyPendingFingerprints     types.List   `tfsdk:"ssh_host_key_pending_fingerprints"`
 	RemoveSSHKey                      types.Bool   `tfsdk:"remove_ssh_key"`
+	RemoveResourcesFromServer         types.Bool   `tfsdk:"remove_resources_from_server"`
 }
 
 // NewResource returns a new server resource.
@@ -111,7 +112,7 @@ func (r *serverResource) Metadata(_ context.Context, req resource.MetadataReques
 
 func (r *serverResource) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Manages a Coolify server.\n\n~> **Warning:** Deleting a server will cascade-delete all applications, databases, and services deployed on it.",
+		MarkdownDescription: "Manages a Coolify server.\n\n~> **Warning:** Deleting a server removes its Coolify record and, by default, the containers, volumes, and files of the resources on that machine. Set `remove_resources_from_server` to `false` (Coolify >= v4.8.0) to leave those workloads running.",
 		Attributes: CommonServerAttrs(ctx, mergeServerAttrs(sshHostKeyAttrs(), map[string]schema.Attribute{
 			"ip": schema.StringAttribute{
 				MarkdownDescription: "The IP address of the server. Coolify stores IPv6 in short lowercase form " +
@@ -125,6 +126,14 @@ func (r *serverResource) Schema(ctx context.Context, _ resource.SchemaRequest, r
 				Optional: true,
 				Computed: true,
 				Default:  booldefault.StaticBool(false),
+			},
+			"remove_resources_from_server": schema.BoolAttribute{
+				MarkdownDescription: "On destroy, with force delete, also remove the containers, volumes, and files of this server's resources from the machine. " +
+					"Set `false` to delete those resources only from Coolify and leave them running. Requires Coolify >= v4.8.0, including the 4.8.0-alpha nightly, when set to `false`. " +
+					"Default `true`, which matches Coolify and is not sent on the request. Cloud server resources do not expose this attribute and keep the default.",
+				Optional: true,
+				Computed: true,
+				Default:  booldefault.StaticBool(true),
 			},
 			"instant_validate": schema.BoolAttribute{
 				MarkdownDescription: "Whether to validate server connectivity immediately after creation or update. " +
@@ -316,6 +325,9 @@ func (r *serverResource) Read(ctx context.Context, req resource.ReadRequest, res
 	if state.RemoveSSHKey.IsNull() || state.RemoveSSHKey.IsUnknown() {
 		state.RemoveSSHKey = types.BoolValue(false)
 	}
+	if state.RemoveResourcesFromServer.IsNull() || state.RemoveResourcesFromServer.IsUnknown() {
+		state.RemoveResourcesFromServer = types.BoolValue(true)
+	}
 	noteUnappliedSSHHostKey(r.client, &state)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
@@ -377,9 +389,16 @@ func (r *serverResource) Delete(ctx context.Context, req resource.DeleteRequest,
 	}
 
 	tflog.Debug(ctx, "deleting resource", map[string]interface{}{"resource_type": "coolify_server", "uuid": state.UUID.ValueString()})
+	r.deleteServerResource(ctx, state, resp)
+}
 
+func (r *serverResource) deleteServerResource(ctx context.Context, state serverResourceModel, resp *resource.DeleteResponse) {
 	removeKey := !state.RemoveSSHKey.IsNull() && !state.RemoveSSHKey.IsUnknown() && state.RemoveSSHKey.ValueBool()
 	opts := client.DeleteServerOptions{RemoveSSHKey: removeKey}
+	if !state.RemoveResourcesFromServer.IsNull() && !state.RemoveResourcesFromServer.IsUnknown() && !state.RemoveResourcesFromServer.ValueBool() {
+		leaveRunning := false
+		opts.RemoveResourcesFromServer = &leaveRunning
+	}
 	if opts.RemoveSSHKey && (r.client == nil || !r.client.SupportsCoolify47()) {
 		ver := "unknown"
 		if r.client != nil && r.client.CoolifyVersion != "" {

@@ -230,7 +230,7 @@ func (r *giteaAppApplicationResource) Delete(ctx context.Context, req resource.D
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	deleteApplication(ctx, r.client, "coolify_application_gitea_app", state.UUID.ValueString(), state.Timeouts, resp)
+	deleteApplication(ctx, r.client, "coolify_application_gitea_app", state.UUID.ValueString(), state.DeleteBackups.ValueBool(), state.Timeouts, resp)
 }
 
 func (r *giteaAppApplicationResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {

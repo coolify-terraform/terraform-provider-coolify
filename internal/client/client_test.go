@@ -1029,6 +1029,7 @@ func TestClient_DeleteDatabase(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodDelete, r.Method)
 		assert.Equal(t, "/api/v1/databases/db-del", r.URL.Path)
+		assert.Empty(t, r.URL.RawQuery)
 		w.WriteHeader(http.StatusNoContent)
 	}))
 	defer srv.Close()
@@ -1300,6 +1301,7 @@ func TestClient_DeleteService(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodDelete, r.Method)
 		assert.Equal(t, "/api/v1/services/svc-del", r.URL.Path)
+		assert.Empty(t, r.URL.RawQuery)
 		w.WriteHeader(http.StatusNoContent)
 	}))
 	defer srv.Close()
@@ -1676,6 +1678,7 @@ func TestClient_DeleteApplication(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodDelete, r.Method)
 		assert.Equal(t, "/api/v1/applications/app-del-1", r.URL.Path)
+		assert.Empty(t, r.URL.RawQuery)
 		w.WriteHeader(http.StatusOK)
 	}))
 	defer srv.Close()

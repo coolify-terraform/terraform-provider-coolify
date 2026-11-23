@@ -394,6 +394,32 @@ func (c *Client) SupportsServerPublicIPs() bool {
 	return c.supportsSince(minServerPublicIPVersion)
 }
 
+// minResourceDeleteFlagsVersion is the first Coolify line that honors
+// delete_backups on application, database, and service deletes, and
+// remove_resources_from_server on server deletes. Both landed on the
+// 4.8.0-alpha nightly after tag v4.7.6. 4.8.0-alpha.0.* parses as 4.8.0.
+// v4.7.6 ignores an unknown delete_backups query, so a true value must
+// be rejected instead of leaving the backups behind.
+const minResourceDeleteFlagsVersion = "4.8.0"
+
+// SupportsResourceDeleteFlags reports whether destroy queries for
+// delete_backups and remove_resources_from_server do what the user asked.
+//
+// Empty CoolifyVersion reports true so unit tests that never call Configure
+// exercise the query. A 4.3.0 version string reports true because CI edge
+// has used that string while shipping later APIs. Releases before v4.8.0
+// report false.
+func (c *Client) SupportsResourceDeleteFlags() bool {
+	return c.supportsSince(minResourceDeleteFlagsVersion)
+}
+
+func reportedCoolifyVersion(c *Client) string {
+	if c == nil || c.CoolifyVersion == "" {
+		return "unknown"
+	}
+	return c.CoolifyVersion
+}
+
 func (c *Client) supportsSince(min string) bool {
 	if c == nil || c.CoolifyVersion == "" {
 		return true
