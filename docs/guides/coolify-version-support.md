@@ -39,7 +39,7 @@ output "coolify_version" {
 | **4.2.x** | 4.2 resources and application settings writes work. 4.3-only attributes still withheld with a plan warning. |
 | **≥ 4.3.0** | 4.3 application settings, `noindex_domains`, notification channels, S3, volume backup schedules, GPU/log-drain, etc. |
 | **≥ 4.3.10** | Instance email settings and `smtp_ehlo_domain` on team email notifications (email/SMTP floor). |
-| **≥ 4.3.15** | Preview domain PATCH, GET `domain_port_overrides`, restart-limit fields. |
+| **≥ 4.3.15** | Preview domain PATCH, hidden `domain_port_overrides` (GET omits it), restart-limit fields. |
 | **≥ 4.3.18** | `missing_backup_notification_days` on `coolify_database_backup` (0 disables alerts). GET-only `last_execution_at` and `missing_backup_notification_sent_at`. |
 | **≥ 4.5.0** | `POST /api/v1/enable` is gone. `coolify_api_settings` with `enabled = true` leaves the API unchanged. `enabled = false` still disables it. Turn the API back on in the Coolify UI. Destroy does not re-enable the API. `coolify_server_hostinger` and the Hostinger catalog data sources require this version. `coolify_service_application` can send `is_permanent_redirect_enabled` and `traefik_certificate_resolver`. |
 | **≥ 4.5.1** | `coolify_s3_storage.use_path_style_endpoint`, `coolify_server_log_drain.logdrain_axiom_domain`, and application `rolling_update_drain_seconds` are sent. Older instances keep those values in state and do not send them. Highlight log drain columns are gone, so the read-only server attributes are null. Also sent from this version: application `include_coolify_default_variables` and `is_container_label_readonly_enabled`, service `include_coolify_default_variables`, service application `redirect`, server proxy `proxy_error_page`, database backup `disable_local_backup`, and server `wildcard_domain`, `server_timezone`, and `backup_compression_cpu_percentage`. |
@@ -58,7 +58,7 @@ accept `is_force_https_enabled` on `PATCH /services/{uuid}/applications/{app_uui
 start/stop/restart on the same prefix stay out of Terraform.
 v4.3.10 adds instance-wide SMTP settings (`GET`/`PATCH /settings/email`) and
 `smtp_ehlo_domain` on team email notifications. Tags v4.3.15 through v4.3.17
-add restart-limit GET fields, GET-only `domain_port_overrides`, notification
+add restart-limit GET fields, a hidden `domain_port_overrides` column (GET omits it), notification
 `restart_limit_reached_*` writes, and `PATCH` preview domains on
 `coolify_application_preview`. Tag v4.3.18 adds
 `missing_backup_notification_days` on database backup create/update.
@@ -167,9 +167,10 @@ Coolify **≥ 4.3.3**. They are not writable and are omitted from
 `GET /projects` (list). Empty on older instances.
 
 `domain_port_overrides` is computed on application resources and
-`data.coolify_application` on Coolify **>= v4.3.15**. It is null on
-v4.3.14 and earlier. It is not on `data.coolify_applications` and is
-not writable.
+`data.coolify_application`. Coolify **>= v4.3.15** stores the map and
+hides it on GET, so the attribute stays null. It is also null on v4.3.14
+and earlier. It is not on `data.coolify_applications` and is not writable.
+An explicit port in `domains` stays in state.
 
 `coolify_application_preview` can PATCH preview domains
 (`domains` / `docker_compose_domains` / `force_domain_override`) on

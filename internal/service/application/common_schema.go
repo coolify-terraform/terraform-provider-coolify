@@ -212,7 +212,11 @@ func coreAppAttrs(ctx context.Context) map[string]schema.Attribute {
 		"environment_uuid": schema.StringAttribute{MarkdownDescription: "Environment UUID from `coolify_environment.uuid`. Create-only. Use this instead of `environment_name` so renaming the environment does not replace this resource. Setting this when `environment_name` is already stored, including after import, keeps the resource and drops the name from state. It does not move the resource. Changing a known UUID forces a new resource. Do not set both this and `environment_name`.", Optional: true, PlanModifiers: []planmodifier.String{flex.RequiresReplaceIfKnown()}, Validators: []validator.String{validate.UUID()}},
 		"domains": schema.StringAttribute{
 			MarkdownDescription: "Application URL(s) as a comma-separated list of http:// or https:// URLs. " +
-				"Coolify lowercases the scheme and host, removes spaces around commas, and stores an explicit port in `domain_port_overrides`. The provider keeps your string when only that normalization differs and the specified port matches the API URL, the domain override, or the application's default routing port, in that order. A path, query, fragment, list-order, or different port is stored as Coolify returned it. " +
+				"Coolify lowercases the scheme and host, removes spaces around commas, and stores an explicit port in `domain_port_overrides`. " +
+				"Current Coolify hides that map on GET, so the provider keeps your URL when the only difference is that port. " +
+				"Import stores the portless URL; the next apply restores the port from this configuration. A port changed only in the Coolify UI is not visible while the map is hidden. " +
+				"When GET does return the map, the port is kept only when it matches the API URL, the override, or the application's default routing port (the first `ports_exposes` value, or port 80 for a static app), in that order. " +
+				"A path, query, fragment, list-order, or different returned port is stored as Coolify returned it. " +
 				"Empty string is allowed in Terraform (validator and PATCH body send `domains: \"\"`). " +
 				"When omitted on create, Coolify may auto-generate a domain unless `autogenerate_domain` is false. " +
 				"Clearing an existing FQDN with `domains = \"\"` depends on Coolify persisting empty domains as null fqdn " +

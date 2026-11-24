@@ -128,12 +128,15 @@ resource "coolify_application" "web" {
 All domains receive TLS certificates. Requests to any of them route to
 the same application container.
 
-Coolify **>= v4.3.15** (not in tag v4.3.14) may return
-`domain_port_overrides`: a map of full domain URL to container
-port. Read it from the application resource or `data.coolify_application`
-after apply. Do not set it in HCL. On Coolify <= v4.3.14 the attribute is
-null, not an empty map. `data.coolify_applications` (list) does not include
-this map; use the singular data source.
+Coolify **>= v4.3.15** (not in tag v4.3.14) stores an explicit container
+port in `domain_port_overrides` and returns the domain without that port.
+The column is hidden on GET, so `domain_port_overrides` stays null on the
+application resource and on `data.coolify_application`. Do not set it in
+HCL. Put the container port on `domains`, for example
+`https://app.example.com:3000`. The provider keeps that port in state.
+On Coolify <= v4.3.14 the port stays in the domain string and the
+attribute is null. `data.coolify_applications` (list) does not include
+this map.
 
 On Coolify **>= v4.3.15**, `coolify_application_preview` can set preview
 domains with `domains` (regular apps) or `docker_compose_domains` (compose

@@ -108,7 +108,10 @@ func wireDockerComposeDomains(raw string) json.RawMessage {
 // composeDomainsURLEquivalent reports whether two compose domain documents
 // are the same mapping after Coolify stores each URL. Service names must
 // match. Each domain uses the application domain rules: host case, comma
-// spacing, and a port that domain_port_overrides still records.
+// spacing, and an explicit port. A nil domain_port_overrides map means
+// GET omitted the column, so the configured port is kept. A returned map
+// must contain that port; compose services do not fall back to the
+// application default.
 func composeDomainsURLEquivalent(configured, api string, overrides client.DomainPortOverridesMap) bool {
 	configuredItems, configuredOK := parseDockerComposeDomains(configured)
 	apiItems, apiOK := parseDockerComposeDomains(api)

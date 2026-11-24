@@ -32,8 +32,7 @@ func assignApplicationDomains(dst *types.String, api string, overrides client.Do
 // ValidationPatterns::normalizeApplicationDomainUrl and
 // DomainPortOverrides::normalize (Coolify v4.3.23). Scheme and host are
 // case-insensitive. Path, query, and fragment keep their case. Comma order
-// is significant. Spaces around commas are not. Ports follow Coolify's
-// routing order: the API URL, an override for that domain, then the default port.
+// is significant. Spaces around commas are not.
 func applicationDomainsEquivalent(configured, api string, overrides client.DomainPortOverridesMap, defaultPort int64) bool {
 	configuredParts := splitDomainList(configured)
 	apiParts := splitDomainList(api)
@@ -49,18 +48,36 @@ func applicationDomainsEquivalent(configured, api string, overrides client.Domai
 		if !configuredHasPort {
 			continue
 		}
-		if !apiHasPort {
-			if override, ok := overrides[apiKey]; ok {
-				apiPort = override
-			} else {
-				apiPort = defaultPort
-			}
-		}
-		if apiPort == 0 || apiPort != configuredPort {
+		if !domainPortEquivalent(configuredPort, apiPort, apiHasPort, apiKey, overrides, defaultPort) {
 			return false
 		}
 	}
 	return true
+}
+
+// domainPortEquivalent reports whether a configured explicit port still
+// describes the port Coolify stored.
+//
+// An inline port on the API URL wins. A returned domain_port_overrides
+// entry is next. If that map was returned and this domain is absent,
+// Coolify routes to defaultPort (the first ports_exposes value, or 80
+// when the app is static). Compose service domains pass defaultPort 0
+// because they do not use the application default.
+//
+// A nil map is not an empty override list. Since Coolify v4.3.24 the
+// column is in Application::$hidden, so GET omits it after saving the
+// port. Keep the configured port in that case.
+func domainPortEquivalent(configuredPort, apiPort int64, apiHasPort bool, apiKey string, overrides client.DomainPortOverridesMap, defaultPort int64) bool {
+	if apiHasPort {
+		return apiPort == configuredPort
+	}
+	if overrides == nil {
+		return true
+	}
+	if override, ok := overrides[apiKey]; ok {
+		return override == configuredPort
+	}
+	return defaultPort != 0 && defaultPort == configuredPort
 }
 
 func defaultApplicationPort(app *client.Application) int64 {

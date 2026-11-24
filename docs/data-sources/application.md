@@ -49,7 +49,7 @@ output "domain_port_overrides" {
 - `docker_compose_raw` (String, Sensitive) The raw Docker Compose content.
 - `docker_registry_image_name` (String) The Docker registry image name.
 - `dockerfile_location` (String) For Git-backed applications, the path to the Dockerfile relative to the repository root. For `coolify_application_dockerfile` resources, this contains the Dockerfile content (base64-encoded).
-- `domain_port_overrides` (Map of Number) Read-only map of canonical domain URL to container port from GET (`{"https://app.example.com": 3000}`). Requires Coolify >= v4.3.15 (not in tag v4.3.14). Not accepted on create or update.
+- `domain_port_overrides` (Map of Number) Read-only map of canonical domain URL to container port (`{"https://app.example.com": 3000}`). Coolify has stored this since v4.3.15 (not in tag v4.3.14) but hides the column on GET, so this attribute stays null on current Coolify. It is set only when a response includes the map. Not accepted on create or update.
 - `domains` (String) The fully qualified domain name of the application.
 - `environment_name` (String) The environment name of the application.
 - `git_branch` (String) The Git branch used by the application.
