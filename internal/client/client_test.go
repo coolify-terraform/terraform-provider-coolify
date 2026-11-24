@@ -2695,8 +2695,9 @@ func TestClient_GetVersion_EmptyBody(t *testing.T) {
 	defer srv.Close()
 
 	c := New(srv.URL, "test-token")
-	_, err := c.GetVersion(context.Background())
-	require.Error(t, err)
+	v, err := c.GetVersion(context.Background())
+	require.NoError(t, err)
+	assert.Equal(t, "", v)
 }
 
 func TestClient_EnableAPI_HTMLBody(t *testing.T) {

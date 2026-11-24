@@ -239,8 +239,8 @@ func bodyLooksLikeHTML(text string) bool {
 
 // doText performs a GET request and returns the response body as a trimmed
 // string. Handles both plain text and JSON-encoded string responses.
-// An empty trimmed body, or HTML, is an error. That error does not include
-// the body.
+// An empty body is an unknown value (unit tests, and a version the server
+// did not report). HTML is an error, and that error does not include the body.
 func (c *Client) doText(ctx context.Context, path string) (string, error) {
 	ctx = withRequestMethod(ctx, http.MethodGet)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.BaseURL+path, nil)
@@ -273,9 +273,6 @@ func (c *Client) doText(ctx context.Context, path string) (string, error) {
 	var unquoted string
 	if json.Unmarshal(body, &unquoted) == nil {
 		text = strings.TrimSpace(unquoted)
-	}
-	if text == "" {
-		return "", fmt.Errorf("api error for %s (status %d): empty response", path, resp.StatusCode)
 	}
 	if bodyLooksLikeHTML(text) {
 		return "", fmt.Errorf("api error for %s (status %d): HTML response", path, resp.StatusCode)
@@ -622,17 +619,25 @@ func (c *Client) doWithStatus(ctx context.Context, method, path string, body int
 		return fmt.Errorf("expected status %d, got %d for %s %s: %s", expectedStatus, resp.StatusCode, method, path, extractAPIMessage(respBody))
 	}
 
-	if result != nil {
-		if len(respBody) == 0 {
-			return fmt.Errorf("API returned status %d with empty body for %s %s (expected JSON)", resp.StatusCode, method, path)
-		} else if err := json.Unmarshal(respBody, result); err != nil {
-			return fmt.Errorf("decoding response: %w", err)
-		}
-	} else if bodyLooksLikeHTML(string(respBody)) {
-		// Empty 2xx stays success. An HTML page must not.
-		return fmt.Errorf("api error (status %d) for %s %s: HTML response", resp.StatusCode, method, path)
-	}
+	return finishSuccessBody(method, path, resp.StatusCode, respBody, result)
+}
 
+// finishSuccessBody checks a 2xx body. A JSON result rejects an empty body
+// and invalid JSON. A nil result accepts an empty body. HTML is an error
+// in both cases, and that error does not include the page.
+func finishSuccessBody(method, path string, status int, body []byte, result interface{}) error {
+	if bodyLooksLikeHTML(string(body)) {
+		return fmt.Errorf("api error (status %d) for %s %s: HTML response", status, method, path)
+	}
+	if result == nil {
+		return nil
+	}
+	if len(body) == 0 {
+		return fmt.Errorf("API returned status %d with empty body for %s %s (expected JSON)", status, method, path)
+	}
+	if err := json.Unmarshal(body, result); err != nil {
+		return fmt.Errorf("decoding response: %w", err)
+	}
 	return nil
 }
 
