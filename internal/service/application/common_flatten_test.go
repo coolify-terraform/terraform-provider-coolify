@@ -994,6 +994,8 @@ func TestFlattenApplicationCommon_PreservesEquivalentDomains(t *testing.T) {
 		configured string
 		known      bool
 		api        string
+		ports      string
+		isStatic   bool
 		overrides  client.DomainPortOverridesMap
 		want       string
 	}{
@@ -1046,10 +1048,82 @@ func TestFlattenApplicationCommon_PreservesEquivalentDomains(t *testing.T) {
 			want:       "https://App.Example.com:8443/Path",
 		},
 		{
+			name:       "non-default port kept when override map is omitted",
+			configured: "https://app.example.com:9000",
+			known:      true,
+			api:        "https://app.example.com",
+			ports:      "8000",
+			want:       "https://app.example.com:9000",
+		},
+		{
+			name:       "secondary exposed port kept when override map is omitted",
+			configured: "https://app.example.com:8000",
+			known:      true,
+			api:        "https://app.example.com",
+			ports:      "8080,8000",
+			want:       "https://app.example.com:8000",
+		},
+		{
+			name:       "port kept when returned map is empty and port is the first exposed port",
+			configured: "https://app.example.com:8000",
+			known:      true,
+			api:        "https://app.example.com",
+			ports:      "8000,8080",
+			overrides:  client.DomainPortOverridesMap{},
+			want:       "https://app.example.com:8000",
+		},
+		{
+			name:       "port dropped when returned map is empty and only a secondary exposed port matches",
+			configured: "https://app.example.com:8000",
+			known:      true,
+			api:        "https://app.example.com",
+			ports:      "8080,8000",
+			overrides:  client.DomainPortOverridesMap{},
+			want:       "https://app.example.com",
+		},
+		{
+			name:       "static app uses port 80 when the returned map has no entry",
+			configured: "https://app.example.com:80",
+			known:      true,
+			api:        "https://app.example.com",
+			ports:      "8000",
+			isStatic:   true,
+			overrides:  client.DomainPortOverridesMap{},
+			want:       "https://app.example.com:80",
+		},
+		{
+			name:       "static app drops a non-80 port when the returned map has no entry",
+			configured: "https://app.example.com:8000",
+			known:      true,
+			api:        "https://app.example.com",
+			ports:      "8000",
+			isStatic:   true,
+			overrides:  client.DomainPortOverridesMap{},
+			want:       "https://app.example.com",
+		},
+		{
+			name:       "static app keeps a non-80 port when the override map is omitted",
+			configured: "https://app.example.com:8000",
+			known:      true,
+			api:        "https://app.example.com",
+			ports:      "8000",
+			isStatic:   true,
+			want:       "https://app.example.com:8000",
+		},
+		{
+			name:       "legacy inline API port takes precedence over exposed ports",
+			configured: "https://app.example.com:8000",
+			known:      true,
+			api:        "https://app.example.com:9000",
+			ports:      "8000",
+			want:       "https://app.example.com:9000",
+		},
+		{
 			name:       "port dropped when override differs",
 			configured: "https://app.example.com:8443",
 			known:      true,
 			api:        "https://app.example.com",
+			ports:      "8443",
 			overrides:  client.DomainPortOverridesMap{"https://app.example.com": 9000},
 			want:       "https://app.example.com",
 		},
@@ -1066,6 +1140,8 @@ func TestFlattenApplicationCommon_PreservesEquivalentDomains(t *testing.T) {
 				UUID:                "uuid-1",
 				Name:                "app",
 				Domains:             tt.api,
+				PortsExposes:        tt.ports,
+				IsStatic:            &tt.isStatic,
 				DomainPortOverrides: tt.overrides,
 			}, f)
 			if f.Domains.ValueString() != tt.want {

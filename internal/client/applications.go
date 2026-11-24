@@ -281,6 +281,7 @@ func (s JSONNumberString) String() string { return string(s) }
 
 // ApplicationSettings holds nested settings from GET application responses.
 type ApplicationSettings struct {
+	IsStatic                      *bool  `json:"is_static,omitempty"`
 	IsPreviewDeploymentsEnabled   *bool  `json:"is_preview_deployments_enabled,omitempty"`
 	UseBuildSecrets               *bool  `json:"use_build_secrets,omitempty"`
 	StopGracePeriod               *int64 `json:"stop_grace_period,omitempty"`
@@ -327,6 +328,7 @@ func (a *Application) PromoteSettings() {
 		return
 	}
 	s := a.Settings
+	promoteBool(&a.IsStatic, s.IsStatic)
 	promoteBool(&a.IsPreviewDeploymentsEnabled, s.IsPreviewDeploymentsEnabled)
 	promoteBool(&a.UseBuildSecrets, s.UseBuildSecrets)
 	promoteInt64(&a.StopGracePeriod, s.StopGracePeriod)

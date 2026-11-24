@@ -17,12 +17,12 @@ import (
 
 // assignApplicationDomains writes the API domain list. A known configured
 // value is left in place when it matches Coolify's stored form.
-func assignApplicationDomains(dst *types.String, api string, overrides client.DomainPortOverridesMap) {
+func assignApplicationDomains(dst *types.String, api string, overrides client.DomainPortOverridesMap, defaultPort int64) {
 	if api == "" {
 		*dst = types.StringValue("")
 		return
 	}
-	if dst != nil && !dst.IsNull() && !dst.IsUnknown() && applicationDomainsEquivalent(dst.ValueString(), api, overrides) {
+	if dst != nil && !dst.IsNull() && !dst.IsUnknown() && applicationDomainsEquivalent(dst.ValueString(), api, overrides, defaultPort) {
 		return
 	}
 	*dst = types.StringValue(api)
@@ -32,9 +32,8 @@ func assignApplicationDomains(dst *types.String, api string, overrides client.Do
 // ValidationPatterns::normalizeApplicationDomainUrl and
 // DomainPortOverrides::normalize (Coolify v4.3.23). Scheme and host are
 // case-insensitive. Path, query, and fragment keep their case. Comma order
-// is significant. Spaces around commas are not. An explicit port matches
-// only when domain_port_overrides stores that port for the portless URL.
-func applicationDomainsEquivalent(configured, api string, overrides client.DomainPortOverridesMap) bool {
+// is significant. Spaces around commas are not.
+func applicationDomainsEquivalent(configured, api string, overrides client.DomainPortOverridesMap, defaultPort int64) bool {
 	configuredParts := splitDomainList(configured)
 	apiParts := splitDomainList(api)
 	if len(configuredParts) != len(apiParts) {
@@ -42,19 +41,58 @@ func applicationDomainsEquivalent(configured, api string, overrides client.Domai
 	}
 	for i := range configuredParts {
 		configuredKey, configuredPort, configuredHasPort, configuredOK := domainURLParts(configuredParts[i])
-		apiKey, _, _, apiOK := domainURLParts(apiParts[i])
+		apiKey, apiPort, apiHasPort, apiOK := domainURLParts(apiParts[i])
 		if !configuredOK || !apiOK || configuredKey != apiKey {
 			return false
 		}
 		if !configuredHasPort {
 			continue
 		}
-		got, ok := overrides[configuredKey]
-		if !ok || got != configuredPort {
+		if !domainPortEquivalent(configuredPort, apiPort, apiHasPort, apiKey, overrides, defaultPort) {
 			return false
 		}
 	}
 	return true
+}
+
+// domainPortEquivalent reports whether a configured explicit port still
+// describes the port Coolify stored.
+//
+// An inline port on the API URL wins. A returned domain_port_overrides
+// entry is next. If that map was returned and this domain is absent,
+// Coolify routes to defaultPort (the first ports_exposes value, or 80
+// when the app is static). Compose service domains pass defaultPort 0
+// because they do not use the application default.
+//
+// A nil map is not an empty override list. Since Coolify v4.3.24 the
+// column is in Application::$hidden, so GET omits it after saving the
+// port. Keep the configured port in that case.
+func domainPortEquivalent(configuredPort, apiPort int64, apiHasPort bool, apiKey string, overrides client.DomainPortOverridesMap, defaultPort int64) bool {
+	if apiHasPort {
+		return apiPort == configuredPort
+	}
+	if overrides == nil {
+		return true
+	}
+	if override, ok := overrides[apiKey]; ok {
+		return override == configuredPort
+	}
+	return defaultPort != 0 && defaultPort == configuredPort
+}
+
+func defaultApplicationPort(app *client.Application) int64 {
+	if app.BuildPack == "dockercompose" {
+		return 0
+	}
+	if app.IsStatic != nil && *app.IsStatic {
+		return 80
+	}
+	firstPort, _, _ := strings.Cut(app.PortsExposes, ",")
+	port, err := strconv.ParseInt(strings.TrimSpace(firstPort), 10, 64)
+	if err != nil {
+		return 0
+	}
+	return port
 }
 
 func splitDomainList(raw string) []string {
@@ -141,7 +179,7 @@ func flattenApplicationCommon(app *client.Application, f commonAppFields) {
 	// Coolify stores the normalized list (lowercase scheme and host, trimmed
 	// comma spacing, path case kept). Keep the configured string when that
 	// normalized form matches, so host case alone does not plan an update.
-	assignApplicationDomains(f.Domains, app.Domains, app.DomainPortOverrides)
+	assignApplicationDomains(f.Domains, app.Domains, app.DomainPortOverrides, defaultApplicationPort(app))
 	// Coolify does not return dockerfile_location on GET for most app types.
 	// Preserve the user's configured value to avoid "inconsistent result after apply".
 	// The value IS sent on Create/Update, just not returned on read-back.

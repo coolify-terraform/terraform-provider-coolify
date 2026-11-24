@@ -88,8 +88,9 @@ The API surface changed significantly between v4.0.0 and v4.1.0, so v4.1.0
 is the minimum. Destinations and DO/Vultr provisioning need **≥ v4.2.0**.
 Volume backup schedules, `noindex_domains`, notifications, and S3 need
 **≥ v4.3.0**. Instance email settings and `smtp_ehlo_domain` need
-**≥ v4.3.10**. Preview domain PATCH, GET `domain_port_overrides`, and
-restart-limit fields need **≥ v4.3.15**. Missing-backup notifications on
+**≥ v4.3.10**. Preview domain PATCH and restart-limit fields need
+**≥ v4.3.15**. That version also stores `domain_port_overrides`, which
+GET hides. Missing-backup notifications on
 `coolify_database_backup` need **≥ v4.3.18**. Volume-backup missing-backup
 alerts need **≥ v4.4.1**. Hostinger purchase needs **≥ v4.5.0**.
 `use_path_style_endpoint`, `logdrain_axiom_domain`, and

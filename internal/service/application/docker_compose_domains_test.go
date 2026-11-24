@@ -204,6 +204,17 @@ func TestResolveDockerComposeDomains_PreservesHostCaseAndMatchingPort(t *testing
 	}
 }
 
+func TestResolveDockerComposeDomains_KeepsPortWhenOverridesOmitted(t *testing.T) {
+	t.Parallel()
+	user := `[{"name":"web","domain":"https://app.example.com:3000"}]`
+	api := `{"web":{"domain":"https://app.example.com"}}`
+	dst := types.StringValue(user)
+	resolveDockerComposeDomains(&dst, api, nil)
+	if dst.ValueString() != user {
+		t.Errorf("got %s, want configured URL", dst.ValueString())
+	}
+}
+
 func TestResolveDockerComposeDomains_AdoptsAPIWhenPortDiffers(t *testing.T) {
 	t.Parallel()
 	user := `[{"name":"web","domain":"https://app.example.com:8443"}]`
