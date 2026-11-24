@@ -494,6 +494,20 @@ class TestDecide(unittest.TestCase):
         self.assertEqual(state["prereleases"], ["4.2.0"])
         self.assertEqual(state["tip_version"], "4.2.0")
         self.assertEqual(state["tip_contract_diff_count"], 1)
+        self.assertIn("**Last checked:**", body)
+        self.assertRegex(state["checked_at"], r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2} UTC$")
+
+    def test_body_leads_with_last_checked(self):
+        snap = cc.ChannelSnapshot(stable="4.7.6", nightly="4.8.0-alpha.0.20261123.1", pin="4.6.0")
+        body = cc.build_body(snap, ["reason"], checked_at="2026-11-24 03:33 UTC")
+        self.assertIn(
+            "**Last checked:** 2026-11-24 03:33 UTC. The table is the latest status.",
+            body,
+        )
+        self.assertLess(body.index("**Last checked:**"), body.index("Automated check of Coolify"))
+        self.assertLess(body.index("**Last checked:**"), body.index("| Channel | Version |"))
+        state = cc.decode_state(body)
+        self.assertEqual(state["checked_at"], "2026-11-24 03:33 UTC")
 
 
 class TestCLI(unittest.TestCase):

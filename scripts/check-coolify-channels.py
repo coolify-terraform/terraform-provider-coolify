@@ -57,6 +57,7 @@ import sys
 import urllib.error
 import urllib.request
 from dataclasses import asdict, dataclass, field
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
 
@@ -336,7 +337,7 @@ def diff_contract_signatures(
     return changes, summary
 
 
-def encode_state(snap: ChannelSnapshot) -> str:
+def encode_state(snap: ChannelSnapshot, checked_at: str = "") -> str:
     payload = {
         "stable": snap.stable,
         "nightly": snap.nightly,
@@ -346,6 +347,8 @@ def encode_state(snap: ChannelSnapshot) -> str:
         "tip_version": snap.tip_version,
         "tip_contract_diff_count": snap.tip_contract_diff_count,
     }
+    if checked_at:
+        payload["checked_at"] = checked_at
     return f"{STATE_MARKER_PREFIX} {json.dumps(payload, separators=(',', ':'))} -->"
 
 
@@ -359,7 +362,7 @@ def decode_state(body: str) -> Optional[dict[str, Any]]:
         return None
 
 
-def build_body(snap: ChannelSnapshot, reasons: list[str]) -> str:
+def build_body(snap: ChannelSnapshot, reasons: list[str], checked_at: str = "") -> str:
     pin_v = snap.pin or "(unknown)"
     stable_v = snap.stable
     nightly_v = snap.nightly
@@ -378,11 +381,17 @@ def build_body(snap: ChannelSnapshot, reasons: list[str]) -> str:
         extract_pre = f"make contract-extract VERSION={tag}"
 
     reasons_md = "\n".join(f"- {r}" for r in reasons) if reasons else "- (no lag)"
+    if not checked_at:
+        checked_at = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
+    status_line = (
+        f"**Last checked:** {checked_at}. The table is the latest status. "
+        "GitHub's opened date is when this watch started, not this check."
+    )
     replace_note = (
         "When the **pin** or **target version in the title** changes, the "
         "channel job closes this issue and opens a new one. Do not add "
-        "status comments; the table below is the current snapshot."
+        "status comments."
     )
 
     tip_block = ""
@@ -408,9 +417,11 @@ def build_body(snap: ChannelSnapshot, reasons: list[str]) -> str:
     if extract_pre:
         steps.insert(2, f"2b. Prerelease extract: `{extract_pre}`")
 
-    return f"""{encode_state(snap)}
+    return f"""{encode_state(snap, checked_at)}
 
 ## Coolify channel watch
+
+{status_line}
 
 Automated check of Coolify CDN channels, GitHub releases, **source tip version**,
 and optional **tip contract API drift**. Goal: start provider work *before*
