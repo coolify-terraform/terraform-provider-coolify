@@ -230,8 +230,17 @@ func (c *Client) GetHealth(ctx context.Context) (string, error) {
 	return c.doText(ctx, "/api/v1/health")
 }
 
+// bodyLooksLikeHTML reports whether a 2xx text body is an HTML page.
+// Trimmed text that starts with "<" is HTML. Content-Type is ignored
+// because /api/v1/version may be text/html with a plain version string.
+func bodyLooksLikeHTML(text string) bool {
+	return strings.HasPrefix(strings.TrimSpace(text), "<")
+}
+
 // doText performs a GET request and returns the response body as a trimmed
 // string. Handles both plain text and JSON-encoded string responses.
+// An empty trimmed body, or HTML, is an error. That error does not include
+// the body.
 func (c *Client) doText(ctx context.Context, path string) (string, error) {
 	ctx = withRequestMethod(ctx, http.MethodGet)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.BaseURL+path, nil)
@@ -260,11 +269,18 @@ func (c *Client) doText(ctx context.Context, path string) (string, error) {
 		return "", fmt.Errorf("api error for %s (status %d): %s", path, resp.StatusCode, extractAPIMessage(body))
 	}
 
+	text := strings.TrimSpace(string(body))
 	var unquoted string
 	if json.Unmarshal(body, &unquoted) == nil {
-		return unquoted, nil
+		text = strings.TrimSpace(unquoted)
 	}
-	return strings.TrimSpace(string(body)), nil
+	if text == "" {
+		return "", fmt.Errorf("api error for %s (status %d): empty response", path, resp.StatusCode)
+	}
+	if bodyLooksLikeHTML(text) {
+		return "", fmt.Errorf("api error for %s (status %d): HTML response", path, resp.StatusCode)
+	}
+	return text, nil
 }
 
 // EnableAPI enables the Coolify API. Coolify 4.5.0 removed this route.
@@ -612,6 +628,9 @@ func (c *Client) doWithStatus(ctx context.Context, method, path string, body int
 		} else if err := json.Unmarshal(respBody, result); err != nil {
 			return fmt.Errorf("decoding response: %w", err)
 		}
+	} else if bodyLooksLikeHTML(string(respBody)) {
+		// Empty 2xx stays success. An HTML page must not.
+		return fmt.Errorf("api error (status %d) for %s %s: HTML response", resp.StatusCode, method, path)
 	}
 
 	return nil

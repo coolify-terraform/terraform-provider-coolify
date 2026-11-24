@@ -2668,6 +2668,55 @@ func TestClient_GetVersion_JSONQuoted(t *testing.T) {
 	assert.Equal(t, "v4.1.0", v)
 }
 
+func TestClient_GetVersion_HTMLBody(t *testing.T) {
+	t.Parallel()
+	const planted = "planted-version-token"
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/api/v1/version", r.URL.Path)
+		w.Header().Set("Content-Type", "text/html")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("<!DOCTYPE html><html><body>" + planted + "</body></html>"))
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	v, err := c.GetVersion(context.Background())
+	require.Error(t, err)
+	assert.NotContains(t, v, planted)
+	assert.NotContains(t, err.Error(), planted)
+}
+
+func TestClient_GetVersion_EmptyBody(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	_, err := c.GetVersion(context.Background())
+	require.Error(t, err)
+}
+
+func TestClient_EnableAPI_HTMLBody(t *testing.T) {
+	t.Parallel()
+	const planted = "planted-enable-token"
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPost, r.Method)
+		assert.Equal(t, "/api/v1/enable", r.URL.Path)
+		w.Header().Set("Content-Type", "text/html")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("<html><body>" + planted + "</body></html>"))
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	err := c.EnableAPI(context.Background())
+	require.Error(t, err)
+	assert.NotContains(t, err.Error(), planted)
+}
+
 func TestClient_GetHealth(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
