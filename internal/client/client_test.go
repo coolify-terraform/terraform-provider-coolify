@@ -2867,13 +2867,13 @@ func TestClient_CreateProject_WrongStatusCode(t *testing.T) {
 	assert.Contains(t, err.Error(), "/api/v1/projects")
 }
 
-// --- Malformed JSON response ---
+// --- Malformed JSON and HTML responses ---
 
 func TestClient_GetProject_MalformedJSON(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`<html>502 Bad Gateway</html>`))
+		_, _ = w.Write([]byte(`{`))
 	}))
 	defer srv.Close()
 
@@ -2881,6 +2881,21 @@ func TestClient_GetProject_MalformedJSON(t *testing.T) {
 	_, err := c.GetProject(context.Background(), "proj-1")
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "decoding response")
+}
+
+func TestClient_GetProject_HTMLBody(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`<html>502 Bad Gateway</html>`))
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	_, err := c.GetProject(context.Background(), "proj-1")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "HTML response")
+	assert.NotContains(t, err.Error(), "502 Bad Gateway")
 }
 
 // --- GitHub Apps client-side filtering ---
