@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.35](https://github.com/coolify-terraform/terraform-provider-coolify/compare/v0.1.34...v0.1.35) (2026-11-24)
+
+
+### Bug Fixes
+
+* **application:** keep configured domain ports when GET omits the override map ([cafe222](https://github.com/coolify-terraform/terraform-provider-coolify/commit/cafe222f82c42cf6f43c36eca557d719e9627f12))
+* **ci:** show when the Coolify channel issue was last checked ([88b537f](https://github.com/coolify-terraform/terraform-provider-coolify/commit/88b537f3c4f71d10391be8dfd20d0984265b623c))
+* **client:** reject HTML and empty version responses ([#1090](https://github.com/coolify-terraform/terraform-provider-coolify/issues/1090)) ([3bbdc02](https://github.com/coolify-terraform/terraform-provider-coolify/commit/3bbdc020b911220a752a4b13302c022287543510))
+
 ## [0.1.34](https://github.com/coolify-terraform/terraform-provider-coolify/compare/v0.1.33...v0.1.34) (2026-11-23)
 
 
