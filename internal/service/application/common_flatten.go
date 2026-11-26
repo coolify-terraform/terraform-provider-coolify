@@ -2,6 +2,7 @@ package application
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/url"
 	"strconv"
@@ -432,7 +433,7 @@ func buildCoreUpdateFields(plan, state commonAppFields) client.UpdateApplication
 		input.BuildPack = strDiff(*plan.BuildPack, *state.BuildPack)
 	}
 	if plan.PortsExposes != nil && state.PortsExposes != nil {
-		input.PortsExposes = strDiff(*plan.PortsExposes, *state.PortsExposes)
+		input.PortsExposes = portsExposesIfChanged(*plan.PortsExposes, *state.PortsExposes)
 	}
 	if plan.InstallCommand != nil && state.InstallCommand != nil {
 		input.InstallCommand = strDiff(*plan.InstallCommand, *state.InstallCommand)
@@ -447,6 +448,36 @@ func buildCoreUpdateFields(plan, state commonAppFields) client.UpdateApplication
 		input.DockerfileLocation = strDiff(*plan.DockerfileLocation, *state.DockerfileLocation)
 	}
 	return input
+}
+
+// portsExposesIfChanged returns the PATCH encoding for ports_exposes:
+// nil (key omitted, which Coolify treats as "no change") when the plan
+// equals the state, an explicit JSON null when the plan clears a stored
+// value, and the quoted value otherwise. null and "" are the same domain
+// value (zero ports), so a transition between them is a no-op and omits
+// the key: a port is only stored when the state is non-empty, and the
+// explicit null the transition would otherwise send 422s below v4.3.15.
+func portsExposesIfChanged(plan, state types.String) json.RawMessage {
+	if plan.Equal(state) || plan.IsUnknown() {
+		return nil
+	}
+	if portsExposesZero(plan) && portsExposesZero(state) {
+		return nil
+	}
+	if portsExposesZero(plan) {
+		return json.RawMessage("null")
+	}
+	raw, err := json.Marshal(plan.ValueString())
+	if err != nil {
+		return nil
+	}
+	return raw
+}
+
+// portsExposesZero reports whether a ports_exposes value means zero ports
+// (null or "").
+func portsExposesZero(v types.String) bool {
+	return v.IsNull() || v.ValueString() == ""
 }
 
 // addExtendedUpdateFields adds extended fields to an UpdateApplicationInput,

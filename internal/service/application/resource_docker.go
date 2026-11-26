@@ -10,6 +10,8 @@ import (
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/flex"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
@@ -54,10 +56,10 @@ func (r *dockerImageApplicationResource) Schema(ctx context.Context, _ resource.
 				Required:            true,
 			},
 			"ports_exposes": schema.StringAttribute{
-				MarkdownDescription: "The ports to expose, as a comma-separated list (e.g., `80` or `80,443`). Note: Coolify may override this value internally; the provider preserves your configured value.",
-				Required:            true,
+				MarkdownDescription: "The ports to expose, as a comma-separated list (e.g., `80` or `80,443`). Omit the attribute or set it to `\"\"` for a zero-port app (no ports exposed); both are stored as null on the Coolify side. Creating a zero-port app requires Coolify v4.1.2 or later, and clearing a stored value requires v4.3.15 or later. Note: Coolify may override this value internally; the provider preserves your configured value.",
+				Optional:            true,
 				Validators: []validator.String{
-					stringvalidator.RegexMatches(regexp.MustCompile(`^\d+(,\d+)*$`), "must be a comma-separated list of port numbers (e.g., \"80\" or \"80,443\")"),
+					stringvalidator.RegexMatches(regexp.MustCompile(`^$|^\d+(,\d+)*$`), "must be empty or a comma-separated list of port numbers (e.g., \"80\" or \"80,443\")"),
 				},
 			},
 			"install_command": schema.StringAttribute{
@@ -91,6 +93,62 @@ func (r *dockerImageApplicationResource) ModifyPlan(ctx context.Context, req res
 	}
 	warnUnsupportedApplicationSettingsWrites(r.client, cfg.common(), &resp.Diagnostics)
 	rejectGiteaAppUUID(cfg.GiteaAppUUID, &resp.Diagnostics)
+
+	isCreate := req.State.Raw.IsNull()
+	var state dockerImageApplicationResourceModel
+	if !isCreate {
+		resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+	}
+	rejectZeroPortsExposes(r.client, &cfg.PortsExposes, &state.PortsExposes, isCreate, &resp.Diagnostics)
+}
+
+// rejectZeroPortsExposes reports a plan error when the plan sets a zero-port
+// app (ports_exposes null or "") on a Coolify that rejects it. Creating a
+// zero-port docker image app needs v4.1.2; clearing a stored value (PATCH
+// null) needs v4.3.15.
+func rejectZeroPortsExposes(c *client.Client, plan, state *types.String, isCreate bool, diags *diag.Diagnostics) {
+	if c == nil || diags == nil || plan == nil {
+		return
+	}
+	// ValueString() is "" for unknown, so portsExposesZero would treat a
+	// port that Terraform has not learned yet as a zero-port plan.
+	if plan.IsUnknown() {
+		return
+	}
+	if !portsExposesZero(*plan) {
+		return
+	}
+	ver := c.CoolifyVersion
+	if ver == "" {
+		ver = "unknown"
+	}
+	if isCreate {
+		if c.SupportsPortsExposesCreate() {
+			return
+		}
+		diags.AddAttributeError(
+			path.Root("ports_exposes"),
+			"Zero-port apps need a newer Coolify",
+			fmt.Sprintf("This Coolify instance (%s) is older than v4.1.2, which is required to create a docker image application without ports_exposes. Upgrade Coolify to v4.1.2 or later, or set ports_exposes to a port list.", ver),
+		)
+		return
+	}
+	// Update: only a clear (state had a value, plan is zero) is gated.
+	// This is exactly the transition set that sends an explicit null.
+	if portsExposesZero(*state) {
+		return
+	}
+	if c.SupportsPortsExposesClear() {
+		return
+	}
+	diags.AddAttributeError(
+		path.Root("ports_exposes"),
+		"Clearing ports_exposes needs a newer Coolify",
+		fmt.Sprintf("This Coolify instance (%s) is older than v4.3.15, which is required to clear a stored ports_exposes value. Upgrade Coolify to v4.3.15 or later, or keep ports_exposes set to a port list.", ver),
+	)
 }
 
 func (r *dockerImageApplicationResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {

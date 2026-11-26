@@ -16,7 +16,10 @@ import (
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/acctest"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
 // ---------------------------------------------------------------------------
@@ -790,7 +793,7 @@ func TestDockerImageApplicationResource_InvalidPortsExposes(t *testing.T) {
 					docker_image = "nginx:latest"
 					ports_exposes = "abc"
 				`),
-				ExpectError: regexp.MustCompile(`comma-separated list of port numbers`),
+				ExpectError: regexp.MustCompile(`comma-separated list of\s+port\s+numbers`),
 			},
 		},
 	})
@@ -1359,6 +1362,654 @@ func TestDockerImageApplicationResource_ClearDomainsOnUpdate(t *testing.T) {
 					domains        = ""
 				`),
 				Check: resource.TestCheckResourceAttr("coolify_application_docker_image.test", "domains", ""),
+			},
+		},
+	})
+}
+
+// ---------------------------------------------------------------------------
+// TestDockerImageApplicationResource_CreateWithoutPortsExposes
+// ---------------------------------------------------------------------------
+
+// TestDockerImageApplicationResource_CreateWithoutPortsExposes asserts that a
+// zero-port app (ports_exposes omitted) is created without the ports_exposes
+// key in the POST body, that the state stays null, and that the plan is clean.
+func TestDockerImageApplicationResource_CreateWithoutPortsExposes(t *testing.T) {
+	t.Parallel()
+	mu := sync.Mutex{}
+	deleted := false
+	app := client.Application{
+		UUID:                    "docker-zeroport-uuid",
+		Name:                    "gitlab-runner",
+		DockerRegistryImageName: "gitlab/gitlab-runner",
+		PortsExposes:            "",
+		ProjectUUID:             "aaaa0002-0002-4000-8000-000000000002",
+		ServerUUID:              "bbbb0002-0002-4000-8000-000000000002",
+		EnvironmentName:         "production",
+	}
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/applications/dockerimage", func(w http.ResponseWriter, r *http.Request) {
+		body, ok := decodeRequestBodyMap(t, w, r)
+		if !ok {
+			return
+		}
+		if _, exists := body["ports_exposes"]; exists {
+			t.Errorf("POST /api/v1/applications/dockerimage must omit ports_exposes for a zero-port app, got %v", body["ports_exposes"])
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		_ = json.NewEncoder(w).Encode(map[string]string{"uuid": app.UUID})
+	})
+	mux.HandleFunc("GET /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("uuid") != app.UUID {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		mu.Lock()
+		defer mu.Unlock()
+		if deleted {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(app)
+	})
+	mux.HandleFunc("DELETE /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		deleted = true
+		mu.Unlock()
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             acctest.CheckDestroy(srv.URL, "coolify_application_docker_image", "/api/v1/applications/"),
+		Steps: []resource.TestStep{
+			{
+				Config: testDockerImageResourceConfig(srv.URL, `
+					name         = "gitlab-runner"
+					project_uuid = "aaaa0002-0002-4000-8000-000000000002"
+					server_uuid  = "bbbb0002-0002-4000-8000-000000000002"
+					docker_image = "gitlab/gitlab-runner"
+				`),
+				ConfigStateChecks: []statecheck.StateCheck{
+					statecheck.ExpectKnownValue("coolify_application_docker_image.test", tfjsonpath.New("ports_exposes"), knownvalue.Null()),
+				},
+			},
+		},
+	})
+}
+
+// ---------------------------------------------------------------------------
+// TestDockerImageApplicationResource_ClearPortsExposesOnUpdate
+// ---------------------------------------------------------------------------
+
+// TestDockerImageApplicationResource_ClearPortsExposesOnUpdate asserts the
+// PATCH wire format for ports_exposes: omitted when unchanged, an explicit
+// JSON null when cleared via "" or omission, and the state converging to the
+// configured form ("" stays "", omission becomes null).
+func TestDockerImageApplicationResource_ClearPortsExposesOnUpdate(t *testing.T) {
+	t.Parallel()
+	mu := sync.Mutex{}
+	deleted := false
+	app := client.Application{
+		UUID:                    "docker-clrport-uuid",
+		Name:                    "gitlab-runner",
+		DockerRegistryImageName: "gitlab/gitlab-runner",
+		PortsExposes:            "9252",
+		ProjectUUID:             "aaaa0002-0002-4000-8000-000000000002",
+		ServerUUID:              "bbbb0002-0002-4000-8000-000000000002",
+		EnvironmentName:         "production",
+	}
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/applications/dockerimage", func(w http.ResponseWriter, r *http.Request) {
+		body, ok := decodeRequestBodyMap(t, w, r)
+		if !ok {
+			return
+		}
+		if p, exists := body["ports_exposes"]; !exists || p != "9252" {
+			t.Errorf("POST ports_exposes = %v (exists=%v), want \"9252\"", p, exists)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		_ = json.NewEncoder(w).Encode(map[string]string{"uuid": app.UUID})
+	})
+	mux.HandleFunc("GET /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("uuid") != app.UUID {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		mu.Lock()
+		defer mu.Unlock()
+		if deleted {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(app)
+	})
+	var patchCount atomic.Int32
+	mux.HandleFunc("PATCH /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("uuid") != app.UUID {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		body, ok := decodeRequestBodyMap(t, w, r)
+		if !ok {
+			return
+		}
+		mu.Lock()
+		defer mu.Unlock()
+		n := patchCount.Add(1)
+		switch n {
+		case 1:
+			// Name-only change: ports_exposes must be omitted (no change).
+			if _, exists := body["ports_exposes"]; exists {
+				t.Errorf("PATCH #1 (name change) must omit ports_exposes, got %v", body["ports_exposes"])
+			}
+			if name, ok := body["name"].(string); ok {
+				app.Name = name
+			}
+		case 2:
+			// ports_exposes = "": Coolify rejects "", so the wire form is null.
+			v, exists := body["ports_exposes"]
+			if !exists || v != nil {
+				t.Errorf("PATCH #2 (ports_exposes = \"\") must send explicit null, got %v (exists=%v)", v, exists)
+			}
+			app.PortsExposes = ""
+		case 3:
+			// Omission: zero-to-zero ("" -> null) is a no-op, key omitted.
+			if _, exists := body["ports_exposes"]; exists {
+				t.Errorf("PATCH #3 (ports_exposes omitted) must omit ports_exposes, got %v", body["ports_exposes"])
+			}
+			app.PortsExposes = ""
+		default:
+			t.Errorf("unexpected PATCH #%d", n)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(app)
+	})
+	mux.HandleFunc("DELETE /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		deleted = true
+		mu.Unlock()
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	// The clear steps (PATCH null) need v4.3.15; run the whole test at that
+	// boundary so the gate is exercised at its minimum.
+	srv := httptest.NewServer(acctest.WithVersionEndpointVersion(mux, "v4.3.15"))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             acctest.CheckDestroy(srv.URL, "coolify_application_docker_image", "/api/v1/applications/"),
+		Steps: []resource.TestStep{
+			{
+				Config: testDockerImageResourceConfig(srv.URL, `
+					name           = "gitlab-runner"
+					project_uuid   = "aaaa0002-0002-4000-8000-000000000002"
+					server_uuid    = "bbbb0002-0002-4000-8000-000000000002"
+					docker_image   = "gitlab/gitlab-runner"
+					ports_exposes  = "9252"
+				`),
+				Check: resource.TestCheckResourceAttr("coolify_application_docker_image.test", "ports_exposes", "9252"),
+			},
+			{
+				Config: testDockerImageResourceConfig(srv.URL, `
+					name           = "gitlab-runner-2"
+					project_uuid   = "aaaa0002-0002-4000-8000-000000000002"
+					server_uuid    = "bbbb0002-0002-4000-8000-000000000002"
+					docker_image   = "gitlab/gitlab-runner"
+					ports_exposes  = "9252"
+				`),
+				Check: resource.TestCheckResourceAttr("coolify_application_docker_image.test", "name", "gitlab-runner-2"),
+			},
+			{
+				Config: testDockerImageResourceConfig(srv.URL, `
+					name           = "gitlab-runner-2"
+					project_uuid   = "aaaa0002-0002-4000-8000-000000000002"
+					server_uuid    = "bbbb0002-0002-4000-8000-000000000002"
+					docker_image   = "gitlab/gitlab-runner"
+					ports_exposes  = ""
+				`),
+				ConfigStateChecks: []statecheck.StateCheck{
+					statecheck.ExpectKnownValue("coolify_application_docker_image.test", tfjsonpath.New("ports_exposes"), knownvalue.StringExact("")),
+				},
+			},
+			{
+				Config: testDockerImageResourceConfig(srv.URL, `
+					name         = "gitlab-runner-2"
+					project_uuid = "aaaa0002-0002-4000-8000-000000000002"
+					server_uuid  = "bbbb0002-0002-4000-8000-000000000002"
+					docker_image = "gitlab/gitlab-runner"
+				`),
+				ConfigStateChecks: []statecheck.StateCheck{
+					statecheck.ExpectKnownValue("coolify_application_docker_image.test", tfjsonpath.New("ports_exposes"), knownvalue.Null()),
+				},
+			},
+		},
+	})
+}
+
+// ---------------------------------------------------------------------------
+// TestDockerImageApplicationResource_CreateWithEmptyPortsExposes
+// ---------------------------------------------------------------------------
+
+// TestDockerImageApplicationResource_CreateWithEmptyPortsExposes asserts that
+// ports_exposes = "" takes the same omitempty path as omitting the attribute:
+// the POST body carries no ports_exposes key, and the state keeps the
+// configured "".
+func TestDockerImageApplicationResource_CreateWithEmptyPortsExposes(t *testing.T) {
+	t.Parallel()
+	mu := sync.Mutex{}
+	deleted := false
+	app := client.Application{
+		UUID:                    "docker-emptyport-uuid",
+		Name:                    "gitlab-runner",
+		DockerRegistryImageName: "gitlab/gitlab-runner",
+		PortsExposes:            "",
+		ProjectUUID:             "aaaa0002-0002-4000-8000-000000000002",
+		ServerUUID:              "bbbb0002-0002-4000-8000-000000000002",
+		EnvironmentName:         "production",
+	}
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/applications/dockerimage", func(w http.ResponseWriter, r *http.Request) {
+		body, ok := decodeRequestBodyMap(t, w, r)
+		if !ok {
+			return
+		}
+		if _, exists := body["ports_exposes"]; exists {
+			t.Errorf("POST /api/v1/applications/dockerimage must omit ports_exposes when it is \"\", got %v", body["ports_exposes"])
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		_ = json.NewEncoder(w).Encode(map[string]string{"uuid": app.UUID})
+	})
+	mux.HandleFunc("GET /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("uuid") != app.UUID {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		mu.Lock()
+		defer mu.Unlock()
+		if deleted {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(app)
+	})
+	mux.HandleFunc("DELETE /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		deleted = true
+		mu.Unlock()
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             acctest.CheckDestroy(srv.URL, "coolify_application_docker_image", "/api/v1/applications/"),
+		Steps: []resource.TestStep{
+			{
+				Config: testDockerImageResourceConfig(srv.URL, `
+					name           = "gitlab-runner"
+					project_uuid   = "aaaa0002-0002-4000-8000-000000000002"
+					server_uuid    = "bbbb0002-0002-4000-8000-000000000002"
+					docker_image   = "gitlab/gitlab-runner"
+					ports_exposes  = ""
+				`),
+				ConfigStateChecks: []statecheck.StateCheck{
+					statecheck.ExpectKnownValue("coolify_application_docker_image.test", tfjsonpath.New("ports_exposes"), knownvalue.StringExact("")),
+				},
+			},
+		},
+	})
+}
+
+// ---------------------------------------------------------------------------
+// TestDockerImageApplicationResource_ImportEmptyPortsExposes
+// ---------------------------------------------------------------------------
+
+// TestDockerImageApplicationResource_ImportEmptyPortsExposes asserts that
+// importing an application whose API ports_exposes is empty stores null in
+// state: the lenient flatten leaves an empty API value alone.
+func TestDockerImageApplicationResource_ImportEmptyPortsExposes(t *testing.T) {
+	t.Parallel()
+	mu := sync.Mutex{}
+	deleted := false
+	// The mock always reports an empty ports_exposes, simulating a zero-port
+	// app stored in Coolify.
+	app := client.Application{
+		UUID:                    "cccc0002-0002-4000-8000-000000000002",
+		Name:                    "gitlab-runner",
+		DockerRegistryImageName: "gitlab/gitlab-runner",
+		PortsExposes:            "",
+		ProjectUUID:             "aaaa0002-0002-4000-8000-000000000002",
+		ServerUUID:              "bbbb0002-0002-4000-8000-000000000002",
+		EnvironmentName:         "production",
+	}
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/applications/dockerimage", func(w http.ResponseWriter, r *http.Request) {
+		body, ok := decodeRequestBodyMap(t, w, r)
+		if !ok {
+			return
+		}
+		if body["ports_exposes"] != "9252" {
+			t.Errorf("POST /api/v1/applications/dockerimage ports_exposes = %v, want \"9252\"", body["ports_exposes"])
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		_ = json.NewEncoder(w).Encode(map[string]string{"uuid": app.UUID})
+	})
+	mux.HandleFunc("GET /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("uuid") != app.UUID {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		mu.Lock()
+		defer mu.Unlock()
+		if deleted {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(app)
+	})
+	mux.HandleFunc("DELETE /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		deleted = true
+		mu.Unlock()
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             acctest.CheckDestroy(srv.URL, "coolify_application_docker_image", "/api/v1/applications/"),
+		Steps: []resource.TestStep{
+			{
+				// Create with a port. The mock stores an empty ports_exposes,
+				// so the read-back preserves the configured "9252" in state.
+				Config: testDockerImageResourceConfig(srv.URL, `
+					name           = "gitlab-runner"
+					project_uuid   = "aaaa0002-0002-4000-8000-000000000002"
+					server_uuid    = "bbbb0002-0002-4000-8000-000000000002"
+					docker_image   = "gitlab/gitlab-runner"
+					ports_exposes  = "9252"
+				`),
+			},
+			{
+				// Re-import the same app. The API reports an empty
+				// ports_exposes, so a fresh import must store null. A null
+				// string attribute is absent from the flatmap.
+				ResourceName:  "coolify_application_docker_image.test",
+				ImportState:   true,
+				ImportStateId: app.UUID,
+				Check: resource.TestCheckFunc(func(s *terraform.State) error {
+					rs, ok := s.RootModule().Resources["coolify_application_docker_image.test"]
+					if !ok {
+						return fmt.Errorf("resource coolify_application_docker_image.test not found in imported state")
+					}
+					if v, exists := rs.Primary.Attributes["ports_exposes"]; exists {
+						return fmt.Errorf("imported ports_exposes = %q, want null (absent)", v)
+					}
+					return nil
+				}),
+			},
+		},
+	})
+}
+
+// ---------------------------------------------------------------------------
+// TestDockerImageApplicationResource_ClearPortsExposesRejectedOnOldCoolify
+// ---------------------------------------------------------------------------
+
+// TestDockerImageApplicationResource_ClearPortsExposesRejectedOnOldCoolify
+// asserts the clear gate: on a Coolify older than v4.3.15 (the unit-test
+// default is v4.2.0), clearing a stored ports_exposes is rejected at plan
+// time instead of sending a PATCH null that the API would 422.
+func TestDockerImageApplicationResource_ClearPortsExposesRejectedOnOldCoolify(t *testing.T) {
+	t.Parallel()
+	mu := sync.Mutex{}
+	deleted := false
+	app := client.Application{
+		UUID:                    "docker-rejectport-uuid",
+		Name:                    "gitlab-runner",
+		DockerRegistryImageName: "gitlab/gitlab-runner",
+		PortsExposes:            "9252",
+		ProjectUUID:             "aaaa0002-0002-4000-8000-000000000002",
+		ServerUUID:              "bbbb0002-0002-4000-8000-000000000002",
+		EnvironmentName:         "production",
+	}
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/applications/dockerimage", func(w http.ResponseWriter, r *http.Request) {
+		body, ok := decodeRequestBodyMap(t, w, r)
+		if !ok {
+			return
+		}
+		if body["ports_exposes"] != "9252" {
+			t.Errorf("POST /api/v1/applications/dockerimage ports_exposes = %v, want \"9252\"", body["ports_exposes"])
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		_ = json.NewEncoder(w).Encode(map[string]string{"uuid": app.UUID})
+	})
+	mux.HandleFunc("GET /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("uuid") != app.UUID {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		mu.Lock()
+		defer mu.Unlock()
+		if deleted {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(app)
+	})
+	mux.HandleFunc("DELETE /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		deleted = true
+		mu.Unlock()
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	// Default version endpoint reports v4.2.0-test, below the v4.3.15 clear gate.
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             acctest.CheckDestroy(srv.URL, "coolify_application_docker_image", "/api/v1/applications/"),
+		Steps: []resource.TestStep{
+			{
+				Config: testDockerImageResourceConfig(srv.URL, `
+					name           = "gitlab-runner"
+					project_uuid   = "aaaa0002-0002-4000-8000-000000000002"
+					server_uuid    = "bbbb0002-0002-4000-8000-000000000002"
+					docker_image   = "gitlab/gitlab-runner"
+					ports_exposes  = "9252"
+				`),
+				Check: resource.TestCheckResourceAttr("coolify_application_docker_image.test", "ports_exposes", "9252"),
+			},
+			{
+				Config: testDockerImageResourceConfig(srv.URL, `
+					name           = "gitlab-runner"
+					project_uuid   = "aaaa0002-0002-4000-8000-000000000002"
+					server_uuid    = "bbbb0002-0002-4000-8000-000000000002"
+					docker_image   = "gitlab/gitlab-runner"
+					ports_exposes  = ""
+				`),
+				ExpectError: regexp.MustCompile(`older than v4\.3\.15`),
+			},
+		},
+	})
+}
+
+// ---------------------------------------------------------------------------
+// TestDockerImageApplicationResource_CreateZeroPortsRejectedOnOldCoolify
+// ---------------------------------------------------------------------------
+
+// TestDockerImageApplicationResource_CreateZeroPortsRejectedOnOldCoolify
+// asserts the create gate: on a Coolify older than v4.1.2, creating a
+// zero-port docker image app is rejected at plan time instead of sending
+// a POST with an absent ports_exposes that the API would 422.
+func TestDockerImageApplicationResource_CreateZeroPortsRejectedOnOldCoolify(t *testing.T) {
+	t.Parallel()
+
+	// v4.1.1: below the v4.1.2 create gate. No app endpoints are needed:
+	// the plan fails before any application request.
+	srv := httptest.NewServer(acctest.WithVersionEndpointVersion(http.NewServeMux(), "v4.1.1"))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testDockerImageResourceConfig(srv.URL, `
+					name         = "gitlab-runner"
+					project_uuid = "aaaa0002-0002-4000-8000-000000000002"
+					server_uuid  = "bbbb0002-0002-4000-8000-000000000002"
+					docker_image = "gitlab/gitlab-runner"
+				`),
+				ExpectError: regexp.MustCompile(`older than v4\.1\.2`),
+			},
+		},
+	})
+}
+
+// ---------------------------------------------------------------------------
+// TestDockerImageApplicationResource_ZeroToZeroUpdateOmitsKey
+// ---------------------------------------------------------------------------
+
+// TestDockerImageApplicationResource_ZeroToZeroUpdateOmitsKey asserts that
+// transitions between the two zero-port encodings ("" and null) send no
+// ports_exposes key at all: a stored port only exists when the state is
+// non-empty, so these transitions are no-ops, and the explicit null they
+// would otherwise send 422s below v4.3.15 (the unit-test default is
+// v4.2.0-test, where the gate must not fire either).
+func TestDockerImageApplicationResource_ZeroToZeroUpdateOmitsKey(t *testing.T) {
+	t.Parallel()
+	mu := sync.Mutex{}
+	deleted := false
+	app := client.Application{
+		UUID:                    "docker-zptrans-uuid",
+		Name:                    "gitlab-runner",
+		DockerRegistryImageName: "gitlab/gitlab-runner",
+		PortsExposes:            "",
+		ProjectUUID:             "aaaa0002-0002-4000-8000-000000000002",
+		ServerUUID:              "bbbb0002-0002-4000-8000-000000000002",
+		EnvironmentName:         "production",
+	}
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/applications/dockerimage", func(w http.ResponseWriter, r *http.Request) {
+		body, ok := decodeRequestBodyMap(t, w, r)
+		if !ok {
+			return
+		}
+		if _, exists := body["ports_exposes"]; exists {
+			t.Errorf("POST /api/v1/applications/dockerimage must omit ports_exposes for a zero-port app, got %v", body["ports_exposes"])
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		_ = json.NewEncoder(w).Encode(map[string]string{"uuid": app.UUID})
+	})
+	mux.HandleFunc("GET /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("uuid") != app.UUID {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		mu.Lock()
+		defer mu.Unlock()
+		if deleted {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(app)
+	})
+	mux.HandleFunc("PATCH /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("uuid") != app.UUID {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		body, ok := decodeRequestBodyMap(t, w, r)
+		if !ok {
+			return
+		}
+		if _, exists := body["ports_exposes"]; exists {
+			t.Errorf("PATCH must omit ports_exposes for a zero-to-zero transition, got %v", body["ports_exposes"])
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(app)
+	})
+	mux.HandleFunc("DELETE /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		deleted = true
+		mu.Unlock()
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             acctest.CheckDestroy(srv.URL, "coolify_application_docker_image", "/api/v1/applications/"),
+		Steps: []resource.TestStep{
+			{
+				// Create with "" (state keeps the configured "").
+				Config: testDockerImageResourceConfig(srv.URL, `
+					name           = "gitlab-runner"
+					project_uuid   = "aaaa0002-0002-4000-8000-000000000002"
+					server_uuid    = "bbbb0002-0002-4000-8000-000000000002"
+					docker_image   = "gitlab/gitlab-runner"
+					ports_exposes  = ""
+				`),
+				ConfigStateChecks: []statecheck.StateCheck{
+					statecheck.ExpectKnownValue("coolify_application_docker_image.test", tfjsonpath.New("ports_exposes"), knownvalue.StringExact("")),
+				},
+			},
+			{
+				// "" -> null: no-op, must omit the key.
+				Config: testDockerImageResourceConfig(srv.URL, `
+					name         = "gitlab-runner"
+					project_uuid = "aaaa0002-0002-4000-8000-000000000002"
+					server_uuid  = "bbbb0002-0002-4000-8000-000000000002"
+					docker_image = "gitlab/gitlab-runner"
+				`),
+				ConfigStateChecks: []statecheck.StateCheck{
+					statecheck.ExpectKnownValue("coolify_application_docker_image.test", tfjsonpath.New("ports_exposes"), knownvalue.Null()),
+				},
+			},
+			{
+				// null -> "": no-op, must omit the key.
+				Config: testDockerImageResourceConfig(srv.URL, `
+					name           = "gitlab-runner"
+					project_uuid   = "aaaa0002-0002-4000-8000-000000000002"
+					server_uuid    = "bbbb0002-0002-4000-8000-000000000002"
+					docker_image   = "gitlab/gitlab-runner"
+					ports_exposes  = ""
+				`),
+				ConfigStateChecks: []statecheck.StateCheck{
+					statecheck.ExpectKnownValue("coolify_application_docker_image.test", tfjsonpath.New("ports_exposes"), knownvalue.StringExact("")),
+				},
 			},
 		},
 	})
