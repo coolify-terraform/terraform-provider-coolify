@@ -51,7 +51,7 @@ resource "coolify_application" "example" {
   # use_build_secrets              = false            # Expose Coolify secrets during build
   # stop_grace_period              = 30               # Seconds to wait for graceful container stop
   # max_restart_count = 3  # Coolify >= v4.3.0; API default 0 (disabled) since v4.3.21
-  # delete_backups    = true  # On destroy, also delete storage backups (Coolify >= v4.8.0). Default false.
+  # delete_backups    = true  # On destroy, also delete storage backups (Coolify >= v4.7.7). Default false.
   # docker_compose_location               = "/compose.yaml"           # used when build_pack = "dockercompose"
   # docker_compose_custom_start_command   = "docker compose up -d"    # custom compose start
   # docker_compose_custom_build_command   = "docker compose build"    # custom compose build
@@ -82,7 +82,7 @@ resource "coolify_application" "example" {
 - `custom_labels` (String) Custom Docker labels for the container. The provider accepts plain text or pre-encoded base64; encoding is handled automatically.
 - `custom_network_aliases` (String) Custom network aliases for the container.
 - `custom_nginx_configuration` (String) Custom Nginx configuration for the application. The provider accepts plain text or pre-encoded base64; encoding is handled automatically.
-- `delete_backups` (Boolean) On destroy, also delete this application's storage backups on the server and on S3. Requires Coolify >= v4.8.0, including the 4.8.0-alpha nightly. v4.7.6 ignores the query, so destroy fails instead of leaving the backups behind. Default `false`.
+- `delete_backups` (Boolean) On destroy, also delete this application's storage backups on the server and on S3. Requires Coolify >= v4.7.7. v4.7.6 ignores the query, so destroy fails instead of leaving the backups behind. Default `false`.
 - `description` (String) A description of the application.
 - `destination_uuid` (String) UUID of the Coolify destination (Docker network) on the server. Create-only; changing forces a new resource. Coolify requires this when the server has multiple destinations and ignores a mismatched value when only one destination exists (it always uses that one). Supported on application create for all Coolify versions this provider supports (v4.1.0+; field is in `$allowedFields` on create, not update). When omitted on a multi-destination server, the provider auto-resolves after Coolify returns the multi-destination error (prefers network `coolify`). Manage destinations with `coolify_destination`. Import cannot recover this value (GET returns `destination_id`/`destination_type`, not UUID). Setting it after import stores the configuration value in place. Omit it unless you know the UUID: a wrong value is kept, and changing a known value forces a new resource.
 - `disable_build_cache` (Boolean) Whether to disable the Docker build cache for this application. Coolify default is `false`. Writing this requires Coolify >= v4.2.0, where it is on the application endpoints' allow list; against older instances the provider omits it on write and emits a plan warning if the attribute is set, rather than fail the whole request with 422.

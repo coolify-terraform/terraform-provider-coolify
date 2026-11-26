@@ -315,7 +315,7 @@ func (c *Client) DeleteDatabase(ctx context.Context, uuid string) error {
 }
 
 // DeleteDatabaseWithOptions deletes a database. DeleteBackups asks Coolify
-// >= v4.8.0 to remove database backups and storage backups as well.
+// >= v4.7.7 to remove database backups and storage backups as well.
 func (c *Client) DeleteDatabaseWithOptions(ctx context.Context, uuid string, opts DeleteBackupsOptions) error {
 	return c.deleteWithBackups(ctx, "database", "/api/v1/databases/", uuid, opts)
 }

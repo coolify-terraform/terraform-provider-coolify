@@ -112,7 +112,7 @@ func (r *serverResource) Metadata(_ context.Context, req resource.MetadataReques
 
 func (r *serverResource) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Manages a Coolify server.\n\n~> **Warning:** Deleting a server removes its Coolify record and, by default, the containers, volumes, and files of the resources on that machine. Set `remove_resources_from_server` to `false` (Coolify >= v4.8.0) to leave those workloads running.",
+		MarkdownDescription: "Manages a Coolify server.\n\n~> **Warning:** Deleting a server removes its Coolify record and, by default, the containers, volumes, and files of the resources on that machine. Set `remove_resources_from_server` to `false` (Coolify >= v4.7.7) to leave those workloads running.",
 		Attributes: CommonServerAttrs(ctx, mergeServerAttrs(sshHostKeyAttrs(), map[string]schema.Attribute{
 			"ip": schema.StringAttribute{
 				MarkdownDescription: "The IP address of the server. Coolify stores IPv6 in short lowercase form " +
@@ -129,7 +129,7 @@ func (r *serverResource) Schema(ctx context.Context, _ resource.SchemaRequest, r
 			},
 			"remove_resources_from_server": schema.BoolAttribute{
 				MarkdownDescription: "On destroy, with force delete, also remove the containers, volumes, and files of this server's resources from the machine. " +
-					"Set `false` to delete those resources only from Coolify and leave them running. Requires Coolify >= v4.8.0, including the 4.8.0-alpha nightly, when set to `false`. " +
+					"Set `false` to delete those resources only from Coolify and leave them running. Requires Coolify >= v4.7.7 when set to `false`. v4.7.6 fails destroy when `false` is set. " +
 					"Default `true`, which matches Coolify and is not sent on the request. Cloud server resources do not expose this attribute and keep the default.",
 				Optional: true,
 				Computed: true,

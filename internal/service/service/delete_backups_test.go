@@ -83,7 +83,7 @@ func TestDeleteService_DeleteBackups(t *testing.T) {
 			t.Fatal("expected version error")
 		}
 		detail := resp.Diagnostics.Errors()[0].Detail()
-		if !strings.Contains(detail, "Coolify >= v4.8.0") {
+		if !strings.Contains(detail, "Coolify >= v4.7.7") {
 			t.Fatalf("detail = %q", detail)
 		}
 		if hits.Load() != 0 {

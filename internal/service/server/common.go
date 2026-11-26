@@ -226,16 +226,16 @@ func addExtendedSettingsAttrs(attrs map[string]schema.Attribute) {
 }
 
 func addCoreExtendedSettingsAttrs(attrs map[string]schema.Attribute) {
-	const needs48 = "Requires Coolify >= v4.8.0, including the 4.8.0-alpha nightly. Setting this on Coolify v4.7.5 and older fails the apply. Omitting the attribute, or setting it to null, removes a stored address on the next apply. Setting or clearing this on localhost (host.docker.internal or the Coolify host) fails the apply, because Coolify ignores the write and still returns success."
+	const needs477 = "Requires Coolify >= v4.7.7. Setting this on Coolify v4.7.6 and older fails the apply. Omitting the attribute, or setting it to null, removes a stored address on the next apply. Setting or clearing this on localhost (host.docker.internal or the Coolify host) fails the apply, because Coolify ignores the write and still returns success."
 	attrs["public_ipv4"] = schema.StringAttribute{
-		MarkdownDescription: "Public IPv4 that DNS checks and DNS records use instead of the server IP, when Coolify reaches this server over a private network. " + needs48,
+		MarkdownDescription: "Public IPv4 that DNS checks and DNS records use instead of the server IP, when Coolify reaches this server over a private network. " + needs477,
 		Optional:            true,
 		Computed:            true,
 		PlanModifiers:       []planmodifier.String{publicIPPlanModifier{}},
 		Validators:          []validator.String{publicIPv4Validator{}},
 	}
 	attrs["public_ipv6"] = schema.StringAttribute{
-		MarkdownDescription: "Public IPv6 that DNS checks and DNS records use instead of the server IP, when Coolify reaches this server over a private network. Coolify stores the compressed form, for example `2001:db8::10`. " + needs48,
+		MarkdownDescription: "Public IPv6 that DNS checks and DNS records use instead of the server IP, when Coolify reaches this server over a private network. Coolify stores the compressed form, for example `2001:db8::10`. " + needs477,
 		Optional:            true,
 		Computed:            true,
 		PlanModifiers:       []planmodifier.String{publicIPPlanModifier{}},
@@ -1068,7 +1068,7 @@ func RejectUnsupportedServerPublicIPs(c *client.Client, p ServerCommonPtrs) erro
 	if ver == "" {
 		ver = "unknown"
 	}
-	return fmt.Errorf("this Coolify instance (%s) does not accept public_ipv4 or public_ipv6 (added in Coolify v4.8.0, including the 4.8.0-alpha nightly). Upgrade Coolify, or remove public_ipv4 and public_ipv6", ver)
+	return fmt.Errorf("this Coolify instance (%s) does not accept public_ipv4 or public_ipv6 (added in Coolify v4.7.7). Upgrade Coolify, or remove public_ipv4 and public_ipv6", ver)
 }
 
 const localhostServerIP = "host.docker.internal"

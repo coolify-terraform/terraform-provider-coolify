@@ -377,11 +377,11 @@ func (c *Client) SupportsImageScanLimits() bool {
 	return c.supportsSince(minImageScanLimitsVersion)
 }
 
-// minServerPublicIPVersion is the first Coolify line whose
-// PATCH /servers/{uuid} accepts public_ipv4 and public_ipv6.
-// The columns landed on the 4.8.0-alpha nightly (migration 2026-11-16).
-// v4.7.5 rejects the keys. 4.8.0-alpha.0.* parses as 4.8.0.
-const minServerPublicIPVersion = "4.8.0"
+// minServerPublicIPVersion is the first Coolify tag whose
+// PATCH /servers/{uuid} allowed list includes public_ipv4 and public_ipv6.
+// Tag v4.7.6 reads the columns for DNS and rejects the keys. Tag v4.7.7
+// accepts them. 4.8.0-alpha.0.* parses as 4.8.0, which is new enough.
+const minServerPublicIPVersion = "4.7.7"
 
 // SupportsServerPublicIPs reports whether PATCH /servers/{uuid} accepts
 // public_ipv4 and public_ipv6.
@@ -389,25 +389,24 @@ const minServerPublicIPVersion = "4.8.0"
 // Empty CoolifyVersion reports true so unit tests that never call Configure
 // exercise the new payload. A 4.3.0 version string reports true because CI
 // edge has used that string while shipping later APIs. Releases before
-// v4.8.0 report false.
+// v4.7.7 report false.
 func (c *Client) SupportsServerPublicIPs() bool {
 	return c.supportsSince(minServerPublicIPVersion)
 }
 
-// minResourceDeleteFlagsVersion is the first Coolify line that honors
+// minResourceDeleteFlagsVersion is the first Coolify tag that honors
 // delete_backups on application, database, and service deletes, and
-// remove_resources_from_server on server deletes. Both landed on the
-// 4.8.0-alpha nightly after tag v4.7.6. 4.8.0-alpha.0.* parses as 4.8.0.
+// remove_resources_from_server on server deletes. Both are on tag v4.7.7.
 // v4.7.6 ignores an unknown delete_backups query, so a true value must
 // be rejected instead of leaving the backups behind.
-const minResourceDeleteFlagsVersion = "4.8.0"
+const minResourceDeleteFlagsVersion = "4.7.7"
 
 // SupportsResourceDeleteFlags reports whether destroy queries for
 // delete_backups and remove_resources_from_server do what the user asked.
 //
 // Empty CoolifyVersion reports true so unit tests that never call Configure
 // exercise the query. A 4.3.0 version string reports true because CI edge
-// has used that string while shipping later APIs. Releases before v4.8.0
+// has used that string while shipping later APIs. Releases before v4.7.7
 // report false.
 func (c *Client) SupportsResourceDeleteFlags() bool {
 	return c.supportsSince(minResourceDeleteFlagsVersion)

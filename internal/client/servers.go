@@ -89,8 +89,7 @@ type ServerSettings struct {
 	SSHHostKeyFingerprints        []string `json:"ssh_host_key_fingerprints,omitempty"`
 	SSHHostKeyPendingFingerprints []string `json:"ssh_host_key_pending_fingerprints,omitempty"`
 	// Public IPs used for DNS when Coolify reaches the server privately.
-	// Coolify >= v4.8.0, including 4.8.0-alpha. Pointers so a GET that
-	// omits the columns stays null.
+	// Coolify >= v4.7.7. Pointers so a GET that omits the columns stays null.
 	PublicIPv4 *string `json:"public_ipv4,omitempty"`
 	PublicIPv6 *string `json:"public_ipv6,omitempty"`
 }
@@ -161,7 +160,7 @@ type UpdateServerInput struct {
 	WildcardDomain                 *string `json:"wildcard_domain,omitempty"`
 	ServerTimezone                 *string `json:"server_timezone,omitempty"`
 	BackupCompressionCPUPercentage *int    `json:"backup_compression_cpu_percentage,omitempty"`
-	// PublicIPv4 and PublicIPv6 are accepted on PATCH from Coolify >= v4.8.0.
+	// PublicIPv4 and PublicIPv6 are accepted on PATCH from Coolify >= v4.7.7.
 	// A non-nil Null value sends JSON null, which clears the column.
 	// UpdateServer drops them on older instances.
 	PublicIPv4 *JSONString `json:"public_ipv4,omitempty"`
@@ -304,7 +303,7 @@ func applyDiskIntervalWrite(c *Client, hours *int) *int {
 //
 // RemoveResourcesFromServer nil or true omits the query. Coolify's default is
 // true: force delete also removes containers, volumes, and files. A false
-// pointer sends remove_resources_from_server=false and requires Coolify >= v4.8.0.
+// pointer sends remove_resources_from_server=false and requires Coolify >= v4.7.7.
 type DeleteServerOptions struct {
 	RemoveSSHKey              bool
 	RemoveResourcesFromServer *bool

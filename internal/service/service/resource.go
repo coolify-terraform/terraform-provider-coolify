@@ -79,7 +79,7 @@ func (r *serviceResource) Metadata(_ context.Context, req resource.MetadataReque
 
 func serviceDeleteBackupsAttr() schema.BoolAttribute {
 	return schema.BoolAttribute{
-		MarkdownDescription: "On destroy, also delete this service's database backups and storage backups on the server and on S3. Requires Coolify >= v4.8.0, including the 4.8.0-alpha nightly. v4.7.6 ignores the query, so destroy fails instead of leaving the backups behind. Default `false`.",
+		MarkdownDescription: "On destroy, also delete this service's database backups and storage backups on the server and on S3. Requires Coolify >= v4.7.7. v4.7.6 ignores the query, so destroy fails instead of leaving the backups behind. Default `false`.",
 		Optional:            true,
 		Computed:            true,
 		Default:             booldefault.StaticBool(false),

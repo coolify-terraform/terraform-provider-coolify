@@ -494,6 +494,9 @@ func TestSupportsServerPublicIPs(t *testing.T) {
 		want    bool
 	}{
 		{"4.7.5", false},
+		{"4.7.6", false},
+		{"4.7.7", true},
+		{"4.7.9", true},
 		{"4.8.0", true},
 		{"4.8.0-alpha.0.20261116.1", true},
 		{"v4.8.0-alpha.0.20261116.1", true},
@@ -521,6 +524,9 @@ func TestSupportsResourceDeleteFlags(t *testing.T) {
 	}{
 		{"4.7.6", false},
 		{"v4.7.6", false},
+		{"4.7.7", true},
+		{"v4.7.7", true},
+		{"4.7.9", true},
 		{"4.8.0", true},
 		{"4.8.0-alpha.0.20261121.1", true},
 		{"v4.8.0-alpha.0.20261121.1", true},

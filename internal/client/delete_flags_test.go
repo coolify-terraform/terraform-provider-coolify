@@ -34,7 +34,7 @@ func TestDeleteBackupsOption(t *testing.T) {
 		{name: "true on nightly alpha", version: "4.8.0-alpha.0.20261121.1", send: true, query: "delete_backups=true"},
 		{name: "true on empty version", version: "", send: true, query: "delete_backups=true"},
 		{name: "true on 4.3.0 lag string", version: "4.3.0", send: true, query: "delete_backups=true"},
-		{name: "true on 4.7.6 is rejected", version: "4.7.6", send: true, wantErr: "Coolify >= v4.8.0"},
+		{name: "true on 4.7.6 is rejected", version: "4.7.6", send: true, wantErr: "Coolify >= v4.7.7"},
 	}
 	for _, kind := range calls {
 		for _, tc := range cases {
@@ -87,7 +87,7 @@ func TestDeleteServer_RemoveResourcesFromServer(t *testing.T) {
 			opts:    DeleteServerOptions{RemoveSSHKey: true, RemoveResourcesFromServer: &leave},
 			query:   "force=true&remove_resources_from_server=false&remove_ssh_key=true",
 		},
-		{name: "false on 4.7.6 is rejected", version: "4.7.6", opts: DeleteServerOptions{RemoveResourcesFromServer: &leave}, wantErr: "Coolify >= v4.8.0"},
+		{name: "false on 4.7.6 is rejected", version: "4.7.6", opts: DeleteServerOptions{RemoveResourcesFromServer: &leave}, wantErr: "Coolify >= v4.7.7"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

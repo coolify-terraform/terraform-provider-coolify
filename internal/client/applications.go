@@ -882,7 +882,7 @@ func (c *Client) DeleteApplication(ctx context.Context, uuid string) error {
 }
 
 // DeleteApplicationWithOptions deletes an application. DeleteBackups asks
-// Coolify >= v4.8.0 to remove the application's storage backups as well.
+// Coolify >= v4.7.7 to remove the application's storage backups as well.
 func (c *Client) DeleteApplicationWithOptions(ctx context.Context, uuid string, opts DeleteBackupsOptions) error {
 	return c.deleteWithBackups(ctx, "application", "/api/v1/applications/", uuid, opts)
 }

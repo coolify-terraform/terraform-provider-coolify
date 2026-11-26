@@ -169,7 +169,7 @@ func (c *Client) DeleteService(ctx context.Context, uuid string) error {
 }
 
 // DeleteServiceWithOptions deletes a service. DeleteBackups asks Coolify
-// >= v4.8.0 to remove database backups and storage backups as well.
+// >= v4.7.7 to remove database backups and storage backups as well.
 func (c *Client) DeleteServiceWithOptions(ctx context.Context, uuid string, opts DeleteBackupsOptions) error {
 	return c.deleteWithBackups(ctx, "service", "/api/v1/services/", uuid, opts)
 }
