@@ -113,6 +113,11 @@ func rejectZeroPortsExposes(c *client.Client, plan, state *types.String, isCreat
 	if c == nil || diags == nil || plan == nil {
 		return
 	}
+	// ValueString() is "" for unknown, so portsExposesZero would treat a
+	// port that Terraform has not learned yet as a zero-port plan.
+	if plan.IsUnknown() {
+		return
+	}
 	if !portsExposesZero(*plan) {
 		return
 	}

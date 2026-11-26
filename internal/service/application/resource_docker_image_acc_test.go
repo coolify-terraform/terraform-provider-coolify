@@ -179,6 +179,62 @@ func TestAccDockerImageApplicationResource_ClearDomains(t *testing.T) {
 	})
 }
 
+// TestAccDockerImageApplicationResource_ZeroPortsCreate creates a docker
+// image app with ports_exposes omitted. Coolify v4.1.2 stores that as null.
+// The clear lifecycle is TestAccDockerImageApplicationResource_ZeroPorts,
+// which needs v4.3.15.
+func TestAccDockerImageApplicationResource_ZeroPortsCreate(t *testing.T) {
+	t.Parallel()
+	acctest.AccTestSkipIfNoTFAcc(t)
+	acctest.TestAccPreCheck(t)
+	acctest.AccTestSkipIfCoolifyBelow(t, "4.1.2")
+	serverUUID := acctest.AccTestServerUUID(t)
+	name := acctest.RandomWithPrefix("tf-acc-zeroport-create")
+
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             acctest.AccCheckDestroy("coolify_application_docker_image", "/api/v1/applications/"),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ConfigProviderBlock() + fmt.Sprintf(`
+resource "coolify_project" "test" {
+  name = %q
+}
+
+resource "coolify_application_docker_image" "test" {
+  project_uuid        = coolify_project.test.uuid
+  server_uuid         = %q
+  name                = %q
+  docker_image        = "nginx:alpine"
+  autogenerate_domain = false
+}
+`, name, serverUUID, name),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet("coolify_application_docker_image.test", "uuid"),
+					resource.TestCheckNoResourceAttr("coolify_application_docker_image.test", "ports_exposes"),
+				),
+			},
+			{
+				Config: acctest.ConfigProviderBlock() + fmt.Sprintf(`
+resource "coolify_project" "test" {
+  name = %q
+}
+
+resource "coolify_application_docker_image" "test" {
+  project_uuid        = coolify_project.test.uuid
+  server_uuid         = %q
+  name                = %q
+  docker_image        = "nginx:alpine"
+  autogenerate_domain = false
+}
+`, name, serverUUID, name),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
+		},
+	})
+}
+
 // TestAccDockerImageApplicationResource_ZeroPorts creates a docker image app
 // with no ports_exposes (zero-port app), then sets and clears the ports.
 // Covers the wire forms end to end: create omits the key, clearing sends an
@@ -214,6 +270,7 @@ resource "coolify_application_docker_image" "test" {
 `, name, serverUUID, name),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet("coolify_application_docker_image.test", "uuid"),
+					resource.TestCheckNoResourceAttr("coolify_application_docker_image.test", "ports_exposes"),
 				),
 			},
 			// Step 2: Expose a port.
@@ -251,6 +308,9 @@ resource "coolify_application_docker_image" "test" {
   autogenerate_domain = false
 }
 `, name, serverUUID, name),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckNoResourceAttr("coolify_application_docker_image.test", "ports_exposes"),
+				),
 			},
 			// Idempotency check
 			{

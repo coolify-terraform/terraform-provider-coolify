@@ -577,13 +577,10 @@ const minPortsExposesClearVersion = "4.3.15"
 // ports_exposes: null (clearing a stored value).
 //
 // Empty CoolifyVersion reports true (same rationale as SupportsApplicationSettings).
-// A 4.3.0 version string also reports true: CI edge lies with that string while
-// shipping later tip APIs.
+// A 4.3.0 version string stays false: that string is also a real Coolify
+// release, and null is rejected through v4.3.14.
 func (c *Client) SupportsPortsExposesClear() bool {
 	if c == nil || c.CoolifyVersion == "" {
-		return true
-	}
-	if versionStringLagsTip(c.CoolifyVersion) {
 		return true
 	}
 	return IsVersionAtLeast(c.CoolifyVersion, minPortsExposesClearVersion)

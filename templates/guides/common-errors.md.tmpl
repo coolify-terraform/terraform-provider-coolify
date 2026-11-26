@@ -62,7 +62,8 @@ required fields that are not always obvious:
 
 | Resource | Often-required fields |
 |----------|---------------------|
-| All applications | `ports_exposes` |
+| Git-backed applications | `ports_exposes` |
+| `coolify_application_docker_image` | `ports_exposes` on Coolify older than v4.1.2. v4.1.2 and newer accept an omitted value. Clearing a stored value needs v4.3.15. |
 | `coolify_application_private_git` | `private_key_uuid` |
 | `coolify_application_github_app` | `github_app_uuid` |
 | `coolify_server` | `ip`, `private_key_uuid` |

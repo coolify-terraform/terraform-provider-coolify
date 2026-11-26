@@ -517,7 +517,7 @@ ImportStateVerifyIgnore: []string{"private_key", "postgres_password"},
 
 - **Resources**: 47/47 direct acceptance coverage
 - **Data Sources**: 45/45 direct acceptance coverage
-- **Total acceptance test functions**: 166
+- **Total acceptance test functions**: 167
 
 ### Primary-field update coverage
 

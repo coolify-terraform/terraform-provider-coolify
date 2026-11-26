@@ -674,6 +674,36 @@ func TestClearApplicationSettingsV45LeavesEarlierKeys(t *testing.T) {
 	}
 }
 
+func TestSupportsPortsExposesClear(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		version string
+		want    bool
+	}{
+		{"4.1.2", false},
+		{"4.3.0", false},
+		{"v4.3.0", false},
+		{"v4.3.0-edge", false},
+		{"4.3.14", false},
+		{"4.3.15", true},
+		{"v4.3.15", true},
+		{"4.5.0", true},
+		{"", true},
+		{"not-a-version", true},
+	}
+	for _, tt := range tests {
+		c := &Client{CoolifyVersion: tt.version}
+		if got := c.SupportsPortsExposesClear(); got != tt.want {
+			t.Errorf("SupportsPortsExposesClear(%q) = %v, want %v", tt.version, got, tt.want)
+		}
+	}
+	var nilClient *Client
+	if !nilClient.SupportsPortsExposesClear() {
+		t.Error("nil client should assume newest behaviour rather than panic")
+	}
+}
+
 func TestSupportsPreviewDomainUpdate(t *testing.T) {
 	t.Parallel()
 
