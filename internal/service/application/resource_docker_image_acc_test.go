@@ -178,3 +178,98 @@ func TestAccDockerImageApplicationResource_ClearDomains(t *testing.T) {
 		},
 	})
 }
+
+// TestAccDockerImageApplicationResource_ZeroPorts creates a docker image app
+// with no ports_exposes (zero-port app), then sets and clears the ports.
+// Covers the wire forms end to end: create omits the key, clearing sends an
+// explicit null (Coolify rejects "").
+func TestAccDockerImageApplicationResource_ZeroPorts(t *testing.T) {
+	t.Parallel()
+	acctest.AccTestSkipIfNoTFAcc(t)
+	acctest.TestAccPreCheck(t)
+	// The clear step sends PATCH null, which Coolify only accepts from v4.3.15.
+	// The nightly floor image is v4.1.2, so skip there rather than 422.
+	acctest.AccTestSkipIfCoolifyBelow(t, "4.3.15")
+	serverUUID := acctest.AccTestServerUUID(t)
+	name := acctest.RandomWithPrefix("tf-acc-zeroport")
+
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             acctest.AccCheckDestroy("coolify_application_docker_image", "/api/v1/applications/"),
+		Steps: []resource.TestStep{
+			// Step 1: Create a zero-port app (ports_exposes omitted).
+			{
+				Config: acctest.ConfigProviderBlock() + fmt.Sprintf(`
+resource "coolify_project" "test" {
+  name = %q
+}
+
+resource "coolify_application_docker_image" "test" {
+  project_uuid        = coolify_project.test.uuid
+  server_uuid         = %q
+  name                = %q
+  docker_image        = "nginx:alpine"
+  autogenerate_domain = false
+}
+`, name, serverUUID, name),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet("coolify_application_docker_image.test", "uuid"),
+				),
+			},
+			// Step 2: Expose a port.
+			{
+				Config: acctest.ConfigProviderBlock() + fmt.Sprintf(`
+resource "coolify_project" "test" {
+  name = %q
+}
+
+resource "coolify_application_docker_image" "test" {
+  project_uuid        = coolify_project.test.uuid
+  server_uuid         = %q
+  name                = %q
+  docker_image        = "nginx:alpine"
+  ports_exposes       = "9252"
+  autogenerate_domain = false
+}
+`, name, serverUUID, name),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_application_docker_image.test", "ports_exposes", "9252"),
+				),
+			},
+			// Step 3: Clear the ports back to a zero-port app.
+			{
+				Config: acctest.ConfigProviderBlock() + fmt.Sprintf(`
+resource "coolify_project" "test" {
+  name = %q
+}
+
+resource "coolify_application_docker_image" "test" {
+  project_uuid        = coolify_project.test.uuid
+  server_uuid         = %q
+  name                = %q
+  docker_image        = "nginx:alpine"
+  autogenerate_domain = false
+}
+`, name, serverUUID, name),
+			},
+			// Idempotency check
+			{
+				Config: acctest.ConfigProviderBlock() + fmt.Sprintf(`
+resource "coolify_project" "test" {
+  name = %q
+}
+
+resource "coolify_application_docker_image" "test" {
+  project_uuid        = coolify_project.test.uuid
+  server_uuid         = %q
+  name                = %q
+  docker_image        = "nginx:alpine"
+  autogenerate_domain = false
+}
+`, name, serverUUID, name),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
+		},
+	})
+}

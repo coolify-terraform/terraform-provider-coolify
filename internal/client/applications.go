@@ -427,18 +427,22 @@ type UpdateApplicationInput struct {
 	// Domains uses *string so "" is sent to clear FQDN (omitempty only skips nil
 	// pointers; a non-nil pointer to "" is encoded). Coolify maps empty domains
 	// to null fqdn when the proxy path applies.
-	Domains                 *string `json:"domains,omitempty"`
-	GitRepository           *string `json:"git_repository,omitempty"`
-	GitBranch               *string `json:"git_branch,omitempty"`
-	BuildPack               *string `json:"build_pack,omitempty"`
-	DockerfileLocation      *string `json:"dockerfile_location,omitempty"`
-	InstallCommand          *string `json:"install_command,omitempty"`
-	BuildCommand            *string `json:"build_command,omitempty"`
-	StartCommand            *string `json:"start_command,omitempty"`
-	PortsExposes            *string `json:"ports_exposes,omitempty"`
-	DockerRegistryImageName *string `json:"docker_registry_image_name,omitempty"`
-	DockerComposeRaw        *string `json:"docker_compose_raw,omitempty"`
-	GitHubAppUUID           *string `json:"github_app_uuid,omitempty"`
+	Domains            *string `json:"domains,omitempty"`
+	GitRepository      *string `json:"git_repository,omitempty"`
+	GitBranch          *string `json:"git_branch,omitempty"`
+	BuildPack          *string `json:"build_pack,omitempty"`
+	DockerfileLocation *string `json:"dockerfile_location,omitempty"`
+	InstallCommand     *string `json:"install_command,omitempty"`
+	BuildCommand       *string `json:"build_command,omitempty"`
+	StartCommand       *string `json:"start_command,omitempty"`
+	// RawMessage so the field can encode three states: nil (key omitted,
+	// "no change" to Coolify), an explicit JSON null (clears the stored
+	// value), or a quoted port list. A *string with omitempty cannot
+	// express the explicit null, and Coolify rejects "".
+	PortsExposes            json.RawMessage `json:"ports_exposes,omitempty"`
+	DockerRegistryImageName *string         `json:"docker_registry_image_name,omitempty"`
+	DockerComposeRaw        *string         `json:"docker_compose_raw,omitempty"`
+	GitHubAppUUID           *string         `json:"github_app_uuid,omitempty"`
 	// Resource limits
 	LimitsMemory            *string `json:"limits_memory,omitempty"`
 	LimitsMemorySwap        *string `json:"limits_memory_swap,omitempty"`
@@ -939,13 +943,15 @@ func (c *Client) CreatePrivateGitApplication(ctx context.Context, input CreatePr
 }
 
 type CreateDockerImageAppInput struct {
-	ProjectUUID        string `json:"project_uuid"`
-	ServerUUID         string `json:"server_uuid"`
-	DestinationUUID    string `json:"destination_uuid,omitempty"`
-	EnvironmentName    string `json:"environment_name,omitempty"`
-	EnvironmentUUID    string `json:"environment_uuid,omitempty"`
-	DockerImage        string `json:"docker_registry_image_name"`
-	PortsExposes       string `json:"ports_exposes"`
+	ProjectUUID     string `json:"project_uuid"`
+	ServerUUID      string `json:"server_uuid"`
+	DestinationUUID string `json:"destination_uuid,omitempty"`
+	EnvironmentName string `json:"environment_name,omitempty"`
+	EnvironmentUUID string `json:"environment_uuid,omitempty"`
+	DockerImage     string `json:"docker_registry_image_name"`
+	// omitempty: a zero-port app omits the key; Coolify rejects "" and
+	// accepts null/absent (column nullable since v4.1.2).
+	PortsExposes       string `json:"ports_exposes,omitempty"`
 	Name               string `json:"name,omitempty"`
 	Description        string `json:"description,omitempty"`
 	Domains            string `json:"domains,omitempty"`

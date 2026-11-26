@@ -552,6 +552,43 @@ func (c *Client) SupportsPreviewDomainUpdate() bool {
 	return IsVersionAtLeast(c.CoolifyVersion, minPreviewDomainUpdateVersion)
 }
 
+// minPortsExposesCreateVersion is the first Coolify tag whose docker-image
+// create accepts an absent ports_exposes and stores null. v4.1.0 and v4.1.1
+// use a `required` rule and 422 on an absent key.
+const minPortsExposesCreateVersion = "4.1.2"
+
+// SupportsPortsExposesCreate reports whether POST /applications/dockerimage
+// accepts an absent ports_exposes (a zero-port app).
+//
+// Empty CoolifyVersion reports true (same rationale as SupportsApplicationSettings).
+func (c *Client) SupportsPortsExposesCreate() bool {
+	if c == nil || c.CoolifyVersion == "" {
+		return true
+	}
+	return IsVersionAtLeast(c.CoolifyVersion, minPortsExposesCreateVersion)
+}
+
+// minPortsExposesClearVersion is the first Coolify tag whose application
+// update accepts ports_exposes: null (clears a stored value). v4.1.2 through
+// v4.3.14 use the shared `string|regex` rule with no nullable and 422 on null.
+const minPortsExposesClearVersion = "4.3.15"
+
+// SupportsPortsExposesClear reports whether PATCH /applications/{uuid} accepts
+// ports_exposes: null (clearing a stored value).
+//
+// Empty CoolifyVersion reports true (same rationale as SupportsApplicationSettings).
+// A 4.3.0 version string also reports true: CI edge lies with that string while
+// shipping later tip APIs.
+func (c *Client) SupportsPortsExposesClear() bool {
+	if c == nil || c.CoolifyVersion == "" {
+		return true
+	}
+	if versionStringLagsTip(c.CoolifyVersion) {
+		return true
+	}
+	return IsVersionAtLeast(c.CoolifyVersion, minPortsExposesClearVersion)
+}
+
 // SupportsSMTPEhloDomain reports whether the connected instance accepts
 // smtp_ehlo_domain on email notification GET/PATCH.
 //
