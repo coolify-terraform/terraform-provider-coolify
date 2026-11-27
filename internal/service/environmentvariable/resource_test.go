@@ -1807,6 +1807,87 @@ func TestEnvironmentVariableResource_ValidateConfig_RuntimeOnService(t *testing.
 	})
 }
 
+func TestEnvironmentVariableResource_ShownOnceOmittedKeepsStoredTrue(t *testing.T) {
+	t.Parallel()
+	envVar := client.EnvironmentVariable{
+		UUID:        "env-shown-locked",
+		Key:         "TOKEN",
+		Value:       "secret",
+		IsBuild:     true,
+		IsRuntime:   true,
+		IsShownOnce: true,
+	}
+	var mu sync.Mutex
+	var patches int
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/applications/{uuid}/envs", func(w http.ResponseWriter, r *http.Request) {
+		var body map[string]interface{}
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		if body["is_shown_once"] == false {
+			t.Errorf("create sent is_shown_once=false while the stored value is true")
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		_ = json.NewEncoder(w).Encode(map[string]string{"uuid": envVar.UUID})
+	})
+	mux.HandleFunc("GET /api/v1/applications/{uuid}/envs", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode([]client.EnvironmentVariable{envVar})
+	})
+	mux.HandleFunc("PATCH /api/v1/applications/{uuid}/envs", func(w http.ResponseWriter, r *http.Request) {
+		var body map[string]interface{}
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		mu.Lock()
+		patches++
+		mu.Unlock()
+		if body["is_shown_once"] == false {
+			t.Errorf("update cleared a stored is_shown_once=true: %#v", body["is_shown_once"])
+		}
+		w.WriteHeader(http.StatusOK)
+	})
+	mux.HandleFunc("DELETE /api/v1/applications/{uuid}/envs/{envUUID}", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	})
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	cfg := testEnvVarResourceConfig(srv.URL, `
+		application_uuid = "aaaa0001-0001-4000-8000-000000000001"
+		key              = "TOKEN"
+		value            = "secret"
+	`)
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: cfg,
+				Check: func(_ *terraform.State) error {
+					mu.Lock()
+					defer mu.Unlock()
+					if patches != 0 {
+						return fmt.Errorf("create patched %d times", patches)
+					}
+					return nil
+				},
+			},
+			{
+				Config: cfg,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_environment_variable.test", "is_shown_once", "true"),
+					func(_ *terraform.State) error {
+						mu.Lock()
+						defer mu.Unlock()
+						if patches != 0 {
+							return fmt.Errorf("omitted is_shown_once patched %d times", patches)
+						}
+						return nil
+					},
+				),
+			},
+		},
+	})
+}
+
 func TestEnvironmentVariableResource_ShownOnceSentOnServiceAndDatabase(t *testing.T) {
 	t.Parallel()
 	cases := []struct {

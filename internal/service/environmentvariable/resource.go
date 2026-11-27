@@ -12,7 +12,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
@@ -147,10 +146,10 @@ func (r *environmentVariableResource) Schema(_ context.Context, _ resource.Schem
 				PlanModifiers:       []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},
 			"is_shown_once": schema.BoolAttribute{
-				MarkdownDescription: "Whether the value is revealed only once in the Coolify UI (sensitive-style display). Coolify default is `false`. The public API accepts this field for application, service, and database environment variables.",
+				MarkdownDescription: "Whether the value is revealed only once in the Coolify UI (sensitive-style display). Coolify stores `false` when the field is omitted on create. Omit it later to keep the stored value. On current Coolify a saved `true` stays locked, so a later `false` does not reveal the value again.",
 				Optional:            true,
 				Computed:            true,
-				Default:             booldefault.StaticBool(false),
+				PlanModifiers:       []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},
 			"is_multiline": schema.BoolAttribute{
 				MarkdownDescription: "Whether the value is multiline. Defaults to `false` when omitted on create.",
