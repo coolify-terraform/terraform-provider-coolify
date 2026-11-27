@@ -1846,13 +1846,16 @@ func TestEnvironmentVariableResource_PreviewChangeReplacesApplication(t *testing
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/v1/applications/{uuid}/envs", func(w http.ResponseWriter, r *http.Request) {
 		var body struct {
-			IsPreview bool `json:"is_preview"`
+			IsPreview *bool `json:"is_preview"`
 		}
-		_ = json.NewDecoder(r.Body).Decode(&body)
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.IsPreview == nil {
+			http.Error(w, `{"message":"is_preview is required"}`, http.StatusBadRequest)
+			return
+		}
 		mu.Lock()
 		posts++
 		envVar.UUID = fmt.Sprintf("env-preview-%d", posts)
-		envVar.IsPreview = body.IsPreview
+		envVar.IsPreview = *body.IsPreview
 		id := envVar.UUID
 		mu.Unlock()
 		w.Header().Set("Content-Type", "application/json")

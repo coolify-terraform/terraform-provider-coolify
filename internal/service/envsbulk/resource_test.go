@@ -207,13 +207,13 @@ func TestEnvsBulkResource_UpdatesPreviewRowInPlace(t *testing.T) {
 		var body struct {
 			Data []struct {
 				Key       string `json:"key"`
-				IsPreview bool   `json:"is_preview"`
+				IsPreview *bool  `json:"is_preview"`
 			} `json:"data"`
 		}
 		_ = json.NewDecoder(r.Body).Decode(&body)
 		mu.Lock()
 		for _, item := range body.Data {
-			if item.Key == "TOKEN" && item.IsPreview {
+			if item.Key == "TOKEN" && item.IsPreview != nil && *item.IsPreview {
 				sawPreview = true
 			}
 		}
