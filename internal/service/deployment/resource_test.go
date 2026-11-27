@@ -568,8 +568,64 @@ resource "coolify_deployment" "test" {
 }
 `, srv.URL, appUUID),
 						ExpectError: regexp.MustCompile(fmt.Sprintf(
-							`(?s)Deployment %s finished with status\s+'%s'\.\s+Check the Coolify UI \(application > Deployments\)`,
+							`(?s)Deployment %s ended with status\s+'%s'\.\s+Check the Coolify UI \(application > Deployments\)`,
 							regexp.QuoteMeta(deploymentUUID), failureStatus,
+						)),
+					},
+				},
+			})
+		})
+	}
+}
+
+func TestDeploymentResource_WaitStopsWhenCoolifyStops(t *testing.T) {
+	t.Parallel()
+
+	for _, finalStatus := range []string{"cancelled-by-user", "skipped"} {
+		t.Run(finalStatus, func(t *testing.T) {
+			t.Parallel()
+			deploymentUUID := "wait-stop-0001-4000-8000-000000000001"
+			appUUID := "cccc0021-0021-4000-8000-000000000021"
+
+			mux := http.NewServeMux()
+			mux.HandleFunc("POST /api/v1/deploy", func(w http.ResponseWriter, r *http.Request) {
+				if !requireDeployQueryUUID(w, r, appUUID) {
+					return
+				}
+				writeDeployQueued(w, appUUID, deploymentUUID)
+			})
+			mux.HandleFunc("GET /api/v1/deployments/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				json.NewEncoder(w).Encode(map[string]interface{}{
+					"deployment_uuid": r.PathValue("uuid"),
+					"status":          finalStatus,
+				})
+			})
+
+			srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+			defer srv.Close()
+
+			resource.UnitTest(t, resource.TestCase{
+				ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+				Steps: []resource.TestStep{
+					{
+						Config: fmt.Sprintf(`
+provider "coolify" {
+  endpoint = %q
+  token    = "test-token"
+}
+
+resource "coolify_deployment" "test" {
+  application_uuid    = %q
+  wait_for_completion = true
+  timeouts = {
+    create = "2s"
+  }
+}
+`, srv.URL, appUUID),
+						ExpectError: regexp.MustCompile(fmt.Sprintf(
+							`(?s)Deployment %s ended with status\s+'%s'`,
+							regexp.QuoteMeta(deploymentUUID), finalStatus,
 						)),
 					},
 				},

@@ -51,11 +51,11 @@ resource "coolify_deployment" "web_wait" {
 - `cancel_previous` (String) Cancel older webhook, API, and MCP deployments of this application on the same pull request and server. `queued` cancels deployments waiting in the queue. `building` also stops deployments that are still building. A deployment that has already started replacing containers finishes. Manual, restart, and rollback deployments are not cancelled. `none` leaves them running. Requires Coolify >= v4.7.0. Changing this starts a new deployment.
 - `timeouts` (Attributes) (see [below for nested schema](#nestedatt--timeouts))
 - `triggers` (Map of String) An arbitrary map of values that, when changed, triggers a new deployment.
-- `wait_for_completion` (Boolean) When `true`, the resource waits until the deployment reaches `finished` or `failed` status before completing. The default create timeout is 10 minutes; for long-running builds, increase it with `timeouts { create = "30m" }`. On `failed`, the apply fails with a diagnostic. Default `false`.
+- `wait_for_completion` (Boolean) When `true`, the resource waits until the deployment reaches a final status. `finished` succeeds. `failed`, `error`, `cancelled-by-user`, and `skipped` fail the apply. The default create timeout is 10 minutes; for long-running builds, increase it with `timeouts { create = "30m" }`. Default `false`.
 
 ### Read-Only
 
-- `status` (String) The current status of the deployment. Possible values: `queued`, `in_progress`, `finished`, `failed`. The deployment may still be `in_progress` when `terraform apply` completes.
+- `status` (String) The current status of the deployment. Possible values: `queued`, `in_progress`, `finished`, `failed`, `cancelled-by-user`, `skipped`. The deployment may still be `in_progress` when `terraform apply` completes.
 - `uuid` (String) The UUID of the deployment.
 
 <a id="nestedatt--timeouts"></a>

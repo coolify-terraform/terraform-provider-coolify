@@ -84,11 +84,11 @@ func (r *deploymentResource) Schema(ctx context.Context, _ resource.SchemaReques
 				},
 			},
 			"status": schema.StringAttribute{
-				MarkdownDescription: "The current status of the deployment. Possible values: `queued`, `in_progress`, `finished`, `failed`. The deployment may still be `in_progress` when `terraform apply` completes.",
+				MarkdownDescription: "The current status of the deployment. Possible values: `queued`, `in_progress`, `finished`, `failed`, `cancelled-by-user`, `skipped`. The deployment may still be `in_progress` when `terraform apply` completes.",
 				Computed:            true,
 			},
 			"wait_for_completion": schema.BoolAttribute{
-				MarkdownDescription: "When `true`, the resource waits until the deployment reaches `finished` or `failed` status before completing. The default create timeout is 10 minutes; for long-running builds, increase it with `timeouts { create = \"30m\" }`. On `failed`, the apply fails with a diagnostic. Default `false`.",
+				MarkdownDescription: "When `true`, the resource waits until the deployment reaches a final status. `finished` succeeds. `failed`, `error`, `cancelled-by-user`, and `skipped` fail the apply. The default create timeout is 10 minutes; for long-running builds, increase it with `timeouts { create = \"30m\" }`. Default `false`.",
 				Optional:            true,
 				Computed:            true,
 				Default:             booldefault.StaticBool(false),
@@ -241,16 +241,32 @@ func (r *deploymentResource) pollDeployment(ctx context.Context, uuid string, pl
 		}
 		plan.Status = types.StringValue(dep.Status)
 		resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
-		if dep.Status == "finished" || dep.Status == "failed" || dep.Status == "error" {
-			if dep.Status == "failed" || dep.Status == "error" {
-				// Do not append FormatLogs: Coolify only returns logs when the
-				// token can read sensitive fields, and those lines often include
-				// git tokens and docker login credentials.
-				resp.Diagnostics.AddError("Deployment failed",
-					fmt.Sprintf("Deployment %s finished with status '%s'. Check the Coolify UI (application > Deployments) for details.", uuid, dep.Status))
-			}
-			return
+		done, failed := deploymentPollResult(dep.Status)
+		if !done {
+			continue
 		}
+		if failed {
+			// Do not append FormatLogs: Coolify only returns logs when the
+			// token can read sensitive fields, and those lines often include
+			// git tokens and docker login credentials.
+			resp.Diagnostics.AddError("Deployment failed",
+				fmt.Sprintf("Deployment %s ended with status '%s'. Check the Coolify UI (application > Deployments) for details.", uuid, dep.Status))
+		}
+		return
+	}
+}
+
+// deploymentPollResult reports whether Coolify has stopped this deployment.
+// cancelled-by-user and skipped are final. Waiting for finished would hold
+// the apply until the create timeout.
+func deploymentPollResult(status string) (done, failed bool) {
+	switch status {
+	case "finished":
+		return true, false
+	case "failed", "error", "cancelled-by-user", "skipped":
+		return true, true
+	default:
+		return false, false
 	}
 }
 
