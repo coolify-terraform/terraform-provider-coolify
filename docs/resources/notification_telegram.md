@@ -46,7 +46,7 @@ resource "coolify_notification_telegram" "main" {
 - `docker_cleanup_failure` (Boolean) Whether to send Telegram notifications for Docker cleanup failure events.
 - `docker_cleanup_success` (Boolean) Whether to send Telegram notifications for Docker cleanup success events.
 - `enabled` (Boolean) Whether Telegram notifications are enabled for the team.
-- `image_vulnerabilities` (Boolean) Whether to send Telegram notifications for image vulnerabilities events. Requires Coolify >= v4.7.0. On older instances the provider keeps the value in state and does not send it.
+- `image_vulnerabilities` (Boolean) Whether to send Telegram notifications for image vulnerabilities events. Requires Coolify >= v4.7.0. On older instances, true is rejected because Coolify will not send those notifications. false is kept in state and is not sent.
 - `restart_limit_reached` (Boolean) Whether to send Telegram notifications for restart limit reached events. Requires Coolify >= v4.3.15 (not in tag v4.3.14). Omit on older instances; the API rejects the field with HTTP 422.
 - `scheduled_task_failure` (Boolean) Whether to send Telegram notifications for scheduled task failure events.
 - `scheduled_task_success` (Boolean) Whether to send Telegram notifications for scheduled task success events.

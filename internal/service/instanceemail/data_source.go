@@ -87,6 +87,6 @@ func (d *instanceEmailDataSource) Read(ctx context.Context, _ datasource.ReadReq
 		return
 	}
 	var state model
-	flatten(got, &state)
+	flatten(got, &state, d.client.SupportsCoolify47())
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }

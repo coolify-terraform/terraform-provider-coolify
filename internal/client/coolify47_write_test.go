@@ -242,6 +242,30 @@ func TestUpdateDiscord_StripsImageVulnerabilitiesBefore47(t *testing.T) {
 	_, err := c.UpdateDiscordNotifications(context.Background(), UpdateDiscordNotificationInput{
 		Enabled: &on, ImageVulnerabilities: &on,
 	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "does not accept image_vulnerabilities")
+	assert.Nil(t, got, "4.6.1 must not PATCH when image_vulnerabilities is true")
+}
+
+func TestUpdateDiscord_StripsImageVulnerabilitiesFalseBefore47(t *testing.T) {
+	t.Parallel()
+	var got map[string]any
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+		require.NoError(t, json.Unmarshal(body, &got))
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"discord_enabled":true}`))
+	}))
+	t.Cleanup(srv.Close)
+
+	on := true
+	off := false
+	c := New(srv.URL, "test-token")
+	c.CoolifyVersion = "4.6.1"
+	_, err := c.UpdateDiscordNotifications(context.Background(), UpdateDiscordNotificationInput{
+		Enabled: &on, ImageVulnerabilities: &off,
+	})
 	require.NoError(t, err)
 	_, ok := got["image_vulnerabilities_discord_notifications"]
 	assert.False(t, ok, "body: %v", got)

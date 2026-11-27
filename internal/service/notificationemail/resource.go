@@ -147,14 +147,14 @@ func (r *emailResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 		},
 		"resend_api_key": notificationcommon.StringSensitiveOmit("Resend API key."),
 		"resend_from_address": schema.StringAttribute{
-			MarkdownDescription: "From address used when Resend sends team mail." + notificationcommon.SensitiveOmitSuffix + " Must be a valid email address. Requires Coolify >= v4.7.0. On older instances the provider keeps the value in state and does not send it.",
+			MarkdownDescription: "From address used when Resend sends team mail." + notificationcommon.SensitiveOmitSuffix + " Must be a valid email address. Requires Coolify >= v4.7.0. On older instances a configured value is rejected because Coolify would keep the previous sender.",
 			Optional:            true,
 			Computed:            true,
 			Sensitive:           true,
 			Validators:          []validator.String{validate.Email()},
 			PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 		},
-		"resend_from_name": notificationcommon.StringSensitiveOmit("Display name used when Resend sends team mail. Requires Coolify >= v4.7.0. On older instances the provider keeps the value in state and does not send it."),
+		"resend_from_name": notificationcommon.StringSensitiveOmit("Display name used when Resend sends team mail. Requires Coolify >= v4.7.0. On older instances a configured value is rejected because Coolify would keep the previous sender."),
 		"deployment_commit_details_email_notifications": schema.BoolAttribute{
 			MarkdownDescription: "Include git commit details in deployment emails. " +
 				"Requires Coolify >= v4.5.0. On older instances the provider keeps the value in state and does not send it.",
@@ -410,6 +410,7 @@ func flatten(c *client.Client, api *client.EmailNotificationSettings, m *model) 
 	flex.SetStringPreserveEmpty(&m.ResendAPIKey, api.ResendAPIKey)
 	flex.SetStringPreserveEmpty(&m.ResendFromAddress, api.ResendFromAddress)
 	flex.SetStringPreserveEmpty(&m.ResendFromName, api.ResendFromName)
+	dropUnsentResendFrom(c, api, m)
 	if api.SMTPPort != nil {
 		m.SMTPPort = types.Int64Value(int64(*api.SMTPPort))
 	} else if m.SMTPPort.IsNull() || m.SMTPPort.IsUnknown() {
@@ -421,6 +422,18 @@ func flatten(c *client.Client, api *client.EmailNotificationSettings, m *model) 
 		m.SMTPTimeout = types.Int64Null()
 	}
 	return nil
+}
+
+func dropUnsentResendFrom(c *client.Client, api *client.EmailNotificationSettings, m *model) {
+	if c == nil || c.SupportsCoolify47() || api == nil || m == nil {
+		return
+	}
+	if api.ResendFromAddress == "" {
+		m.ResendFromAddress = types.StringNull()
+	}
+	if api.ResendFromName == "" {
+		m.ResendFromName = types.StringNull()
+	}
 }
 
 func warnUnsupportedDeploymentCommitDetails(c *client.Client, plan model, diags *diag.Diagnostics) {

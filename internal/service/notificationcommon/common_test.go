@@ -16,6 +16,24 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestRestoreImageVulnerabilities_DropsUnsentTrue(t *testing.T) {
+	t.Parallel()
+	e := notificationcommon.EventModel{ImageVulnerabilities: types.BoolValue(true)}
+	e.RestoreImageVulnerabilities(types.BoolValue(true))
+	if !e.ImageVulnerabilities.IsNull() {
+		t.Fatalf("image_vulnerabilities = %#v, want null", e.ImageVulnerabilities)
+	}
+}
+
+func TestRestoreImageVulnerabilities_KeepsFalse(t *testing.T) {
+	t.Parallel()
+	e := notificationcommon.EventModel{}
+	e.RestoreImageVulnerabilities(types.BoolValue(false))
+	if e.ImageVulnerabilities.IsNull() || e.ImageVulnerabilities.ValueBool() {
+		t.Fatalf("image_vulnerabilities = %#v, want false", e.ImageVulnerabilities)
+	}
+}
+
 func newImportStateResponse(s schema.Schema) *resource.ImportStateResponse {
 	ctx := context.Background()
 	return &resource.ImportStateResponse{

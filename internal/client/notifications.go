@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strings"
 )
 
 // DiscordNotificationSettings is the current team's Discord notification config.
@@ -121,7 +122,9 @@ func (c *Client) GetDiscordNotifications(ctx context.Context) (*DiscordNotificat
 // UpdateDiscordNotifications updates the current team's Discord settings.
 // Requires Coolify >= v4.3.0.
 func (c *Client) UpdateDiscordNotifications(ctx context.Context, input UpdateDiscordNotificationInput) (*DiscordNotificationSettings, error) {
-	c.omitCoolify47Bool(&input.ImageVulnerabilities)
+	if err := c.omitCoolify47Bool(&input.ImageVulnerabilities); err != nil {
+		return nil, err
+	}
 	if jsonObjectEmpty(input) {
 		return c.GetDiscordNotifications(ctx)
 	}
@@ -145,7 +148,9 @@ func (c *Client) GetSlackNotifications(ctx context.Context) (*SlackNotificationS
 // UpdateSlackNotifications updates the current team's Slack settings.
 // Requires Coolify >= v4.3.0.
 func (c *Client) UpdateSlackNotifications(ctx context.Context, input UpdateSlackNotificationInput) (*SlackNotificationSettings, error) {
-	c.omitCoolify47Bool(&input.ImageVulnerabilities)
+	if err := c.omitCoolify47Bool(&input.ImageVulnerabilities); err != nil {
+		return nil, err
+	}
 	if jsonObjectEmpty(input) {
 		return c.GetSlackNotifications(ctx)
 	}
@@ -269,7 +274,9 @@ func (c *Client) GetWebhookNotifications(ctx context.Context) (*WebhookNotificat
 // UpdateWebhookNotifications updates the current team's webhook settings.
 // Requires Coolify >= v4.3.0.
 func (c *Client) UpdateWebhookNotifications(ctx context.Context, input UpdateWebhookNotificationInput) (*WebhookNotificationSettings, error) {
-	c.omitCoolify47Bool(&input.ImageVulnerabilities)
+	if err := c.omitCoolify47Bool(&input.ImageVulnerabilities); err != nil {
+		return nil, err
+	}
 	if jsonObjectEmpty(input) {
 		return c.GetWebhookNotifications(ctx)
 	}
@@ -293,7 +300,9 @@ func (c *Client) GetPushoverNotifications(ctx context.Context) (*PushoverNotific
 // UpdatePushoverNotifications updates the current team's Pushover settings.
 // Requires Coolify >= v4.3.0.
 func (c *Client) UpdatePushoverNotifications(ctx context.Context, input UpdatePushoverNotificationInput) (*PushoverNotificationSettings, error) {
-	c.omitCoolify47Bool(&input.ImageVulnerabilities)
+	if err := c.omitCoolify47Bool(&input.ImageVulnerabilities); err != nil {
+		return nil, err
+	}
 	if jsonObjectEmpty(input) {
 		return c.GetPushoverNotifications(ctx)
 	}
@@ -490,9 +499,15 @@ func (c *Client) UpdateEmailNotifications(ctx context.Context, input UpdateEmail
 	if !c.SupportsCoolify45() {
 		input.DeploymentCommitDetails = nil
 	}
-	c.omitCoolify47Bool(&input.ImageVulnerabilities)
-	c.omitCoolify47String(&input.ResendFromAddress)
-	c.omitCoolify47String(&input.ResendFromName)
+	if err := c.omitCoolify47Bool(&input.ImageVulnerabilities); err != nil {
+		return nil, err
+	}
+	if err := c.rejectCoolify47String("resend_from_address", &input.ResendFromAddress); err != nil {
+		return nil, err
+	}
+	if err := c.rejectCoolify47String("resend_from_name", &input.ResendFromName); err != nil {
+		return nil, err
+	}
 	if jsonObjectEmpty(input) {
 		return c.GetEmailNotifications(ctx)
 	}
@@ -514,7 +529,9 @@ func (c *Client) GetTelegramNotifications(ctx context.Context) (*TelegramNotific
 
 // UpdateTelegramNotifications updates the current team's Telegram settings. Coolify >= v4.3.0.
 func (c *Client) UpdateTelegramNotifications(ctx context.Context, input UpdateTelegramNotificationInput) (*TelegramNotificationSettings, error) {
-	c.omitCoolify47Bool(&input.ImageVulnerabilities)
+	if err := c.omitCoolify47Bool(&input.ImageVulnerabilities); err != nil {
+		return nil, err
+	}
 	c.omitCoolify47String(&input.ThreadImageVulnerabilities)
 	if jsonObjectEmpty(input) {
 		return c.GetTelegramNotifications(ctx)
@@ -529,16 +546,47 @@ func (c *Client) UpdateTelegramNotifications(ctx context.Context, input UpdateTe
 // NotificationUpdateJSONTags returns JSON keys on Update*NotificationInput for
 // the given Coolify channel name (email, discord, slack, telegram, pushover,
 // webhook). Used by spectest write coverage against channelConfig rules.
-func (c *Client) omitCoolify47Bool(v **bool) {
-	if v != nil && !c.SupportsCoolify47() {
-		*v = nil
+// omitCoolify47Bool drops image_vulnerabilities on Coolify before v4.7.0.
+// true is an error: the server will not send those notifications, so keeping
+// true in state would hide that. false is omitted because it matches the
+// absence of the feature.
+func (c *Client) omitCoolify47Bool(v **bool) error {
+	if v == nil || *v == nil || c == nil || c.SupportsCoolify47() {
+		return nil
 	}
+	if **v {
+		ver := c.CoolifyVersion
+		if ver == "" {
+			ver = "unknown"
+		}
+		return fmt.Errorf("this Coolify instance (%s) does not accept image_vulnerabilities (added in Coolify v4.7.0). Coolify will not send those notifications. Remove image_vulnerabilities, or upgrade Coolify before setting it to true", ver)
+	}
+	*v = nil
+	return nil
 }
 
 func (c *Client) omitCoolify47String(v **string) {
 	if v != nil && !c.SupportsCoolify47() {
 		*v = nil
 	}
+}
+
+// rejectCoolify47String fails the write when a v4.7 sender field is set on
+// an older instance. Coolify would keep the previous sender, so storing the
+// new value would show a from address the mail does not use.
+func (c *Client) rejectCoolify47String(field string, v **string) error {
+	if v == nil || *v == nil || c == nil || c.SupportsCoolify47() {
+		return nil
+	}
+	if strings.TrimSpace(**v) == "" {
+		*v = nil
+		return nil
+	}
+	ver := c.CoolifyVersion
+	if ver == "" {
+		ver = "unknown"
+	}
+	return fmt.Errorf("this Coolify instance (%s) does not accept %s (added in Coolify v4.7.0). Remove %s, or upgrade Coolify before setting it", ver, field, field)
 }
 
 func NotificationUpdateJSONTags(channel string) map[string]struct{} {

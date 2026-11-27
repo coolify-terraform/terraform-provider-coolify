@@ -179,3 +179,26 @@ func TestClient_SupportsInstanceEmailSettings(t *testing.T) {
 		assert.Equal(t, tc.want, c.SupportsInstanceEmailSettings(), tc.ver)
 	}
 }
+
+func TestClient_UpdateInstanceEmailSettings_RejectsFromAddressBefore47(t *testing.T) {
+	t.Parallel()
+	var posts int
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPatch {
+			posts++
+		}
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"smtp_enabled":false}`))
+	}))
+	t.Cleanup(srv.Close)
+
+	from := "ops@example.com"
+	c := client.New(srv.URL, "test-token")
+	c.CoolifyVersion = "4.6.1"
+	_, err := c.UpdateInstanceEmailSettings(context.Background(), client.UpdateInstanceEmailInput{
+		NotificationFromAddress: &from,
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "does not accept notification_from_address")
+	assert.Equal(t, 0, posts)
+}

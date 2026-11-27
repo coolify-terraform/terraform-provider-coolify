@@ -10,17 +10,17 @@ import (
 func TestFlatten_NilAPI(t *testing.T) {
 	t.Parallel()
 	var m model
-	flatten(nil, &m)
+	flatten(nil, &m, true)
 	if !m.ID.IsNull() && !m.ID.IsUnknown() && m.ID.ValueString() != "" {
 		t.Fatalf("flatten(nil) must not set id, got %#v", m.ID)
 	}
-	flatten(&client.InstanceEmailSettings{SMTPEnabled: true}, nil)
+	flatten(&client.InstanceEmailSettings{SMTPEnabled: true}, nil, true)
 }
 
 func TestFlatten_SMTPEnabled(t *testing.T) {
 	t.Parallel()
 	var m model
-	flatten(&client.InstanceEmailSettings{SMTPEnabled: true, SMTPHost: "smtp.example.com"}, &m)
+	flatten(&client.InstanceEmailSettings{SMTPEnabled: true, SMTPHost: "smtp.example.com"}, &m, true)
 	if m.ID.ValueString() != "current" {
 		t.Fatalf("id = %q, want current", m.ID.ValueString())
 	}

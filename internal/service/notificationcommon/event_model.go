@@ -91,10 +91,11 @@ func (e *EventModel) FlattenEvents(src client.NotificationEvents) {
 	e.ImageVulnerabilities = types.BoolValue(src.ImageVulnerabilities)
 }
 
-// RestoreImageVulnerabilities keeps a configured value when Coolify omitted
-// the v4.7 flag. A null or unknown prior becomes null, not false.
+// RestoreImageVulnerabilities keeps false when Coolify omitted the v4.7 flag.
+// false matches a server that will not send vulnerability notifications.
+// A stored true was never sent, so it becomes null instead of staying true.
 func (e *EventModel) RestoreImageVulnerabilities(prior types.Bool) {
-	if !prior.IsNull() && !prior.IsUnknown() {
+	if !prior.IsNull() && !prior.IsUnknown() && !prior.ValueBool() {
 		e.ImageVulnerabilities = prior
 		return
 	}
