@@ -3,12 +3,12 @@
 page_title: "coolify_deployment Resource - coolify"
 subcategory: ""
 description: |-
-  Triggers a Coolify application deployment (POST /api/v1/deploy?uuid=). Use this to bring up a newly created application in the same apply as the application resource. If Coolify already queued a deploy (instant_deploy = true), this resource adopts that deployment UUID instead of failing. Changing the triggers map forces a new deployment.
+  Triggers a Coolify application deployment (POST /api/v1/deploy?uuid=). Use this to bring up a newly created application in the same apply as the application resource. If Coolify already queued a deploy (instant_deploy = true), this resource adopts that deployment UUID instead of failing. Changing the triggers map forces a new deployment. Destroy cancels a queued or in-progress deployment (POST /deployments/{uuid}/cancel). A deployment that has already finished, failed, or been cancelled stays in Coolify and is only removed from Terraform state.
 ---
 
 # coolify_deployment (Resource)
 
-Triggers a Coolify application deployment (`POST /api/v1/deploy?uuid=`). Use this to bring up a newly created application in the same apply as the application resource. If Coolify already queued a deploy (`instant_deploy = true`), this resource adopts that deployment UUID instead of failing. Changing the triggers map forces a new deployment.
+Triggers a Coolify application deployment (`POST /api/v1/deploy?uuid=`). Use this to bring up a newly created application in the same apply as the application resource. If Coolify already queued a deploy (`instant_deploy = true`), this resource adopts that deployment UUID instead of failing. Changing the triggers map forces a new deployment. Destroy cancels a queued or in-progress deployment (`POST /deployments/{uuid}/cancel`). A deployment that has already finished, failed, or been cancelled stays in Coolify and is only removed from Terraform state.
 
 ## Example Usage
 

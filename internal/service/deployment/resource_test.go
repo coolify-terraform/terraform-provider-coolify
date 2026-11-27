@@ -925,18 +925,19 @@ resource "coolify_deployment" "test" {
 // TestDeploymentResource_CreateAPIError
 // ---------------------------------------------------------------------------
 
-func TestDeploymentResource_DestroyNoOp(t *testing.T) {
+func TestDeploymentResource_DestroyCancelsQueued(t *testing.T) {
 	t.Parallel()
-	deploymentUUID := "destroy-nop-0001-4000-8000-000000000001"
+	deploymentUUID := "destroy-cancel-0001-4000-8000-000000000001"
 	appUUID := "cccc0008-0008-4000-8000-000000000008"
-	var restartCalls atomic.Int32
+	var deployCalls atomic.Int32
+	var cancelCalls atomic.Int32
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/v1/deploy", func(w http.ResponseWriter, r *http.Request) {
 		if !requireDeployQueryUUID(w, r, appUUID) {
 			return
 		}
-		restartCalls.Add(1)
+		deployCalls.Add(1)
 		writeDeployQueued(w, appUUID, deploymentUUID)
 	})
 	mux.HandleFunc("GET /api/v1/deployments/{uuid}", func(w http.ResponseWriter, r *http.Request) {
@@ -944,6 +945,19 @@ func TestDeploymentResource_DestroyNoOp(t *testing.T) {
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"deployment_uuid": r.PathValue("uuid"),
 			"status":          "queued",
+		})
+	})
+	mux.HandleFunc("POST /api/v1/deployments/{uuid}/cancel", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("uuid") != deploymentUUID {
+			http.Error(w, `{"message":"Deployment not found."}`, http.StatusNotFound)
+			return
+		}
+		cancelCalls.Add(1)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{
+			"message":         "Deployment cancelled successfully.",
+			"deployment_uuid": deploymentUUID,
+			"status":          "cancelled-by-user",
 		})
 	})
 
@@ -968,9 +982,163 @@ resource "coolify_deployment" "test" {
 			acctest.DestroyRemoveResourceStep(srv.URL),
 		},
 	})
-	if restartCalls.Load() != 1 {
-		t.Fatalf("expected deploy only on create, got %d calls", restartCalls.Load())
+	if deployCalls.Load() != 1 {
+		t.Fatalf("expected deploy only on create, got %d calls", deployCalls.Load())
 	}
+	if cancelCalls.Load() != 1 {
+		t.Fatalf("expected one cancel on destroy, got %d", cancelCalls.Load())
+	}
+}
+
+func TestDeploymentResource_DestroyFinishedIsAlreadyDone(t *testing.T) {
+	t.Parallel()
+	deploymentUUID := "destroy-done-0001-4000-8000-000000000001"
+	appUUID := "cccc0018-0018-4000-8000-000000000018"
+	var cancelCalls atomic.Int32
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/deploy", func(w http.ResponseWriter, r *http.Request) {
+		if !requireDeployQueryUUID(w, r, appUUID) {
+			return
+		}
+		writeDeployQueued(w, appUUID, deploymentUUID)
+	})
+	mux.HandleFunc("GET /api/v1/deployments/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"deployment_uuid": r.PathValue("uuid"),
+			"status":          "finished",
+		})
+	})
+	mux.HandleFunc("POST /api/v1/deployments/{uuid}/cancel", func(w http.ResponseWriter, r *http.Request) {
+		cancelCalls.Add(1)
+		http.Error(w, `{"message":"Deployment cannot be cancelled. Current status: finished"}`, http.StatusBadRequest)
+	})
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: fmt.Sprintf(`
+provider "coolify" {
+  endpoint = %q
+  token    = "test-token"
+}
+
+resource "coolify_deployment" "test" {
+  application_uuid = %q
+}
+`, srv.URL, appUUID),
+			},
+			acctest.DestroyRemoveResourceStep(srv.URL),
+		},
+	})
+	if cancelCalls.Load() != 0 {
+		t.Fatalf("expected no cancel for a finished deployment, got %d", cancelCalls.Load())
+	}
+}
+
+func TestDeploymentResource_DestroyCancelRaceIsDone(t *testing.T) {
+	t.Parallel()
+	deploymentUUID := "destroy-race-0001-4000-8000-000000000001"
+	appUUID := "cccc0020-0020-4000-8000-000000000020"
+	var cancelCalls atomic.Int32
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/deploy", func(w http.ResponseWriter, r *http.Request) {
+		if !requireDeployQueryUUID(w, r, appUUID) {
+			return
+		}
+		writeDeployQueued(w, appUUID, deploymentUUID)
+	})
+	mux.HandleFunc("GET /api/v1/deployments/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"deployment_uuid": r.PathValue("uuid"),
+			"status":          "in_progress",
+		})
+	})
+	mux.HandleFunc("POST /api/v1/deployments/{uuid}/cancel", func(w http.ResponseWriter, r *http.Request) {
+		cancelCalls.Add(1)
+		http.Error(w, `{"message":"Deployment cannot be cancelled. Current status: finished"}`, http.StatusBadRequest)
+	})
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: fmt.Sprintf(`
+provider "coolify" {
+  endpoint = %q
+  token    = "test-token"
+}
+
+resource "coolify_deployment" "test" {
+  application_uuid = %q
+}
+`, srv.URL, appUUID),
+			},
+			acctest.DestroyRemoveResourceStep(srv.URL),
+		},
+	})
+	if cancelCalls.Load() != 1 {
+		t.Fatalf("expected one cancel attempt when the deploy was still in progress, got %d", cancelCalls.Load())
+	}
+}
+
+func TestDeploymentResource_DestroyCancelServerError(t *testing.T) {
+	t.Parallel()
+	deploymentUUID := "destroy-err-0001-4000-8000-000000000001"
+	appUUID := "cccc0019-0019-4000-8000-000000000019"
+	var gate acctest.DeleteOnceFailGate
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/deploy", func(w http.ResponseWriter, r *http.Request) {
+		if !requireDeployQueryUUID(w, r, appUUID) {
+			return
+		}
+		writeDeployQueued(w, appUUID, deploymentUUID)
+	})
+	mux.HandleFunc("GET /api/v1/deployments/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"deployment_uuid": r.PathValue("uuid"),
+			"status":          "in_progress",
+		})
+	})
+	mux.HandleFunc("POST /api/v1/deployments/{uuid}/cancel", gate.Wrap(
+		http.StatusOK,
+		http.StatusInternalServerError,
+		`{"message":"cancel failed"}`,
+	))
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: fmt.Sprintf(`
+provider "coolify" {
+  endpoint = %q
+  token    = "test-token"
+}
+
+resource "coolify_deployment" "test" {
+  application_uuid = %q
+}
+`, srv.URL, appUUID),
+			},
+			acctest.DestroyExpectErrorStep(srv.URL, regexp.MustCompile(`Error cancelling deployment`), &gate),
+		},
+	})
 }
 
 func TestDeploymentResource_AdoptsQueuedDeploy(t *testing.T) {
