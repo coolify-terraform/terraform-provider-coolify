@@ -81,7 +81,7 @@ func TestDeleteDatabase_DeleteBackups(t *testing.T) {
 		c.CoolifyVersion = "4.7.6"
 		resp := &resource.DeleteResponse{}
 		err := DeleteDatabase(context.Background(), c, "coolify_database_postgresql", uuid, true, timeouts.Value{}, resp)
-		if err == nil || !strings.Contains(err.Error(), "Coolify >= v4.8.0") {
+		if err == nil || !strings.Contains(err.Error(), "Coolify >= v4.7.7") {
 			t.Fatalf("err = %v", err)
 		}
 		if hits.Load() != 0 {
