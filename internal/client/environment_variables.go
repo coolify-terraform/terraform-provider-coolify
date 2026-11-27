@@ -137,13 +137,14 @@ func buildEnvWriteInput(parentType string, key, value string, isPreview bool, op
 			Comment:     opts.Comment,
 		}
 	}
-	// Service/database env write paths do not accept is_shown_once.
+	// Service and database env writes accept is_shown_once (Coolify >= v4.1.0).
 	return envVarInput{
 		Key:         key,
 		Value:       value,
 		IsPreview:   isPreview,
 		IsLiteral:   opts.IsLiteral,
 		IsMultiline: opts.IsMultiline,
+		IsShownOnce: opts.IsShownOnce,
 		Comment:     opts.Comment,
 	}
 }

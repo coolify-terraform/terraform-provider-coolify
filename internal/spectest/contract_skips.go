@@ -109,7 +109,7 @@ var environmentVariableCoverageSkips = skipMap(
 	skipInternal("team_id", "FK"),
 	skipInternal("real_value", "computed accessor"),
 	skipInternal("version", "Coolify internal version stamp"),
-	// is_shown_once covered on client + coolify_environment_variable schema (app write path).
+	// is_shown_once covered on client + coolify_environment_variable schema (application, service, and database write paths).
 	skipNA("is_required", "not on ApplicationsController create_env/update_env $allowedFields"),
 	skipNA("is_shared", "not on ApplicationsController create_env/update_env $allowedFields"),
 	skipNA("order", "not on ApplicationsController create_env/update_env $allowedFields"),
