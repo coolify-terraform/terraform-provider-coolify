@@ -9,6 +9,7 @@ import (
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/validate"
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -27,6 +28,7 @@ var (
 	_ resource.Resource                = &scheduledTaskResource{}
 	_ resource.ResourceWithConfigure   = &scheduledTaskResource{}
 	_ resource.ResourceWithImportState = &scheduledTaskResource{}
+	_ resource.ResourceWithModifyPlan  = &scheduledTaskResource{}
 )
 
 // scheduledTaskResource manages a single scheduled task on an application or service.
@@ -129,7 +131,7 @@ func (r *scheduledTaskResource) Schema(_ context.Context, _ resource.SchemaReque
 				Validators:          []validator.Int64{int64validator.AtLeast(1)},
 			},
 			"use_shell": schema.BoolAttribute{
-				MarkdownDescription: "Run the command with `sh -c`. Set false for a container without a shell. Coolify's stored default is true. Requires Coolify >= v4.7.0. On older instances the provider keeps the value in state and does not send it.",
+				MarkdownDescription: "Run the command with `sh -c`. Set false for a container without a shell. Coolify's stored default is true. Requires Coolify >= v4.7.0. On older instances, false is rejected because Coolify still runs the command with a shell. true is kept in state and is not sent.",
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers:       []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
@@ -175,9 +177,25 @@ func (r *scheduledTaskResource) Configure(_ context.Context, req resource.Config
 	r.client = flex.ConfigureClient(req, &resp.Diagnostics)
 }
 
+func (r *scheduledTaskResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if req.Plan.Raw.IsNull() {
+		return
+	}
+	var cfg scheduledTaskResourceModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &cfg)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	resp.Diagnostics.Append(rejectUseShellFalse(r.client, cfg.UseShell)...)
+}
+
 func (r *scheduledTaskResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var plan scheduledTaskResourceModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	resp.Diagnostics.Append(rejectUseShellFalse(r.client, plan.UseShell)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -215,7 +233,7 @@ func (r *scheduledTaskResource) Create(ctx context.Context, req resource.CreateR
 	if listErr != nil {
 		tflog.Warn(ctx, "read-back after create failed, using plan values", map[string]interface{}{"resource_type": "coolify_scheduled_task", "uuid": taskUUID, "error": listErr.Error()})
 		normalizeScheduledTaskFallback(&plan)
-	} else if !flattenScheduledTaskFromList(tasks, &plan) {
+	} else if !flattenScheduledTaskFromList(tasks, &plan, r.client.SupportsCoolify47()) {
 		tflog.Warn(ctx, "task not found in read-back after create, using plan values", map[string]interface{}{"resource_type": "coolify_scheduled_task", "uuid": taskUUID})
 		normalizeScheduledTaskFallback(&plan)
 	}
@@ -246,7 +264,7 @@ func (r *scheduledTaskResource) Read(ctx context.Context, req resource.ReadReque
 		return
 	}
 
-	if !flattenScheduledTaskFromList(tasks, &state) {
+	if !flattenScheduledTaskFromList(tasks, &state, r.client.SupportsCoolify47()) {
 		tflog.Debug(ctx, "resource not found, removing from state", map[string]interface{}{"resource_type": "coolify_scheduled_task", "uuid": state.UUID.ValueString()})
 		resp.State.RemoveResource(ctx)
 		return
@@ -263,6 +281,10 @@ func (r *scheduledTaskResource) Update(ctx context.Context, req resource.UpdateR
 	}
 	var state scheduledTaskResourceModel
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	resp.Diagnostics.Append(rejectUseShellFalse(r.client, plan.UseShell)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -291,7 +313,7 @@ func (r *scheduledTaskResource) Update(ctx context.Context, req resource.UpdateR
 	if listErr != nil {
 		tflog.Warn(ctx, "read-back after update failed, using plan values", map[string]interface{}{"resource_type": "coolify_scheduled_task", "uuid": plan.UUID.ValueString(), "error": listErr.Error()})
 		normalizeScheduledTaskFallback(&plan)
-	} else if !flattenScheduledTaskFromList(tasks, &plan) {
+	} else if !flattenScheduledTaskFromList(tasks, &plan, r.client.SupportsCoolify47()) {
 		tflog.Warn(ctx, "task not found in read-back after update, using plan values", map[string]interface{}{"resource_type": "coolify_scheduled_task", "uuid": plan.UUID.ValueString()})
 		normalizeScheduledTaskFallback(&plan)
 	}
@@ -321,18 +343,18 @@ func (r *scheduledTaskResource) Delete(ctx context.Context, req resource.DeleteR
 
 // flattenScheduledTaskFromList finds the task matching state.UUID in the list
 // and updates the state model. Returns false if not found.
-func flattenScheduledTaskFromList(tasks []client.ScheduledTask, state *scheduledTaskResourceModel) bool {
+func flattenScheduledTaskFromList(tasks []client.ScheduledTask, state *scheduledTaskResourceModel, serverAcceptsUseShell bool) bool {
 	for _, t := range tasks {
 		if t.UUID != state.UUID.ValueString() {
 			continue
 		}
-		applyScheduledTask(t, state)
+		applyScheduledTask(t, state, serverAcceptsUseShell)
 		return true
 	}
 	return false
 }
 
-func applyScheduledTask(t client.ScheduledTask, state *scheduledTaskResourceModel) {
+func applyScheduledTask(t client.ScheduledTask, state *scheduledTaskResourceModel, serverAcceptsUseShell bool) {
 	state.Name = types.StringValue(t.Name)
 	state.Command = types.StringValue(t.Command)
 	state.Frequency = types.StringValue(t.Frequency)
@@ -345,7 +367,10 @@ func applyScheduledTask(t client.ScheduledTask, state *scheduledTaskResourceMode
 	}
 	if t.UseShell != nil {
 		state.UseShell = types.BoolValue(*t.UseShell)
-	} else if state.UseShell.IsNull() || state.UseShell.IsUnknown() {
+	} else if state.UseShell.IsNull() || state.UseShell.IsUnknown() || (!serverAcceptsUseShell && !state.UseShell.ValueBool()) {
+		// Coolify before v4.7.0 omits use_shell. A stored false was never sent,
+		// and the task still runs with a shell. Drop it so state does not
+		// claim the shell is off. true matches Coolify's stored default.
 		state.UseShell = types.BoolNull()
 	}
 	if t.ConsecutiveFailures != nil {
@@ -377,6 +402,29 @@ func normalizeScheduledTaskFallback(m *scheduledTaskResourceModel) {
 	if m.Container.IsUnknown() {
 		m.Container = types.StringNull()
 	}
+}
+
+// rejectUseShellFalse stops apply when the user set use_shell to false on a
+// Coolify that cannot store it. The task would still run with sh -c, and a
+// later plan would show no diff.
+func rejectUseShellFalse(c *client.Client, v types.Bool) diag.Diagnostics {
+	var d diag.Diagnostics
+	if c == nil || c.SupportsCoolify47() {
+		return d
+	}
+	if v.IsNull() || v.IsUnknown() || v.ValueBool() {
+		return d
+	}
+	ver := c.CoolifyVersion
+	if ver == "" {
+		ver = "unknown"
+	}
+	d.AddAttributeError(
+		path.Root("use_shell"),
+		"Coolify version cannot disable the scheduled task shell",
+		fmt.Sprintf("This Coolify instance (%s) does not accept use_shell (added in Coolify v4.7.0). Coolify runs the command with a shell. Remove use_shell, or upgrade Coolify before setting it to false.", ver),
+	)
+	return d
 }
 
 func stringOrNull(v string) types.String {

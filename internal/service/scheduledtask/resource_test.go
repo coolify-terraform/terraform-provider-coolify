@@ -1038,6 +1038,75 @@ func TestScheduledTaskResource_UseShellSent(t *testing.T) {
 	}
 }
 
+func TestScheduledTaskResource_UseShellFalseRejectedBefore47(t *testing.T) {
+	t.Parallel()
+	var posts atomic.Int32
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/applications/{appUUID}/scheduled-tasks", func(w http.ResponseWriter, r *http.Request) {
+		posts.Add(1)
+		http.Error(w, `{"message":"should not be called"}`, http.StatusInternalServerError)
+	})
+	srv := httptest.NewServer(acctest.WithVersionEndpointVersion(mux, "4.6.1"))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{{
+			Config: testScheduledTaskResourceConfig(srv.URL, `
+				application_uuid = "cccc0001-0001-4000-8000-000000000001"
+				name             = "shell-task"
+				command          = "echo hi"
+				frequency        = "0 * * * *"
+				use_shell        = false
+			`),
+			ExpectError: regexp.MustCompile(`does not accept use_shell`),
+		}},
+	})
+	if posts.Load() != 0 {
+		t.Fatalf("create requests = %d, want 0", posts.Load())
+	}
+}
+
+func TestScheduledTaskResource_UseShellTrueKeptBefore47(t *testing.T) {
+	t.Parallel()
+	var body map[string]any
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/applications/{appUUID}/scheduled-tasks", func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		_ = json.NewEncoder(w).Encode(map[string]string{"uuid": "task-shell-true"})
+	})
+	mux.HandleFunc("GET /api/v1/applications/{appUUID}/scheduled-tasks", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode([]client.ScheduledTask{{
+			UUID: "task-shell-true", Name: "shell-task", Command: "echo hi", Frequency: "0 * * * *", Enabled: true,
+		}})
+	})
+	mux.HandleFunc("DELETE /api/v1/applications/{appUUID}/scheduled-tasks/{taskUUID}", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	})
+	srv := httptest.NewServer(acctest.WithVersionEndpointVersion(mux, "4.6.1"))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{{
+			Config: testScheduledTaskResourceConfig(srv.URL, `
+				application_uuid = "cccc0001-0001-4000-8000-000000000001"
+				name             = "shell-task"
+				command          = "echo hi"
+				frequency        = "0 * * * *"
+				use_shell        = true
+			`),
+			Check: resource.TestCheckResourceAttr("coolify_scheduled_task.test", "use_shell", "true"),
+		}},
+	})
+	if _, ok := body["use_shell"]; ok {
+		t.Fatalf("4.6.1 create sent use_shell: %v", body)
+	}
+}
+
 // ---------------------------------------------------------------------------
 // TestScheduledTaskResource_UpdateReadBackFallback
 // ---------------------------------------------------------------------------
