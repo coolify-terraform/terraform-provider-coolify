@@ -69,17 +69,73 @@ func (r *sharedEnvResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 					stringvalidator.RegexMatches(regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_.]*$`), "must be a valid environment variable name (letters, digits, underscores, dots; cannot start with a digit; hyphens are not allowed)"),
 				},
 			},
-			"value":         schema.StringAttribute{Optional: true, Sensitive: true, MarkdownDescription: "Variable value. Preserved when GET omits it."},
-			"is_literal":    schema.BoolAttribute{Optional: true, Computed: true, PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()}},
-			"is_multiline":  schema.BoolAttribute{Optional: true, Computed: true, PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()}},
-			"is_shown_once": schema.BoolAttribute{Optional: true, Computed: true, PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()}},
-			"comment":       schema.StringAttribute{Optional: true},
+			"value": schema.StringAttribute{Optional: true, Sensitive: true, MarkdownDescription: "Variable value. Preserved when GET omits it."},
+			"is_literal": schema.BoolAttribute{
+				Optional: true, Computed: true,
+				MarkdownDescription: "When true, Coolify stores the value without expanding variables. Omit to keep the stored value.",
+				PlanModifiers:       []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
+			},
+			"is_multiline": schema.BoolAttribute{
+				Optional: true, Computed: true,
+				MarkdownDescription: "When true, the value is multiline. Omit to keep the stored value.",
+				PlanModifiers:       []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
+			},
+			"is_shown_once": schema.BoolAttribute{
+				Optional: true, Computed: true,
+				MarkdownDescription: "When true, Coolify reveals the value only once. Omit to keep the stored value.",
+				PlanModifiers:       []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
+			},
+			"comment": schema.StringAttribute{
+				Optional: true, Computed: true,
+				MarkdownDescription: "Note stored with the variable. Omit to keep the stored note. Set an empty string to clear it.",
+				PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+			},
 		},
 	}
 }
 
 func (r *sharedEnvResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	r.client = flex.ConfigureClient(req, &resp.Diagnostics)
+}
+
+func sharedEnvInput(plan sharedEnvModel, includeKey bool) client.SharedEnvInput {
+	input := client.SharedEnvInput{Value: plan.Value.ValueString(), Comment: sharedCommentPtr(plan.Comment)}
+	if includeKey {
+		input.Key = plan.Key.ValueString()
+	}
+	if !plan.IsLiteral.IsNull() && !plan.IsLiteral.IsUnknown() {
+		v := plan.IsLiteral.ValueBool()
+		input.IsLiteral = &v
+	}
+	if !plan.IsMultiline.IsNull() && !plan.IsMultiline.IsUnknown() {
+		v := plan.IsMultiline.ValueBool()
+		input.IsMultiline = &v
+	}
+	if !plan.IsShownOnce.IsNull() && !plan.IsShownOnce.IsUnknown() {
+		v := plan.IsShownOnce.ValueBool()
+		input.IsShownOnce = &v
+	}
+	return input
+}
+
+func sharedCommentPtr(v types.String) *string {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	s := v.ValueString()
+	return &s
+}
+
+// sharedCommentFromAPI keeps an omitted comment null when Coolify has none,
+// and keeps a configured empty string so a clear survives refresh.
+func sharedCommentFromAPI(current types.String, api string) types.String {
+	if api != "" {
+		return types.StringValue(api)
+	}
+	if current.IsNull() || current.IsUnknown() {
+		return types.StringNull()
+	}
+	return types.StringValue("")
 }
 
 func (m sharedEnvModel) scopeArgs() (scope, project, env, server string) {
@@ -108,19 +164,7 @@ func (r *sharedEnvResource) Create(ctx context.Context, req resource.CreateReque
 		return
 	}
 	scope, project, env, server := plan.scopeArgs()
-	input := client.SharedEnvInput{Key: plan.Key.ValueString(), Value: plan.Value.ValueString(), Comment: plan.Comment.ValueString()}
-	if !plan.IsLiteral.IsNull() && !plan.IsLiteral.IsUnknown() {
-		v := plan.IsLiteral.ValueBool()
-		input.IsLiteral = &v
-	}
-	if !plan.IsMultiline.IsNull() && !plan.IsMultiline.IsUnknown() {
-		v := plan.IsMultiline.ValueBool()
-		input.IsMultiline = &v
-	}
-	if !plan.IsShownOnce.IsNull() && !plan.IsShownOnce.IsUnknown() {
-		v := plan.IsShownOnce.ValueBool()
-		input.IsShownOnce = &v
-	}
+	input := sharedEnvInput(plan, true)
 	created, err := r.client.CreateSharedEnv(ctx, scope, project, env, server, input)
 	if err != nil {
 		resp.Diagnostics.AddError("Error creating shared environment variable", err.Error())
@@ -149,6 +193,9 @@ func (r *sharedEnvResource) Create(ctx context.Context, req resource.CreateReque
 		if input.IsShownOnce == nil {
 			plan.IsShownOnce = types.BoolValue(created.IsShownOnce)
 		}
+	}
+	if plan.Comment.IsNull() || plan.Comment.IsUnknown() {
+		plan.Comment = types.StringNull()
 	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
@@ -181,9 +228,7 @@ func (r *sharedEnvResource) Read(ctx context.Context, req resource.ReadRequest, 
 			state.IsLiteral = types.BoolValue(ev.IsLiteral)
 			state.IsMultiline = types.BoolValue(ev.IsMultiline)
 			state.IsShownOnce = types.BoolValue(ev.IsShownOnce)
-			if ev.Comment != "" {
-				state.Comment = types.StringValue(ev.Comment)
-			}
+			state.Comment = sharedCommentFromAPI(state.Comment, ev.Comment)
 			found = true
 			break
 		}
@@ -202,19 +247,7 @@ func (r *sharedEnvResource) Update(ctx context.Context, req resource.UpdateReque
 		return
 	}
 	scope, project, env, server := plan.scopeArgs()
-	input := client.SharedEnvInput{Value: plan.Value.ValueString(), Comment: plan.Comment.ValueString()}
-	if !plan.IsLiteral.IsNull() && !plan.IsLiteral.IsUnknown() {
-		v := plan.IsLiteral.ValueBool()
-		input.IsLiteral = &v
-	}
-	if !plan.IsMultiline.IsNull() && !plan.IsMultiline.IsUnknown() {
-		v := plan.IsMultiline.ValueBool()
-		input.IsMultiline = &v
-	}
-	if !plan.IsShownOnce.IsNull() && !plan.IsShownOnce.IsUnknown() {
-		v := plan.IsShownOnce.ValueBool()
-		input.IsShownOnce = &v
-	}
+	input := sharedEnvInput(plan, false)
 	_, err := r.client.UpdateSharedEnv(ctx, scope, project, env, server, plan.EnvID.ValueString(), input)
 	if err != nil {
 		resp.Diagnostics.AddError("Error updating shared environment variable", err.Error())
