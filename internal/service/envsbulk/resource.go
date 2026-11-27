@@ -317,8 +317,12 @@ func (r *envsBulkResource) bulkUpdate(ctx context.Context, model *envsBulkModel)
 	}
 	sort.Strings(keys)
 
+	preview, err := r.previewKeys(ctx, model.ResourceType.ValueString(), model.ResourceUUID.ValueString())
+	if err != nil {
+		return err
+	}
 	for _, k := range keys {
-		entries = append(entries, client.EnvVarEntry{Key: k, Value: vars[k]})
+		entries = append(entries, client.EnvVarEntry{Key: k, Value: vars[k], IsPreview: preview[k]})
 	}
 
 	input := client.BulkEnvVarInput{Variables: entries}
@@ -330,6 +334,26 @@ func apiParentType(resType string) string { return resType + "s" }
 
 func (r *envsBulkResource) doBulk(ctx context.Context, resType, uuid string, input client.BulkEnvVarInput) error {
 	return r.client.BulkUpdateEnvVars(ctx, apiParentType(resType), uuid, input)
+}
+
+// previewKeys reports keys whose managed row is preview-only. Coolify
+// bulk update with is_preview false creates a separate non-preview row
+// instead of changing the preview row.
+func (r *envsBulkResource) previewKeys(ctx context.Context, resType, uuid string) (map[string]bool, error) {
+	envs, err := r.listEnvVars(ctx, resType, uuid)
+	if err != nil {
+		if client.IsNotFound(err) {
+			return map[string]bool{}, nil
+		}
+		return nil, err
+	}
+	out := make(map[string]bool)
+	for key, ev := range client.PreferNonPreviewEnvVarsByKey(envs) {
+		if ev.IsPreview {
+			out[key] = true
+		}
+	}
+	return out, nil
 }
 
 func (r *envsBulkResource) listEnvVars(ctx context.Context, resType, uuid string) ([]client.EnvironmentVariable, error) {

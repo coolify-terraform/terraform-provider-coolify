@@ -194,6 +194,60 @@ func TestEnvsBulkResource_Update(t *testing.T) {
 	})
 }
 
+func TestEnvsBulkResource_UpdatesPreviewRowInPlace(t *testing.T) {
+	t.Parallel()
+	var mu sync.Mutex
+	var sawPreview bool
+	const appUUID = "550e8400-e29b-41d4-a716-446655440015"
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/v1/applications/"+appUUID+"/envs", func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte(`[{"uuid":"u-TOKEN","key":"TOKEN","value":"old","is_preview":true}]`))
+	})
+	mux.HandleFunc("PATCH /api/v1/applications/"+appUUID+"/envs/bulk", func(w http.ResponseWriter, r *http.Request) {
+		var body struct {
+			Data []struct {
+				Key       string `json:"key"`
+				IsPreview bool   `json:"is_preview"`
+			} `json:"data"`
+		}
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		mu.Lock()
+		for _, item := range body.Data {
+			if item.Key == "TOKEN" && item.IsPreview {
+				sawPreview = true
+			}
+		}
+		mu.Unlock()
+		w.WriteHeader(http.StatusOK)
+	})
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{{
+			Config: acctest.TestResourceConfig(srv.URL, "coolify_envs_bulk", "test", `
+				resource_type = "application"
+				resource_uuid = "`+appUUID+`"
+				variables = {
+					TOKEN = "old"
+				}
+			`),
+			Check: resource.ComposeAggregateTestCheckFunc(
+				resource.TestCheckResourceAttr("coolify_envs_bulk.test", "variables.TOKEN", "old"),
+				func(_ *terraform.State) error {
+					mu.Lock()
+					defer mu.Unlock()
+					if !sawPreview {
+						return fmt.Errorf("bulk update did not set is_preview=true for the preview-only row")
+					}
+					return nil
+				},
+			),
+		}},
+	})
+}
+
 func TestEnvsBulkResource_DeletesDroppedKey(t *testing.T) {
 	t.Parallel()
 	var mu sync.Mutex
