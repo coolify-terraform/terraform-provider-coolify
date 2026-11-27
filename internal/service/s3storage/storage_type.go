@@ -68,6 +68,23 @@ func boolConfigured(v types.Bool) bool {
 	return !v.IsNull() && !v.IsUnknown()
 }
 
+func rejectSkipTLSTrue(c *client.Client, v types.Bool) diag.Diagnostics {
+	var d diag.Diagnostics
+	if c == nil || c.SupportsCoolify47() || !boolConfigured(v) || !v.ValueBool() {
+		return d
+	}
+	ver := c.CoolifyVersion
+	if ver == "" {
+		ver = "unknown"
+	}
+	d.AddAttributeError(
+		path.Root("skip_tls_verification"),
+		"Coolify version cannot skip TLS verification",
+		fmt.Sprintf("This Coolify instance (%s) does not accept skip_tls_verification (added in Coolify v4.7.0). Coolify still verifies the certificate. Remove skip_tls_verification, or upgrade Coolify before setting it to true.", ver),
+	)
+	return d
+}
+
 // clearPrivateKeyWhenOmitted plans null when configuration drops a stored
 // SFTP key. UseStateForUnknown would keep the state value, so Terraform
 // would never send the null Coolify needs to switch back to a password.
@@ -99,6 +116,7 @@ func (clearPrivateKeyWhenOmitted) PlanModifyString(ctx context.Context, req plan
 func rejectStoragePlan(c *client.Client, plan, cfg s3StorageResourceModel) diag.Diagnostics {
 	var d diag.Diagnostics
 	typ := plannedStorageType(plan)
+	d.Append(rejectSkipTLSTrue(c, cfg.SkipTLSVerification)...)
 	if typ != "s3" && (c == nil || !c.SupportsCoolify47()) {
 		ver := "unknown"
 		if c != nil && c.CoolifyVersion != "" {

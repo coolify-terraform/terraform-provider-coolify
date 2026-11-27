@@ -71,6 +71,76 @@ func TestS3StorageResource_OldCoolifyRejectsSFTP(t *testing.T) {
 	})
 }
 
+func TestS3StorageResource_OldCoolifyRejectsSkipTLSTrue(t *testing.T) {
+	t.Parallel()
+	var posts atomic.Int32
+	srv := httptest.NewServer(acctest.WithVersionEndpointVersion(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost {
+			posts.Add(1)
+		}
+		w.WriteHeader(http.StatusInternalServerError)
+	}), "4.6.1"))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{{
+			Config: acctest.TestResourceConfig(srv.URL, "coolify_s3_storage", "test", `
+  name                   = "backups"
+  endpoint               = "https://s3.example.com"
+  bucket                 = "b"
+  region                 = "us-east-1"
+  key                    = "access"
+  secret                 = "secret"
+  skip_tls_verification  = true
+`),
+			ExpectError: regexp.MustCompile(`does not accept skip_tls_verification`),
+		}},
+	})
+	if posts.Load() != 0 {
+		t.Fatalf("create requests = %d, want 0", posts.Load())
+	}
+}
+
+func TestS3StorageResource_OldCoolifyKeepsSkipTLSFalse(t *testing.T) {
+	t.Parallel()
+	var body map[string]any
+	srv := httptest.NewServer(acctest.WithVersionEndpointVersion(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodPost:
+			_ = json.NewDecoder(r.Body).Decode(&body)
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusCreated)
+			_, _ = w.Write([]byte(`{"uuid":"s3-tls"}`))
+		case http.MethodGet:
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"uuid":"s3-tls","name":"backups","endpoint":"https://s3.example.com","bucket":"b","region":"us-east-1","key":"access","type":"s3"}`))
+		default:
+			w.WriteHeader(http.StatusNoContent)
+		}
+	}), "4.6.1"))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{{
+			Config: acctest.TestResourceConfig(srv.URL, "coolify_s3_storage", "test", `
+  name                  = "backups"
+  endpoint              = "https://s3.example.com"
+  bucket                = "b"
+  region                = "us-east-1"
+  key                   = "access"
+  secret                = "secret"
+  skip_tls_verification = false
+`),
+			Check: resource.TestCheckResourceAttr("coolify_s3_storage.test", "skip_tls_verification", "false"),
+		}},
+	})
+	if _, ok := body["skip_tls_verification"]; ok {
+		t.Fatalf("4.6.1 create sent skip_tls_verification: %v", body)
+	}
+}
+
 func TestS3StorageResource_TypeChangeReplaces(t *testing.T) {
 	t.Parallel()
 	var mu sync.Mutex

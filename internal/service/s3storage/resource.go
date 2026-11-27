@@ -120,7 +120,7 @@ func (r *s3StorageResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 				PlanModifiers:       []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},
 			"type": schema.StringAttribute{
-				MarkdownDescription: "Storage type. `s3` (default when omitted), `sftp`, `ftps`, or `webdav`. A type other than `s3` requires Coolify >= v4.7.0. Changing type replaces the storage. Coolify cannot change the protocol in place. On older instances the provider keeps the value in state and does not send it.",
+				MarkdownDescription: "Storage type. `s3` (default when omitted), `sftp`, `ftps`, or `webdav`. A type other than `s3` requires Coolify >= v4.7.0. Changing type replaces the storage. Coolify cannot change the protocol in place. On older instances the apply fails instead of storing sftp, ftps, or webdav.",
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
@@ -130,13 +130,13 @@ func (r *s3StorageResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 				Validators: []validator.String{stringvalidator.OneOf("s3", "sftp", "ftps", "webdav")},
 			},
 			"skip_tls_verification": schema.BoolAttribute{
-				MarkdownDescription: "S3 only. Do not check the endpoint TLS certificate. Use only for a self-signed or private CA. Requires Coolify >= v4.7.0. On older instances the provider keeps the value in state and does not send it.",
+				MarkdownDescription: "S3 only. Do not check the endpoint TLS certificate. Use only for a self-signed or private CA. Coolify's stored default is false. Requires Coolify >= v4.7.0. On older instances, true is rejected because Coolify still verifies the certificate. false is kept in state and is not sent.",
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers:       []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},
 			"private_key_uuid": schema.StringAttribute{
-				MarkdownDescription: "SFTP only. UUID of a team private key used to log in. Requires Coolify >= v4.7.0. On older instances the provider keeps the value in state and does not send it. Removing the attribute sends null so Coolify switches back to the password in `secret`. After import, leave the imported UUID in configuration or the next apply clears the key.",
+				MarkdownDescription: "SFTP only. UUID of a team private key used to log in. Requires Coolify >= v4.7.0. Older instances reject `sftp`, so this attribute cannot be applied there. Removing the attribute sends null so Coolify switches back to the password in `secret`. After import, leave the imported UUID in configuration or the next apply clears the key.",
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers:       []planmodifier.String{clearPrivateKeyWhenOmitted{}},
@@ -222,7 +222,7 @@ func (r *s3StorageResource) Create(ctx context.Context, req resource.CreateReque
 		return
 	}
 
-	flattenS3Storage(s, &plan)
+	flattenS3Storage(s, &plan, r.client.SupportsCoolify47())
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 	tflog.Debug(ctx, "created resource", map[string]interface{}{"resource_type": "coolify_s3_storage", "uuid": plan.UUID.ValueString()})
 }
@@ -247,7 +247,7 @@ func (r *s3StorageResource) Read(ctx context.Context, req resource.ReadRequest, 
 		return
 	}
 
-	flattenS3Storage(s, &state)
+	flattenS3Storage(s, &state, r.client.SupportsCoolify47())
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
@@ -322,7 +322,7 @@ func (r *s3StorageResource) Update(ctx context.Context, req resource.UpdateReque
 		return
 	}
 
-	flattenS3Storage(s, &plan)
+	flattenS3Storage(s, &plan, r.client.SupportsCoolify47())
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
@@ -378,7 +378,7 @@ func warnUnsupportedPathStyle(c *client.Client, value types.Bool, diags *diag.Di
 
 // flattenS3Storage maps API fields into the Terraform model.
 // Key and secret are preserved from state when the API omits them (sensitive).
-func flattenS3Storage(s *client.S3Storage, m *s3StorageResourceModel) {
+func flattenS3Storage(s *client.S3Storage, m *s3StorageResourceModel, serverAcceptsSkipTLS bool) {
 	m.UUID = types.StringValue(s.UUID)
 	m.Name = types.StringValue(s.Name)
 	flex.SetStringSeedOrClear(&m.Description, s.Description)
@@ -406,9 +406,14 @@ func flattenS3Storage(s *client.S3Storage, m *s3StorageResourceModel) {
 	} else if m.Type.IsUnknown() {
 		m.Type = types.StringNull()
 	}
-	if s.SkipTLSVerification != nil {
+	switch {
+	case s.SkipTLSVerification != nil:
 		m.SkipTLSVerification = types.BoolValue(*s.SkipTLSVerification)
-	} else if m.SkipTLSVerification.IsUnknown() {
+	case m.SkipTLSVerification.IsUnknown():
+		m.SkipTLSVerification = types.BoolNull()
+	case !serverAcceptsSkipTLS && !m.SkipTLSVerification.IsNull() && m.SkipTLSVerification.ValueBool():
+		// Coolify before v4.7.0 omits the field and still verifies TLS.
+		// A stored true was never sent.
 		m.SkipTLSVerification = types.BoolNull()
 	}
 	if s.PrivateKeyUUID != "" {
