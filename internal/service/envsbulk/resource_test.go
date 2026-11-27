@@ -277,6 +277,67 @@ func TestEnvsBulkResource_DeletesDroppedKey(t *testing.T) {
 	})
 }
 
+func TestEnvsBulkResource_DroppedKeyKeepsPreviewRow(t *testing.T) {
+	t.Parallel()
+	var mu sync.Mutex
+	var deleted []string
+	const appUUID = "550e8400-e29b-41d4-a716-446655440014"
+	mux := http.NewServeMux()
+	mux.HandleFunc("PATCH /api/v1/applications/"+appUUID+"/envs/bulk", func(w http.ResponseWriter, r *http.Request) {
+		_, _ = io.Copy(io.Discard, r.Body)
+		w.WriteHeader(http.StatusOK)
+	})
+	mux.HandleFunc("GET /api/v1/applications/"+appUUID+"/envs", func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte(`[
+			{"uuid":"u-APP_ENV","key":"APP_ENV","value":"production","is_preview":false},
+			{"uuid":"u-LOG_LEVEL","key":"LOG_LEVEL","value":"info","is_preview":false},
+			{"uuid":"u-LOG_LEVEL-preview","key":"LOG_LEVEL","value":"debug","is_preview":true}
+		]`))
+	})
+	mux.HandleFunc("DELETE /api/v1/applications/"+appUUID+"/envs/{envUUID}", func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		deleted = append(deleted, r.PathValue("envUUID"))
+		mu.Unlock()
+		w.WriteHeader(http.StatusNoContent)
+	})
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.TestResourceConfig(srv.URL, "coolify_envs_bulk", "test", `
+					resource_type = "application"
+					resource_uuid = "`+appUUID+`"
+					variables = {
+						APP_ENV   = "production"
+						LOG_LEVEL = "info"
+					}
+				`),
+				Check: resource.TestCheckResourceAttr("coolify_envs_bulk.test", "variables.LOG_LEVEL", "info"),
+			},
+			{
+				Config: acctest.TestResourceConfig(srv.URL, "coolify_envs_bulk", "test", `
+					resource_type = "application"
+					resource_uuid = "`+appUUID+`"
+					variables = {
+						APP_ENV = "production"
+					}
+				`),
+				Check: func(_ *terraform.State) error {
+					mu.Lock()
+					defer mu.Unlock()
+					if len(deleted) != 1 || deleted[0] != "u-LOG_LEVEL" {
+						return fmt.Errorf("deleted = %v, want [u-LOG_LEVEL]", deleted)
+					}
+					return nil
+				},
+			},
+		},
+	})
+}
+
 func TestEnvsBulkResource_PrefersNonPreviewDuplicateValues(t *testing.T) {
 	t.Parallel()
 	var lastPayload []byte

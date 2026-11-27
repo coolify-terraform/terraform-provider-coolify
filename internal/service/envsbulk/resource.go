@@ -257,9 +257,10 @@ func flattenEnvVars(envs []client.EnvironmentVariable) map[string]string {
 	return vars
 }
 
-// deleteDroppedKeys removes Coolify env vars whose keys left the map.
-// Keys that were never in this resource are not listed in prior state, so
-// they stay. Both preview and non-preview rows for a dropped key are deleted.
+// deleteDroppedKeys removes the Coolify row behind a key that left the map.
+// The map stores one value per key, the same row flatten keeps (non-preview
+// when both exist). A preview row with the same key stays. Keys that were
+// never in this resource are not in prior state, so they stay too.
 func (r *envsBulkResource) deleteDroppedKeys(ctx context.Context, prior, plan *envsBulkModel) error {
 	priorVars := map[string]string{}
 	planVars := map[string]string{}
@@ -283,14 +284,12 @@ func (r *envsBulkResource) deleteDroppedKeys(ctx context.Context, prior, plan *e
 	if err != nil {
 		return err
 	}
-	drop := make(map[string]struct{}, len(dropped))
-	for _, key := range dropped {
-		drop[key] = struct{}{}
-	}
+	collapsed := client.PreferNonPreviewEnvVarsByKey(envs)
 	parent := apiParentType(prior.ResourceType.ValueString())
 	parentUUID := prior.ResourceUUID.ValueString()
-	for _, ev := range envs {
-		if _, ok := drop[ev.Key]; !ok {
+	for _, key := range dropped {
+		ev, ok := collapsed[key]
+		if !ok {
 			continue
 		}
 		if ev.UUID == "" {
