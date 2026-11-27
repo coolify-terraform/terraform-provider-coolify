@@ -9,6 +9,7 @@ import (
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/flex"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/validate"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -147,7 +148,7 @@ func (r *environmentVariableResource) Schema(_ context.Context, _ resource.Schem
 				PlanModifiers:       []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},
 			"is_shown_once": schema.BoolAttribute{
-				MarkdownDescription: "Whether the value is revealed only once in the Coolify UI (sensitive-style display). Application env write path only; Coolify default is `false`.",
+				MarkdownDescription: "Whether the value is revealed only once in the Coolify UI (sensitive-style display). Coolify default is `false`. Supported only for application-scoped environment variables. `true` on a service or database is rejected because Coolify does not accept the field there.",
 				Optional:            true,
 				Computed:            true,
 				Default:             booldefault.StaticBool(false),
@@ -213,6 +214,31 @@ func (r *environmentVariableResource) ValidateConfig(ctx context.Context, req re
 			)
 		}
 	}
+	rejectShownOnceOutsideApplication(&config, &resp.Diagnostics)
+}
+
+// rejectShownOnceOutsideApplication stops is_shown_once=true on a service or
+// database. The write payload omits the key, Coolify stores false, and the
+// next plan would try to set true again.
+func rejectShownOnceOutsideApplication(config *environmentVariableResourceModel, diags *diag.Diagnostics) {
+	if diags == nil || config == nil {
+		return
+	}
+	if config.IsShownOnce.IsNull() || config.IsShownOnce.IsUnknown() || !config.IsShownOnce.ValueBool() {
+		return
+	}
+	if !config.ApplicationUUID.IsNull() && !config.ApplicationUUID.IsUnknown() {
+		return
+	}
+	scope := "services"
+	if !config.DatabaseUUID.IsNull() && !config.DatabaseUUID.IsUnknown() {
+		scope = "databases"
+	}
+	diags.AddAttributeError(
+		path.Root("is_shown_once"),
+		"Unsupported environment variable scope",
+		fmt.Sprintf("`is_shown_once` is only supported for application-scoped environment variables because Coolify does not accept it for %s.", scope),
+	)
 }
 
 // parentLabel returns a user-friendly singular label for the API slug.

@@ -72,7 +72,7 @@ resource "coolify_environment_variable" "db_log_level" {
 - `is_multiline` (Boolean) Whether the value is multiline. Defaults to `false` when omitted on create.
 - `is_preview` (Boolean) Whether this variable is available in preview deployments. Set it explicitly when you need preview-scoped behavior.
 - `is_runtime` (Boolean) Whether this variable is available at container runtime (Coolify `is_runtime`). Supported only for application-scoped environment variables. If omitted during create, Coolify defaults application env vars to `true`.
-- `is_shown_once` (Boolean) Whether the value is revealed only once in the Coolify UI (sensitive-style display). Application env write path only; Coolify default is `false`.
+- `is_shown_once` (Boolean) Whether the value is revealed only once in the Coolify UI (sensitive-style display). Coolify default is `false`. Supported only for application-scoped environment variables. `true` on a service or database is rejected because Coolify does not accept the field there.
 - `service_uuid` (String) The UUID of the service to set the variable on. Exactly one of `application_uuid`, `service_uuid`, or `database_uuid` must be provided. Changing this forces a new resource.
 
 ### Read-Only

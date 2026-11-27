@@ -1807,6 +1807,46 @@ func TestEnvironmentVariableResource_ValidateConfig_RuntimeOnService(t *testing.
 	})
 }
 
+func TestEnvironmentVariableResource_ValidateConfig_ShownOnceOnService(t *testing.T) {
+	t.Parallel()
+	mux := http.NewServeMux()
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{{
+			Config: testEnvVarResourceConfig(srv.URL, `
+				service_uuid   = "dddd0001-0001-4000-8000-000000000001"
+				key            = "X"
+				value          = "1"
+				is_shown_once  = true
+			`),
+			ExpectError: regexp.MustCompile(`only supported for application-scoped`),
+		}},
+	})
+}
+
+func TestEnvironmentVariableResource_ValidateConfig_ShownOnceOnDatabase(t *testing.T) {
+	t.Parallel()
+	mux := http.NewServeMux()
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{{
+			Config: testEnvVarResourceConfig(srv.URL, `
+				database_uuid  = "eeee0001-0001-4000-8000-000000000001"
+				key            = "X"
+				value          = "1"
+				is_shown_once  = true
+			`),
+			ExpectError: regexp.MustCompile(`only supported for application-scoped`),
+		}},
+	})
+}
+
 func TestEnvironmentVariableResource_ValidateConfig_RuntimeOnDatabase(t *testing.T) {
 	t.Parallel()
 	mux := http.NewServeMux()
