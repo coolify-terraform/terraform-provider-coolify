@@ -1973,26 +1973,27 @@ func TestEnvironmentVariableResource_PreviewChangeAdoptsTwin(t *testing.T) {
 		var body struct {
 			Key       string `json:"key"`
 			Value     string `json:"value"`
-			IsPreview bool   `json:"is_preview"`
+			IsPreview *bool  `json:"is_preview"`
 		}
-		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-			http.Error(w, `{"message":"bad json"}`, http.StatusBadRequest)
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.IsPreview == nil {
+			http.Error(w, `{"message":"is_preview is required"}`, http.StatusBadRequest)
 			return
 		}
+		preview := *body.IsPreview
 		mu.Lock()
 		defer mu.Unlock()
-		if findRow(body.Key, body.IsPreview) >= 0 {
+		if findRow(body.Key, preview) >= 0 {
 			conflicts++
 			http.Error(w, `{"message":"Environment variable already exists. Use PATCH request to update it."}`, http.StatusConflict)
 			return
 		}
 		posts++
-		id := fmt.Sprintf("env-%d-%t", posts, body.IsPreview)
+		id := fmt.Sprintf("env-%d-%t", posts, preview)
 		rows = append(rows, client.EnvironmentVariable{
-			UUID: id, Key: body.Key, Value: body.Value, IsPreview: body.IsPreview, IsBuild: true, IsRuntime: true,
+			UUID: id, Key: body.Key, Value: body.Value, IsPreview: preview, IsBuild: true, IsRuntime: true,
 		})
 		// Coolify copies a new non-preview application variable into a preview row.
-		if !body.IsPreview && findRow(body.Key, true) < 0 {
+		if !preview && findRow(body.Key, true) < 0 {
 			rows = append(rows, client.EnvironmentVariable{
 				UUID: "twin-" + id, Key: body.Key, Value: body.Value, IsPreview: true, IsBuild: true, IsRuntime: true,
 			})
@@ -2012,15 +2013,15 @@ func TestEnvironmentVariableResource_PreviewChangeAdoptsTwin(t *testing.T) {
 		var body struct {
 			Key       string `json:"key"`
 			Value     string `json:"value"`
-			IsPreview bool   `json:"is_preview"`
+			IsPreview *bool  `json:"is_preview"`
 		}
-		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-			http.Error(w, `{"message":"bad json"}`, http.StatusBadRequest)
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.IsPreview == nil {
+			http.Error(w, `{"message":"is_preview is required"}`, http.StatusBadRequest)
 			return
 		}
 		mu.Lock()
 		defer mu.Unlock()
-		idx := findRow(body.Key, body.IsPreview)
+		idx := findRow(body.Key, *body.IsPreview)
 		if idx < 0 {
 			http.Error(w, `{"message":"Environment variable not found."}`, http.StatusNotFound)
 			return
