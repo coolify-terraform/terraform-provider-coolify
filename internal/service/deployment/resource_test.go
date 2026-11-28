@@ -1148,6 +1148,57 @@ resource "coolify_deployment" "test" {
 	}
 }
 
+func TestDeploymentResource_DestroyCancelFloorUndefinedApplication(t *testing.T) {
+	t.Parallel()
+	deploymentUUID := "destroy-floor-0001-4000-8000-000000000001"
+	appUUID := "cccc0021-0021-4000-8000-000000000021"
+	var cancelCalls atomic.Int32
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/deploy", func(w http.ResponseWriter, r *http.Request) {
+		if !requireDeployQueryUUID(w, r, appUUID) {
+			return
+		}
+		writeDeployQueued(w, appUUID, deploymentUUID)
+	})
+	mux.HandleFunc("GET /api/v1/deployments/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"deployment_uuid": r.PathValue("uuid"),
+			"status":          "in_progress",
+		})
+	})
+	mux.HandleFunc("POST /api/v1/deployments/{uuid}/cancel", func(w http.ResponseWriter, r *http.Request) {
+		cancelCalls.Add(1)
+		http.Error(w, `{"message":"Failed to cancel deployment: Undefined variable $application"}`, http.StatusInternalServerError)
+	})
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: fmt.Sprintf(`
+provider "coolify" {
+  endpoint = %q
+  token    = "test-token"
+}
+
+resource "coolify_deployment" "test" {
+  application_uuid = %q
+}
+`, srv.URL, appUUID),
+			},
+			acctest.DestroyRemoveResourceStep(srv.URL),
+		},
+	})
+	if cancelCalls.Load() != 1 {
+		t.Fatalf("expected one cancel on destroy, got %d", cancelCalls.Load())
+	}
+}
+
 func TestDeploymentResource_DestroyCancelServerError(t *testing.T) {
 	t.Parallel()
 	deploymentUUID := "destroy-err-0001-4000-8000-000000000001"
