@@ -26,6 +26,7 @@ var (
 	_ resource.Resource                   = &environmentVariableResource{}
 	_ resource.ResourceWithConfigure      = &environmentVariableResource{}
 	_ resource.ResourceWithImportState    = &environmentVariableResource{}
+	_ resource.ResourceWithModifyPlan     = &environmentVariableResource{}
 	_ resource.ResourceWithValidateConfig = &environmentVariableResource{}
 )
 
@@ -123,12 +124,11 @@ func (r *environmentVariableResource) Schema(_ context.Context, _ resource.Schem
 				Sensitive:           true,
 			},
 			"is_preview": schema.BoolAttribute{
-				MarkdownDescription: "Whether this variable is stored for preview deployments. Coolify keeps preview and non-preview values as separate application rows, so changing this replaces the variable. `true` on a service or database is rejected because Coolify does not save it there.",
+				MarkdownDescription: "Whether this variable is stored for preview deployments. Coolify keeps preview and non-preview values as separate application rows. Changing this switches to the other row in place. `true` on a service or database is rejected because Coolify does not save it there.",
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers: []planmodifier.Bool{
 					boolplanmodifier.UseStateForUnknown(),
-					boolplanmodifier.RequiresReplace(),
 				},
 			},
 			"is_build": schema.BoolAttribute{
@@ -150,7 +150,7 @@ func (r *environmentVariableResource) Schema(_ context.Context, _ resource.Schem
 				PlanModifiers:       []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},
 			"is_shown_once": schema.BoolAttribute{
-				MarkdownDescription: "Whether the value is revealed only once in the Coolify UI (sensitive-style display). Coolify stores `false` when the field is omitted on create. Omit it later to keep the stored value. On current Coolify a saved `true` stays locked, so a later `false` does not reveal the value again.",
+				MarkdownDescription: "Whether the value is revealed only once in the Coolify UI (sensitive-style display). Coolify stores `false` when the field is omitted on create. Omit it later to keep the stored value. A saved `true` stays locked: the provider rejects a later `false`, because Coolify would keep `true` and the plan would never settle.",
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers:       []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
@@ -229,11 +229,20 @@ func rejectPreviewOutsideApplication(config *environmentVariableResourceModel, d
 	if config.IsPreview.IsNull() || config.IsPreview.IsUnknown() || !config.IsPreview.ValueBool() {
 		return
 	}
-	if !config.ApplicationUUID.IsNull() && !config.ApplicationUUID.IsUnknown() {
+	// Unknown is still set. service_uuid = coolify_service.svc.uuid is a
+	// service during validate, and Coolify will not store is_preview there.
+	// An unknown application_uuid with the other parents null is an application.
+	appSet := !config.ApplicationUUID.IsNull()
+	svcSet := !config.ServiceUUID.IsNull()
+	dbSet := !config.DatabaseUUID.IsNull()
+	if appSet && !svcSet && !dbSet {
+		return
+	}
+	if !svcSet && !dbSet {
 		return
 	}
 	scope := "services"
-	if !config.DatabaseUUID.IsNull() && !config.DatabaseUUID.IsUnknown() {
+	if dbSet && !svcSet {
 		scope = "databases"
 	}
 	diags.AddAttributeError(
@@ -241,6 +250,11 @@ func rejectPreviewOutsideApplication(config *environmentVariableResourceModel, d
 		"Unsupported environment variable scope",
 		fmt.Sprintf("`is_preview` is only stored for application environment variables. Coolify does not save it for %s.", scope),
 	)
+}
+
+// parentUUIDKnown reports a UUID the config has set to a concrete value.
+func parentUUIDKnown(v types.String) bool {
+	return !v.IsNull() && !v.IsUnknown() && v.ValueString() != ""
 }
 
 // parentLabel returns a user-friendly singular label for the API slug.
@@ -454,9 +468,46 @@ func (r *environmentVariableResource) Read(ctx context.Context, req resource.Rea
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
-func (r *environmentVariableResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var plan environmentVariableResourceModel
+func (r *environmentVariableResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if req.State.Raw.IsNull() || req.Plan.Raw.IsNull() || req.Config.Raw.IsNull() {
+		return
+	}
+	var state, plan, config environmentVariableResourceModel
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	rejectShownOnceUnlock(state.IsShownOnce, config.IsShownOnce, &resp.Diagnostics)
+	// uuid normally stays put. A preview switch stores a different Coolify
+	// row, so the plan must not promise the previous uuid.
+	if parentUUIDKnown(plan.ApplicationUUID) && previewFlagChanged(state.IsPreview, plan.IsPreview) {
+		resp.Diagnostics.Append(resp.Plan.SetAttribute(ctx, path.Root("uuid"), types.StringUnknown())...)
+	}
+}
+
+// rejectShownOnceUnlock stops a plan that sets is_shown_once from true to
+// false. Coolify's saving hook writes true back, so storing false here
+// makes every later plan repeat the same change.
+func rejectShownOnceUnlock(stateShown, configShown types.Bool, diags *diag.Diagnostics) {
+	if diags == nil || stateShown.IsNull() || stateShown.IsUnknown() || !stateShown.ValueBool() {
+		return
+	}
+	if configShown.IsNull() || configShown.IsUnknown() || configShown.ValueBool() {
+		return
+	}
+	diags.AddAttributeError(
+		path.Root("is_shown_once"),
+		"Environment variable stays locked",
+		"Coolify keeps `is_shown_once` true once it is saved, so a later false does not reveal the value. Remove `is_shown_once = false`, or omit the attribute.",
+	)
+}
+
+func (r *environmentVariableResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var plan, prior environmentVariableResourceModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	resp.Diagnostics.Append(req.State.Get(ctx, &prior)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -466,6 +517,19 @@ func (r *environmentVariableResource) Update(ctx context.Context, req resource.U
 	parentType, parentUUID, ok := parentTypeAndUUID(&plan)
 	if !ok {
 		resp.Diagnostics.AddError("Configuration Error", "One of application_uuid, service_uuid, or database_uuid must be set")
+		return
+	}
+
+	// Coolify copies each non-preview application variable into a preview
+	// row. POST of that flag then returns 409. Switch rows before deleting
+	// the one this resource stored, so a failed create leaves the original.
+	if parentType == "applications" && previewFlagChanged(prior.IsPreview, plan.IsPreview) {
+		if err := r.adoptOrCreatePreviewRow(ctx, parentUUID, prior.UUID.ValueString(), &plan); err != nil {
+			resp.Diagnostics.AddError("Error updating environment variable", fmt.Sprintf("%s %s env var %s: %s", parentLabel(parentType), parentUUID, plan.Key.ValueString(), err))
+			return
+		}
+		applyCreateDefaults(parentType, &plan)
+		resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 		return
 	}
 
@@ -485,6 +549,52 @@ func (r *environmentVariableResource) Update(ctx context.Context, req resource.U
 	// Ensure Optional+Computed values are known in state after update.
 	applyCreateDefaults(parentType, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+}
+
+func previewFlagChanged(prior, next types.Bool) bool {
+	if prior.IsNull() || prior.IsUnknown() || next.IsNull() || next.IsUnknown() {
+		return false
+	}
+	return prior.ValueBool() != next.ValueBool()
+}
+
+// adoptOrCreatePreviewRow points state at the application row for the
+// planned is_preview flag, then deletes the previous row. The destination
+// row often already exists because Coolify inserts a preview twin.
+func (r *environmentVariableResource) adoptOrCreatePreviewRow(ctx context.Context, parentUUID, oldUUID string, plan *environmentVariableResourceModel) error {
+	want := plan.IsPreview.ValueBool()
+	key := plan.Key.ValueString()
+	envs, err := r.client.ListEnvVars(ctx, "applications", parentUUID)
+	if err != nil {
+		return err
+	}
+	twinUUID := ""
+	for _, ev := range envs {
+		if ev.Key == key && ev.IsPreview == want && ev.UUID != "" && ev.UUID != oldUUID {
+			twinUUID = ev.UUID
+			break
+		}
+	}
+	written := client.EnvironmentVariable{Key: key, Value: plan.Value.ValueString(), IsPreview: want}
+	if twinUUID != "" {
+		if err := r.client.UpdateEnvVar(ctx, "applications", parentUUID, written, writeOptsFromPlan("applications", plan, true)); err != nil {
+			return err
+		}
+		plan.UUID = types.StringValue(twinUUID)
+	} else {
+		created, err := r.client.CreateEnvVar(ctx, "applications", parentUUID, written, writeOptsFromPlan("applications", plan, false))
+		if err != nil {
+			return err
+		}
+		plan.UUID = types.StringValue(created.UUID)
+	}
+	newUUID := plan.UUID.ValueString()
+	if oldUUID != "" && oldUUID != newUUID {
+		if err := r.client.DeleteEnvVar(ctx, "applications", parentUUID, oldUUID); err != nil && !client.IsNotFound(err) {
+			return err
+		}
+	}
+	return nil
 }
 
 func (r *environmentVariableResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {

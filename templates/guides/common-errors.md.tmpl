@@ -369,6 +369,24 @@ will have finished deleting by then.
 
 ## Terraform-Specific Errors
 
+### Environment variable stays locked
+
+```
+Error: Environment variable stays locked
+
+with coolify_environment_variable.token,
+on main.tf line 12, in resource "coolify_environment_variable" "token":
+  is_shown_once = false
+```
+
+**Cause:** Coolify keeps `is_shown_once` true once it has been saved.
+The same lock applies to `coolify_shared_environment_variable`.
+The provider rejects `is_shown_once = false` at plan time. A successful
+apply would leave the stored true, and the next plan would repeat.
+
+**Fix:** remove `is_shown_once = false`, or omit the attribute. Omitting
+it keeps the stored true. The lock cannot be cleared through the API.
+
 ### Can't configure a value for a computed attribute
 
 ```

@@ -543,9 +543,6 @@ func (c *Client) UpdateTelegramNotifications(ctx context.Context, input UpdateTe
 	return &r, nil
 }
 
-// NotificationUpdateJSONTags returns JSON keys on Update*NotificationInput for
-// the given Coolify channel name (email, discord, slack, telegram, pushover,
-// webhook). Used by spectest write coverage against channelConfig rules.
 // omitCoolify47Bool drops image_vulnerabilities on Coolify before v4.7.0.
 // true is an error: the server will not send those notifications, so keeping
 // true in state would hide that. false is omitted because it matches the
@@ -589,6 +586,9 @@ func (c *Client) rejectCoolify47String(field string, v **string) error {
 	return fmt.Errorf("this Coolify instance (%s) does not accept %s (added in Coolify v4.7.0). Remove %s, or upgrade Coolify before setting it", ver, field, field)
 }
 
+// NotificationUpdateJSONTags returns JSON keys on Update*NotificationInput for
+// the given Coolify channel name (email, discord, slack, telegram, pushover,
+// webhook). Used by spectest write coverage against channelConfig rules.
 func NotificationUpdateJSONTags(channel string) map[string]struct{} {
 	switch channel {
 	case "email":

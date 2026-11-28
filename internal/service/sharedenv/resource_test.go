@@ -424,3 +424,65 @@ resource "coolify_shared_environment_variable" "test" {
 		},
 	})
 }
+
+func TestSharedEnvResource_ShownOnceFalseRejected(t *testing.T) {
+	t.Parallel()
+	var mu sync.Mutex
+	var patches int
+	store := map[string]any{
+		"id":            float64(3),
+		"key":           "GLOBAL_FLAG",
+		"value":         "on",
+		"is_shown_once": true,
+	}
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		defer mu.Unlock()
+		w.Header().Set("Content-Type", "application/json")
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/api/v1/team/envs":
+			var body map[string]any
+			_ = json.NewDecoder(r.Body).Decode(&body)
+			body["id"] = float64(3)
+			if _, ok := body["is_shown_once"]; !ok {
+				body["is_shown_once"] = true
+			}
+			store = body
+			w.WriteHeader(http.StatusCreated)
+			_ = json.NewEncoder(w).Encode(body)
+		case r.Method == http.MethodGet && r.URL.Path == "/api/v1/team/envs":
+			_ = json.NewEncoder(w).Encode([]any{store})
+		case r.Method == http.MethodPatch:
+			patches++
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode(store)
+		default:
+			http.Error(w, r.URL.Path, http.StatusNotFound)
+		}
+	})))
+	defer srv.Close()
+	base := acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_shared_environment_variable" "test" {
+  scope         = "team"
+  key           = "GLOBAL_FLAG"
+  value         = "on"
+  is_shown_once = `
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: base + "true\n}\n",
+				Check:  resource.TestCheckResourceAttr("coolify_shared_environment_variable.test", "is_shown_once", "true"),
+			},
+			{
+				Config:      base + "false\n}\n",
+				ExpectError: regexp.MustCompile(`stays locked`),
+			},
+		},
+	})
+	mu.Lock()
+	defer mu.Unlock()
+	if patches != 0 {
+		t.Fatalf("locked false sent %d patches", patches)
+	}
+}
