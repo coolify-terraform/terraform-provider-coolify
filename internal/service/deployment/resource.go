@@ -65,7 +65,7 @@ func (r *deploymentResource) Schema(ctx context.Context, _ resource.SchemaReques
 			"If Coolify already queued a deploy (`instant_deploy = true`), this resource adopts that deployment UUID instead of failing. " +
 			"Changing the triggers map forces a new deployment. " +
 			"Destroy cancels a queued or in-progress deployment (`POST /deployments/{uuid}/cancel`). " +
-			"A deployment that has already finished, failed, or been cancelled stays in Coolify and is only removed from Terraform state.",
+			"A deployment that has already finished, failed, been cancelled, or skipped stays in Coolify and is only removed from Terraform state.",
 		Attributes: map[string]schema.Attribute{
 			"timeouts": timeouts.Attributes(ctx, timeouts.Opts{Create: true}),
 			"application_uuid": schema.StringAttribute{

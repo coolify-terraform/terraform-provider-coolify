@@ -82,7 +82,7 @@ func (r *sharedEnvResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 			},
 			"is_shown_once": schema.BoolAttribute{
 				Optional: true, Computed: true,
-				MarkdownDescription: "When true, Coolify reveals the value only once. Omit to keep the stored value.",
+				MarkdownDescription: "When true, Coolify reveals the value only once. Omit to keep the stored value. On current Coolify a saved `true` stays locked, so a later `false` does not reveal the value again.",
 				PlanModifiers:       []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},
 			"comment": schema.StringAttribute{
