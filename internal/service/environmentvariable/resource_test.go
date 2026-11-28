@@ -1614,6 +1614,125 @@ func TestEnvironmentVariableResource_CreateAPIError(t *testing.T) {
 	})
 }
 
+func TestEnvironmentVariableResource_ShownOnceFalseRejected(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		parent string
+		attr   string
+	}{
+		{parent: "applications", attr: "application_uuid"},
+		{parent: "services", attr: "service_uuid"},
+		{parent: "databases", attr: "database_uuid"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.parent, func(t *testing.T) {
+			t.Parallel()
+			var patches atomic.Int32
+			envVar := client.EnvironmentVariable{
+				UUID: "env-lock-" + tc.parent, Key: "TOKEN", Value: "secret", IsShownOnce: true, IsBuild: true, IsRuntime: true,
+			}
+			mux := http.NewServeMux()
+			mux.HandleFunc("POST /api/v1/"+tc.parent+"/{uuid}/envs", func(w http.ResponseWriter, _ *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusCreated)
+				_ = json.NewEncoder(w).Encode(map[string]string{"uuid": envVar.UUID})
+			})
+			mux.HandleFunc("GET /api/v1/"+tc.parent+"/{uuid}/envs", func(w http.ResponseWriter, _ *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				_ = json.NewEncoder(w).Encode([]client.EnvironmentVariable{envVar})
+			})
+			mux.HandleFunc("PATCH /api/v1/"+tc.parent+"/{uuid}/envs", func(w http.ResponseWriter, _ *http.Request) {
+				patches.Add(1)
+				w.WriteHeader(http.StatusOK)
+			})
+			mux.HandleFunc("DELETE /api/v1/"+tc.parent+"/{uuid}/envs/{envUUID}", func(w http.ResponseWriter, _ *http.Request) {
+				w.WriteHeader(http.StatusNoContent)
+			})
+			srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+			defer srv.Close()
+			cfg := func(shown string) string {
+				return testEnvVarResourceConfig(srv.URL, fmt.Sprintf(`
+					%s = "aaaa0001-0001-4000-8000-000000000001"
+					key           = "TOKEN"
+					value         = "secret"
+					is_shown_once = %s
+				`, tc.attr, shown))
+			}
+			resource.UnitTest(t, resource.TestCase{
+				ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+				Steps: []resource.TestStep{
+					{Config: cfg("true"), Check: resource.TestCheckResourceAttr("coolify_environment_variable.test", "is_shown_once", "true")},
+					{Config: cfg("false"), ExpectError: regexp.MustCompile(`stays locked`)},
+				},
+			})
+			if patches.Load() != 0 {
+				t.Fatalf("locked false sent %d patches", patches.Load())
+			}
+		})
+	}
+}
+
+func TestEnvironmentVariableResource_ShownOnceFalseWhenUnset(t *testing.T) {
+	t.Parallel()
+	envVar := client.EnvironmentVariable{
+		UUID: "env-lock-open", Key: "TOKEN", Value: "secret", IsShownOnce: false, IsBuild: true, IsRuntime: true,
+	}
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/applications/{uuid}/envs", func(w http.ResponseWriter, r *http.Request) {
+		var body map[string]any
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		if body["value"] != nil {
+			envVar.Value = fmt.Sprint(body["value"])
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		_ = json.NewEncoder(w).Encode(map[string]string{"uuid": envVar.UUID})
+	})
+	mux.HandleFunc("GET /api/v1/applications/{uuid}/envs", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode([]client.EnvironmentVariable{envVar})
+	})
+	mux.HandleFunc("PATCH /api/v1/applications/{uuid}/envs", func(w http.ResponseWriter, r *http.Request) {
+		var body map[string]any
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		if body["is_shown_once"] == false {
+			envVar.IsShownOnce = false
+		}
+		if body["value"] != nil {
+			envVar.Value = fmt.Sprint(body["value"])
+		}
+		w.WriteHeader(http.StatusOK)
+	})
+	mux.HandleFunc("DELETE /api/v1/applications/{uuid}/envs/{envUUID}", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	})
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testEnvVarResourceConfig(srv.URL, `
+					application_uuid = "aaaa0001-0001-4000-8000-000000000001"
+					key              = "TOKEN"
+					value            = "secret"
+					is_shown_once    = false
+				`),
+				Check: resource.TestCheckResourceAttr("coolify_environment_variable.test", "is_shown_once", "false"),
+			},
+			{
+				Config: testEnvVarResourceConfig(srv.URL, `
+					application_uuid = "aaaa0001-0001-4000-8000-000000000001"
+					key              = "TOKEN"
+					value            = "rotated"
+					is_shown_once    = false
+				`),
+				Check: resource.TestCheckResourceAttr("coolify_environment_variable.test", "value", "rotated"),
+			},
+		},
+	})
+}
+
 func testEnvVarResourceConfig(endpoint, attrs string) string {
 	return acctest.TestResourceConfig(endpoint, "coolify_environment_variable", "test", attrs)
 }
@@ -1836,28 +1955,49 @@ func TestEnvironmentVariableResource_PreviewTrueRejectedOutsideApplication(t *te
 	}
 }
 
-func TestEnvironmentVariableResource_PreviewChangeReplacesApplication(t *testing.T) {
+func TestEnvironmentVariableResource_PreviewChangeAdoptsTwin(t *testing.T) {
 	t.Parallel()
 	var mu sync.Mutex
-	var posts, deletes int
-	envVar := client.EnvironmentVariable{
-		UUID: "env-preview-1", Key: "TOKEN", Value: "secret", IsBuild: true, IsRuntime: true,
+	var posts, patches, deletes, conflicts int
+	rows := []client.EnvironmentVariable{}
+	findRow := func(key string, preview bool) int {
+		for i, row := range rows {
+			if row.Key == key && row.IsPreview == preview {
+				return i
+			}
+		}
+		return -1
 	}
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/v1/applications/{uuid}/envs", func(w http.ResponseWriter, r *http.Request) {
 		var body struct {
-			IsPreview *bool `json:"is_preview"`
+			Key       string `json:"key"`
+			Value     string `json:"value"`
+			IsPreview *bool  `json:"is_preview"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.IsPreview == nil {
 			http.Error(w, `{"message":"is_preview is required"}`, http.StatusBadRequest)
 			return
 		}
+		preview := *body.IsPreview
 		mu.Lock()
+		defer mu.Unlock()
+		if findRow(body.Key, preview) >= 0 {
+			conflicts++
+			http.Error(w, `{"message":"Environment variable already exists. Use PATCH request to update it."}`, http.StatusConflict)
+			return
+		}
 		posts++
-		envVar.UUID = fmt.Sprintf("env-preview-%d", posts)
-		envVar.IsPreview = *body.IsPreview
-		id := envVar.UUID
-		mu.Unlock()
+		id := fmt.Sprintf("env-%d-%t", posts, preview)
+		rows = append(rows, client.EnvironmentVariable{
+			UUID: id, Key: body.Key, Value: body.Value, IsPreview: preview, IsBuild: true, IsRuntime: true,
+		})
+		// Coolify copies a new non-preview application variable into a preview row.
+		if !preview && findRow(body.Key, true) < 0 {
+			rows = append(rows, client.EnvironmentVariable{
+				UUID: "twin-" + id, Key: body.Key, Value: body.Value, IsPreview: true, IsBuild: true, IsRuntime: true,
+			})
+		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
 		_ = json.NewEncoder(w).Encode(map[string]string{"uuid": id})
@@ -1865,44 +2005,104 @@ func TestEnvironmentVariableResource_PreviewChangeReplacesApplication(t *testing
 	mux.HandleFunc("GET /api/v1/applications/{uuid}/envs", func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		mu.Lock()
-		current := envVar
+		current := append([]client.EnvironmentVariable(nil), rows...)
 		mu.Unlock()
-		_ = json.NewEncoder(w).Encode([]client.EnvironmentVariable{current})
+		_ = json.NewEncoder(w).Encode(current)
 	})
-	mux.HandleFunc("DELETE /api/v1/applications/{uuid}/envs/{envUUID}", func(w http.ResponseWriter, _ *http.Request) {
+	mux.HandleFunc("PATCH /api/v1/applications/{uuid}/envs", func(w http.ResponseWriter, r *http.Request) {
+		var body struct {
+			Key       string `json:"key"`
+			Value     string `json:"value"`
+			IsPreview *bool  `json:"is_preview"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.IsPreview == nil {
+			http.Error(w, `{"message":"is_preview is required"}`, http.StatusBadRequest)
+			return
+		}
 		mu.Lock()
-		deletes++
-		mu.Unlock()
+		defer mu.Unlock()
+		idx := findRow(body.Key, *body.IsPreview)
+		if idx < 0 {
+			http.Error(w, `{"message":"Environment variable not found."}`, http.StatusNotFound)
+			return
+		}
+		patches++
+		rows[idx].Value = body.Value
+		w.WriteHeader(http.StatusOK)
+	})
+	mux.HandleFunc("DELETE /api/v1/applications/{uuid}/envs/{envUUID}", func(w http.ResponseWriter, r *http.Request) {
+		id := r.PathValue("envUUID")
+		mu.Lock()
+		defer mu.Unlock()
+		next := make([]client.EnvironmentVariable, 0, len(rows))
+		for _, row := range rows {
+			if row.UUID == id {
+				deletes++
+				continue
+			}
+			next = append(next, row)
+		}
+		rows = next
 		w.WriteHeader(http.StatusNoContent)
 	})
 	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
 	defer srv.Close()
+	app := `
+		application_uuid = "aaaa0001-0001-4000-8000-000000000001"
+		key              = "TOKEN"
+		value            = "secret"
+	`
 	resource.UnitTest(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
 		Steps: []resource.TestStep{
 			{
-				Config: testEnvVarResourceConfig(srv.URL, `
-					application_uuid = "aaaa0001-0001-4000-8000-000000000001"
-					key              = "TOKEN"
-					value            = "secret"
-					is_preview       = false
-				`),
-				Check: resource.TestCheckResourceAttr("coolify_environment_variable.test", "is_preview", "false"),
+				Config: testEnvVarResourceConfig(srv.URL, app+"is_preview = false\n"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_environment_variable.test", "uuid", "env-1-false"),
+					resource.TestCheckResourceAttr("coolify_environment_variable.test", "is_preview", "false"),
+				),
 			},
 			{
-				Config: testEnvVarResourceConfig(srv.URL, `
-					application_uuid = "aaaa0001-0001-4000-8000-000000000001"
-					key              = "TOKEN"
-					value            = "secret"
-					is_preview       = true
-				`),
+				Config: testEnvVarResourceConfig(srv.URL, app+"is_preview = true\n"),
 				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_environment_variable.test", "uuid", "twin-env-1-false"),
 					resource.TestCheckResourceAttr("coolify_environment_variable.test", "is_preview", "true"),
 					func(_ *terraform.State) error {
 						mu.Lock()
 						defer mu.Unlock()
-						if posts != 2 || deletes != 1 {
-							return fmt.Errorf("posts=%d deletes=%d, want posts=2 deletes=1", posts, deletes)
+						if posts != 1 || patches != 1 || deletes != 1 || conflicts != 0 {
+							return fmt.Errorf("posts=%d patches=%d deletes=%d conflicts=%d, want 1/1/1/0", posts, patches, deletes, conflicts)
+						}
+						if findRow("TOKEN", false) >= 0 {
+							return fmt.Errorf("non-preview row still present")
+						}
+						return nil
+					},
+				),
+			},
+			{
+				Config: testEnvVarResourceConfig(srv.URL, app+"is_preview = false\n"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_environment_variable.test", "uuid", "env-2-false"),
+					func(_ *terraform.State) error {
+						mu.Lock()
+						defer mu.Unlock()
+						if conflicts != 0 || posts != 2 {
+							return fmt.Errorf("posts=%d conflicts=%d, want posts=2 conflicts=0", posts, conflicts)
+						}
+						return nil
+					},
+				),
+			},
+			{
+				Config: testEnvVarResourceConfig(srv.URL, app+"is_preview = true\n"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_environment_variable.test", "uuid", "env-3-true"),
+					func(_ *terraform.State) error {
+						mu.Lock()
+						defer mu.Unlock()
+						if conflicts != 0 || posts != 3 {
+							return fmt.Errorf("posts=%d conflicts=%d, want posts=3 conflicts=0", posts, conflicts)
 						}
 						return nil
 					},

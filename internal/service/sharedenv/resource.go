@@ -24,6 +24,7 @@ var (
 	_ resource.Resource                = (*sharedEnvResource)(nil)
 	_ resource.ResourceWithConfigure   = (*sharedEnvResource)(nil)
 	_ resource.ResourceWithImportState = (*sharedEnvResource)(nil)
+	_ resource.ResourceWithModifyPlan  = (*sharedEnvResource)(nil)
 )
 
 type sharedEnvResource struct{ client *client.Client }
@@ -82,7 +83,7 @@ func (r *sharedEnvResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 			},
 			"is_shown_once": schema.BoolAttribute{
 				Optional: true, Computed: true,
-				MarkdownDescription: "When true, Coolify reveals the value only once. Omit to keep the stored value. On current Coolify a saved `true` stays locked, so a later `false` does not reveal the value again.",
+				MarkdownDescription: "When true, Coolify reveals the value only once. Omit to keep the stored value. A saved `true` stays locked: the provider rejects a later `false`, because Coolify would keep `true` and the plan would never settle.",
 				PlanModifiers:       []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},
 			"comment": schema.StringAttribute{
@@ -92,6 +93,29 @@ func (r *sharedEnvResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 			},
 		},
 	}
+}
+
+func (r *sharedEnvResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if req.State.Raw.IsNull() || req.Plan.Raw.IsNull() || req.Config.Raw.IsNull() {
+		return
+	}
+	var state, config sharedEnvModel
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	if state.IsShownOnce.IsNull() || state.IsShownOnce.IsUnknown() || !state.IsShownOnce.ValueBool() {
+		return
+	}
+	if config.IsShownOnce.IsNull() || config.IsShownOnce.IsUnknown() || config.IsShownOnce.ValueBool() {
+		return
+	}
+	resp.Diagnostics.AddAttributeError(
+		path.Root("is_shown_once"),
+		"Environment variable stays locked",
+		"Coolify keeps `is_shown_once` true once it is saved, so a later false does not reveal the value. Remove `is_shown_once = false`, or omit the attribute.",
+	)
 }
 
 func (r *sharedEnvResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {

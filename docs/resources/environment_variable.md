@@ -70,9 +70,9 @@ resource "coolify_environment_variable" "db_log_level" {
 - `is_build` (Boolean) Whether this variable is available at build time (Coolify `is_buildtime`). Supported only for application-scoped environment variables. If omitted during create, Coolify defaults application env vars to `true`.
 - `is_literal` (Boolean) Whether the value is treated as a literal (no Coolify escaping/expansion). Defaults to `false` when omitted on create.
 - `is_multiline` (Boolean) Whether the value is multiline. Defaults to `false` when omitted on create.
-- `is_preview` (Boolean) Whether this variable is stored for preview deployments. Coolify keeps preview and non-preview values as separate application rows, so changing this replaces the variable. `true` on a service or database is rejected because Coolify does not save it there.
+- `is_preview` (Boolean) Whether this variable is stored for preview deployments. Coolify keeps preview and non-preview values as separate application rows. Changing this switches to the other row in place. `true` on a service or database is rejected because Coolify does not save it there.
 - `is_runtime` (Boolean) Whether this variable is available at container runtime (Coolify `is_runtime`). Supported only for application-scoped environment variables. If omitted during create, Coolify defaults application env vars to `true`.
-- `is_shown_once` (Boolean) Whether the value is revealed only once in the Coolify UI (sensitive-style display). Coolify stores `false` when the field is omitted on create. Omit it later to keep the stored value. On current Coolify a saved `true` stays locked, so a later `false` does not reveal the value again.
+- `is_shown_once` (Boolean) Whether the value is revealed only once in the Coolify UI (sensitive-style display). Coolify stores `false` when the field is omitted on create. Omit it later to keep the stored value. A saved `true` stays locked: the provider rejects a later `false`, because Coolify would keep `true` and the plan would never settle.
 - `service_uuid` (String) The UUID of the service to set the variable on. Exactly one of `application_uuid`, `service_uuid`, or `database_uuid` must be provided. Changing this forces a new resource.
 
 ### Read-Only
