@@ -45,7 +45,7 @@ func (r *envsBulkResource) Metadata(_ context.Context, req resource.MetadataRequ
 
 func (r *envsBulkResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Manages all environment variables for a Coolify resource as a single atomic set. All variables are set in a single API call, preventing partial state.\n\n~> **Note:** Destroying this resource removes it from Terraform state but **does not** delete the environment variables from Coolify. To remove variables, delete them manually or use individual `coolify_environment_variable` resources. After importing, ensure your `variables` map includes all variables you want to keep; variables not present in your configuration will be overwritten on the next apply.",
+		MarkdownDescription: "Manages environment variables for a Coolify resource as one set. The variables in the map are sent in a single API call.\n\n~> **Note:** Destroying this resource removes it from Terraform state but **does not** delete the environment variables from Coolify. Removing a key from `variables` does delete that variable in Coolify. Variables that were never in this resource stay in place. After importing, keep every variable you still want in the map.",
 		Attributes: map[string]schema.Attribute{
 			"resource_type": schema.StringAttribute{
 				MarkdownDescription: "The type of the target resource. Must be one of: `application`, `database`, `service`.",
@@ -157,8 +157,9 @@ func (r *envsBulkResource) Read(ctx context.Context, req resource.ReadRequest, r
 }
 
 func (r *envsBulkResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var plan envsBulkModel
+	var plan, prior envsBulkModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	resp.Diagnostics.Append(req.State.Get(ctx, &prior)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -168,6 +169,14 @@ func (r *envsBulkResource) Update(ctx context.Context, req resource.UpdateReques
 		"parent_resource_type": plan.ResourceType.ValueString(),
 		"parent_resource_uuid": plan.ResourceUUID.ValueString(),
 	})
+
+	if err := r.deleteDroppedKeys(ctx, &prior, &plan); err != nil {
+		resp.Diagnostics.AddError(
+			"Error deleting removed environment variables",
+			fmt.Sprintf("%s %s: %s", plan.ResourceType.ValueString(), plan.ResourceUUID.ValueString(), err),
+		)
+		return
+	}
 
 	if err := r.bulkUpdate(ctx, &plan); err != nil {
 		resp.Diagnostics.AddError(
@@ -248,6 +257,51 @@ func flattenEnvVars(envs []client.EnvironmentVariable) map[string]string {
 	return vars
 }
 
+// deleteDroppedKeys removes the Coolify row behind a key that left the map.
+// The map stores one value per key, the same row flatten keeps (non-preview
+// when both exist). A preview row with the same key stays. Keys that were
+// never in this resource are not in prior state, so they stay too.
+func (r *envsBulkResource) deleteDroppedKeys(ctx context.Context, prior, plan *envsBulkModel) error {
+	priorVars := map[string]string{}
+	planVars := map[string]string{}
+	if diags := prior.Variables.ElementsAs(ctx, &priorVars, false); diags.HasError() {
+		return fmt.Errorf("reading prior variables: %s", diags.Errors())
+	}
+	if diags := plan.Variables.ElementsAs(ctx, &planVars, false); diags.HasError() {
+		return fmt.Errorf("reading planned variables: %s", diags.Errors())
+	}
+	var dropped []string
+	for key := range priorVars {
+		if _, ok := planVars[key]; !ok {
+			dropped = append(dropped, key)
+		}
+	}
+	if len(dropped) == 0 {
+		return nil
+	}
+	sort.Strings(dropped)
+	envs, err := r.listEnvVars(ctx, prior.ResourceType.ValueString(), prior.ResourceUUID.ValueString())
+	if err != nil {
+		return err
+	}
+	collapsed := client.PreferNonPreviewEnvVarsByKey(envs)
+	parent := apiParentType(prior.ResourceType.ValueString())
+	parentUUID := prior.ResourceUUID.ValueString()
+	for _, key := range dropped {
+		ev, ok := collapsed[key]
+		if !ok {
+			continue
+		}
+		if ev.UUID == "" {
+			return fmt.Errorf("environment variable %s has no uuid", ev.Key)
+		}
+		if err := r.client.DeleteEnvVar(ctx, parent, parentUUID, ev.UUID); err != nil && !client.IsNotFound(err) {
+			return err
+		}
+	}
+	return nil
+}
+
 func (r *envsBulkResource) bulkUpdate(ctx context.Context, model *envsBulkModel) error {
 	vars := make(map[string]string)
 	diags := model.Variables.ElementsAs(ctx, &vars, false)
@@ -263,8 +317,12 @@ func (r *envsBulkResource) bulkUpdate(ctx context.Context, model *envsBulkModel)
 	}
 	sort.Strings(keys)
 
+	preview, err := r.previewKeys(ctx, model.ResourceType.ValueString(), model.ResourceUUID.ValueString())
+	if err != nil {
+		return err
+	}
 	for _, k := range keys {
-		entries = append(entries, client.EnvVarEntry{Key: k, Value: vars[k]})
+		entries = append(entries, client.EnvVarEntry{Key: k, Value: vars[k], IsPreview: preview[k]})
 	}
 
 	input := client.BulkEnvVarInput{Variables: entries}
@@ -276,6 +334,26 @@ func apiParentType(resType string) string { return resType + "s" }
 
 func (r *envsBulkResource) doBulk(ctx context.Context, resType, uuid string, input client.BulkEnvVarInput) error {
 	return r.client.BulkUpdateEnvVars(ctx, apiParentType(resType), uuid, input)
+}
+
+// previewKeys reports keys whose managed row is preview-only. Coolify
+// bulk update with is_preview false creates a separate non-preview row
+// instead of changing the preview row.
+func (r *envsBulkResource) previewKeys(ctx context.Context, resType, uuid string) (map[string]bool, error) {
+	envs, err := r.listEnvVars(ctx, resType, uuid)
+	if err != nil {
+		if client.IsNotFound(err) {
+			return map[string]bool{}, nil
+		}
+		return nil, err
+	}
+	out := make(map[string]bool)
+	for key, ev := range client.PreferNonPreviewEnvVarsByKey(envs) {
+		if ev.IsPreview {
+			out[key] = true
+		}
+	}
+	return out, nil
 }
 
 func (r *envsBulkResource) listEnvVars(ctx context.Context, resType, uuid string) ([]client.EnvironmentVariable, error) {

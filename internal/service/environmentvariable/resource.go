@@ -9,10 +9,10 @@ import (
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/flex"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/validate"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
@@ -123,10 +123,13 @@ func (r *environmentVariableResource) Schema(_ context.Context, _ resource.Schem
 				Sensitive:           true,
 			},
 			"is_preview": schema.BoolAttribute{
-				MarkdownDescription: "Whether this variable is available in preview deployments. Set it explicitly when you need preview-scoped behavior.",
+				MarkdownDescription: "Whether this variable is stored for preview deployments. Coolify keeps preview and non-preview values as separate application rows, so changing this replaces the variable. `true` on a service or database is rejected because Coolify does not save it there.",
 				Optional:            true,
 				Computed:            true,
-				PlanModifiers:       []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
+				PlanModifiers: []planmodifier.Bool{
+					boolplanmodifier.UseStateForUnknown(),
+					boolplanmodifier.RequiresReplace(),
+				},
 			},
 			"is_build": schema.BoolAttribute{
 				MarkdownDescription: "Whether this variable is available at build time (Coolify `is_buildtime`). Supported only for application-scoped environment variables. If omitted during create, Coolify defaults application env vars to `true`.",
@@ -147,10 +150,10 @@ func (r *environmentVariableResource) Schema(_ context.Context, _ resource.Schem
 				PlanModifiers:       []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},
 			"is_shown_once": schema.BoolAttribute{
-				MarkdownDescription: "Whether the value is revealed only once in the Coolify UI (sensitive-style display). Application env write path only; Coolify default is `false`.",
+				MarkdownDescription: "Whether the value is revealed only once in the Coolify UI (sensitive-style display). Coolify stores `false` when the field is omitted on create. Omit it later to keep the stored value. On current Coolify a saved `true` stays locked, so a later `false` does not reveal the value again.",
 				Optional:            true,
 				Computed:            true,
-				Default:             booldefault.StaticBool(false),
+				PlanModifiers:       []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},
 			"is_multiline": schema.BoolAttribute{
 				MarkdownDescription: "Whether the value is multiline. Defaults to `false` when omitted on create.",
@@ -213,6 +216,31 @@ func (r *environmentVariableResource) ValidateConfig(ctx context.Context, req re
 			)
 		}
 	}
+	rejectPreviewOutsideApplication(&config, &resp.Diagnostics)
+}
+
+// rejectPreviewOutsideApplication stops is_preview=true on a service or
+// database. Coolify's service and database env writes do not save the flag,
+// so the next read returns false and the plan never settles.
+func rejectPreviewOutsideApplication(config *environmentVariableResourceModel, diags *diag.Diagnostics) {
+	if diags == nil || config == nil {
+		return
+	}
+	if config.IsPreview.IsNull() || config.IsPreview.IsUnknown() || !config.IsPreview.ValueBool() {
+		return
+	}
+	if !config.ApplicationUUID.IsNull() && !config.ApplicationUUID.IsUnknown() {
+		return
+	}
+	scope := "services"
+	if !config.DatabaseUUID.IsNull() && !config.DatabaseUUID.IsUnknown() {
+		scope = "databases"
+	}
+	diags.AddAttributeError(
+		path.Root("is_preview"),
+		"Unsupported environment variable scope",
+		fmt.Sprintf("`is_preview` is only stored for application environment variables. Coolify does not save it for %s.", scope),
+	)
 }
 
 // parentLabel returns a user-friendly singular label for the API slug.
@@ -273,7 +301,8 @@ func stringPtrIfKnown(v types.String) *string {
 // those keys would clear them.
 func writeOptsFromPlan(parentType string, plan *environmentVariableResourceModel, forUpdate bool) *client.EnvVarWriteOpts {
 	opts := &client.EnvVarWriteOpts{
-		Comment: stringPtrIfKnown(plan.Comment),
+		Comment:     stringPtrIfKnown(plan.Comment),
+		IsShownOnce: boolPtrIfKnown(plan.IsShownOnce),
 	}
 	if forUpdate && parentType == "applications" {
 		opts.IsLiteral = boolPtrKnownOrDefault(plan.IsLiteral, false)
@@ -282,9 +311,6 @@ func writeOptsFromPlan(parentType string, plan *environmentVariableResourceModel
 	} else {
 		opts.IsLiteral = boolPtrIfKnown(plan.IsLiteral)
 		opts.IsMultiline = boolPtrIfKnown(plan.IsMultiline)
-		if parentType == "applications" {
-			opts.IsShownOnce = boolPtrIfKnown(plan.IsShownOnce)
-		}
 	}
 	if parentType == "applications" {
 		opts.IsBuild = boolPtrIfKnown(plan.IsBuild)

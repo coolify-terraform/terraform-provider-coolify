@@ -488,7 +488,7 @@ func TestEnvironmentVariableResource_CreateWithServiceUUID(t *testing.T) {
 		UUID:      "env-svc-uuid",
 		Key:       "REDIS_URL",
 		Value:     "redis://localhost:6379",
-		IsPreview: true,
+		IsPreview: false,
 		IsBuild:   false,
 	}
 
@@ -552,13 +552,12 @@ func TestEnvironmentVariableResource_CreateWithServiceUUID(t *testing.T) {
 					service_uuid = "ffff0001-0001-4000-8000-000000000001"
 					key          = "REDIS_URL"
 					value        = "redis://localhost:6379"
-					is_preview   = true
 				`),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("coolify_environment_variable.test", "uuid", "env-svc-uuid"),
 					resource.TestCheckResourceAttr("coolify_environment_variable.test", "key", "REDIS_URL"),
 					resource.TestCheckResourceAttr("coolify_environment_variable.test", "value", "redis://localhost:6379"),
-					resource.TestCheckResourceAttr("coolify_environment_variable.test", "is_preview", "true"),
+					resource.TestCheckResourceAttr("coolify_environment_variable.test", "is_preview", "false"),
 					resource.TestCheckResourceAttr("coolify_environment_variable.test", "is_build", "false"),
 				),
 			},
@@ -1805,6 +1804,267 @@ func TestEnvironmentVariableResource_ValidateConfig_RuntimeOnService(t *testing.
 			ExpectError: regexp.MustCompile(`only supported for application-scoped`),
 		}},
 	})
+}
+
+func TestEnvironmentVariableResource_PreviewTrueRejectedOutsideApplication(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name string
+		attr string
+	}{
+		{name: "service", attr: "service_uuid"},
+		{name: "database", attr: "database_uuid"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			srv := httptest.NewServer(acctest.WithVersionEndpoint(http.NewServeMux()))
+			defer srv.Close()
+			resource.UnitTest(t, resource.TestCase{
+				ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+				Steps: []resource.TestStep{{
+					Config: testEnvVarResourceConfig(srv.URL, fmt.Sprintf(`
+						%s = "dddd0001-0001-4000-8000-000000000001"
+						key        = "TOKEN"
+						value      = "secret"
+						is_preview = true
+					`, tc.attr)),
+					ExpectError: regexp.MustCompile(`only stored for application`),
+				}},
+			})
+		})
+	}
+}
+
+func TestEnvironmentVariableResource_PreviewChangeReplacesApplication(t *testing.T) {
+	t.Parallel()
+	var mu sync.Mutex
+	var posts, deletes int
+	envVar := client.EnvironmentVariable{
+		UUID: "env-preview-1", Key: "TOKEN", Value: "secret", IsBuild: true, IsRuntime: true,
+	}
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/applications/{uuid}/envs", func(w http.ResponseWriter, r *http.Request) {
+		var body struct {
+			IsPreview *bool `json:"is_preview"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.IsPreview == nil {
+			http.Error(w, `{"message":"is_preview is required"}`, http.StatusBadRequest)
+			return
+		}
+		mu.Lock()
+		posts++
+		envVar.UUID = fmt.Sprintf("env-preview-%d", posts)
+		envVar.IsPreview = *body.IsPreview
+		id := envVar.UUID
+		mu.Unlock()
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		_ = json.NewEncoder(w).Encode(map[string]string{"uuid": id})
+	})
+	mux.HandleFunc("GET /api/v1/applications/{uuid}/envs", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		mu.Lock()
+		current := envVar
+		mu.Unlock()
+		_ = json.NewEncoder(w).Encode([]client.EnvironmentVariable{current})
+	})
+	mux.HandleFunc("DELETE /api/v1/applications/{uuid}/envs/{envUUID}", func(w http.ResponseWriter, _ *http.Request) {
+		mu.Lock()
+		deletes++
+		mu.Unlock()
+		w.WriteHeader(http.StatusNoContent)
+	})
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testEnvVarResourceConfig(srv.URL, `
+					application_uuid = "aaaa0001-0001-4000-8000-000000000001"
+					key              = "TOKEN"
+					value            = "secret"
+					is_preview       = false
+				`),
+				Check: resource.TestCheckResourceAttr("coolify_environment_variable.test", "is_preview", "false"),
+			},
+			{
+				Config: testEnvVarResourceConfig(srv.URL, `
+					application_uuid = "aaaa0001-0001-4000-8000-000000000001"
+					key              = "TOKEN"
+					value            = "secret"
+					is_preview       = true
+				`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_environment_variable.test", "is_preview", "true"),
+					func(_ *terraform.State) error {
+						mu.Lock()
+						defer mu.Unlock()
+						if posts != 2 || deletes != 1 {
+							return fmt.Errorf("posts=%d deletes=%d, want posts=2 deletes=1", posts, deletes)
+						}
+						return nil
+					},
+				),
+			},
+		},
+	})
+}
+
+func TestEnvironmentVariableResource_ShownOnceOmittedKeepsStoredTrue(t *testing.T) {
+	t.Parallel()
+	envVar := client.EnvironmentVariable{
+		UUID:        "env-shown-locked",
+		Key:         "TOKEN",
+		Value:       "secret",
+		IsBuild:     true,
+		IsRuntime:   true,
+		IsShownOnce: true,
+	}
+	var mu sync.Mutex
+	var patches int
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/applications/{uuid}/envs", func(w http.ResponseWriter, r *http.Request) {
+		var body map[string]interface{}
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		if body["is_shown_once"] == false {
+			t.Errorf("create sent is_shown_once=false while the stored value is true")
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		_ = json.NewEncoder(w).Encode(map[string]string{"uuid": envVar.UUID})
+	})
+	mux.HandleFunc("GET /api/v1/applications/{uuid}/envs", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode([]client.EnvironmentVariable{envVar})
+	})
+	mux.HandleFunc("PATCH /api/v1/applications/{uuid}/envs", func(w http.ResponseWriter, r *http.Request) {
+		var body map[string]interface{}
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		mu.Lock()
+		patches++
+		mu.Unlock()
+		if body["is_shown_once"] == false {
+			t.Errorf("update cleared a stored is_shown_once=true: %#v", body["is_shown_once"])
+		}
+		w.WriteHeader(http.StatusOK)
+	})
+	mux.HandleFunc("DELETE /api/v1/applications/{uuid}/envs/{envUUID}", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	})
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	cfg := testEnvVarResourceConfig(srv.URL, `
+		application_uuid = "aaaa0001-0001-4000-8000-000000000001"
+		key              = "TOKEN"
+		value            = "secret"
+	`)
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: cfg,
+				Check: func(_ *terraform.State) error {
+					mu.Lock()
+					defer mu.Unlock()
+					if patches != 0 {
+						return fmt.Errorf("create patched %d times", patches)
+					}
+					return nil
+				},
+			},
+			{
+				Config: cfg,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_environment_variable.test", "is_shown_once", "true"),
+					func(_ *terraform.State) error {
+						mu.Lock()
+						defer mu.Unlock()
+						if patches != 0 {
+							return fmt.Errorf("omitted is_shown_once patched %d times", patches)
+						}
+						return nil
+					},
+				),
+			},
+		},
+	})
+}
+
+func TestEnvironmentVariableResource_ShownOnceSentOnServiceAndDatabase(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		parent string
+		attr   string
+		uuid   string
+	}{
+		{parent: "services", attr: "service_uuid", uuid: "dddd0001-0001-4000-8000-000000000001"},
+		{parent: "databases", attr: "database_uuid", uuid: "eeee0001-0001-4000-8000-000000000001"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.parent, func(t *testing.T) {
+			t.Parallel()
+			envVar := client.EnvironmentVariable{
+				UUID:        "env-shown-" + tc.parent,
+				Key:         "TOKEN",
+				Value:       "secret",
+				IsShownOnce: true,
+			}
+			mu := sync.Mutex{}
+			var lastPOST map[string]interface{}
+			mux := http.NewServeMux()
+			mux.HandleFunc("POST /api/v1/"+tc.parent+"/{uuid}/envs", func(w http.ResponseWriter, r *http.Request) {
+				var body map[string]interface{}
+				_ = json.NewDecoder(r.Body).Decode(&body)
+				mu.Lock()
+				lastPOST = body
+				mu.Unlock()
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusCreated)
+				_ = json.NewEncoder(w).Encode(map[string]string{"uuid": envVar.UUID})
+			})
+			mux.HandleFunc("GET /api/v1/"+tc.parent+"/{uuid}/envs", func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				_ = json.NewEncoder(w).Encode([]client.EnvironmentVariable{envVar})
+			})
+			mux.HandleFunc("DELETE /api/v1/"+tc.parent+"/{uuid}/envs/{envUUID}", func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusNoContent)
+			})
+			srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+			defer srv.Close()
+
+			resource.UnitTest(t, resource.TestCase{
+				ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+				Steps: []resource.TestStep{{
+					Config: testEnvVarResourceConfig(srv.URL, fmt.Sprintf(`
+						%s = %q
+						key           = "TOKEN"
+						value         = "secret"
+						is_shown_once = true
+					`, tc.attr, tc.uuid)),
+					Check: resource.ComposeAggregateTestCheckFunc(
+						resource.TestCheckResourceAttr("coolify_environment_variable.test", "is_shown_once", "true"),
+						func(_ *terraform.State) error {
+							mu.Lock()
+							defer mu.Unlock()
+							if lastPOST["is_shown_once"] != true {
+								return fmt.Errorf("POST is_shown_once = %v, want true", lastPOST["is_shown_once"])
+							}
+							if _, ok := lastPOST["is_buildtime"]; ok {
+								return fmt.Errorf("%s POST must not send is_buildtime", tc.parent)
+							}
+							if _, ok := lastPOST["is_runtime"]; ok {
+								return fmt.Errorf("%s POST must not send is_runtime", tc.parent)
+							}
+							return nil
+						},
+					),
+				}},
+			})
+		})
+	}
 }
 
 func TestEnvironmentVariableResource_ValidateConfig_RuntimeOnDatabase(t *testing.T) {

@@ -65,10 +65,18 @@ func (c *Client) GetInstanceEmailSettings(ctx context.Context) (*InstanceEmailSe
 // UpdateInstanceEmailSettings patches instance-wide SMTP/Resend settings.
 // Coolify >= v4.3.10. Requires a root-team API token with write:sensitive.
 func (c *Client) UpdateInstanceEmailSettings(ctx context.Context, input UpdateInstanceEmailInput) (*InstanceEmailSettings, error) {
-	c.omitCoolify47String(&input.NotificationFromAddress)
-	c.omitCoolify47String(&input.NotificationFromName)
-	c.omitCoolify47String(&input.ResendFromAddress)
-	c.omitCoolify47String(&input.ResendFromName)
+	if err := c.rejectCoolify47String("notification_from_address", &input.NotificationFromAddress); err != nil {
+		return nil, err
+	}
+	if err := c.rejectCoolify47String("notification_from_name", &input.NotificationFromName); err != nil {
+		return nil, err
+	}
+	if err := c.rejectCoolify47String("resend_from_address", &input.ResendFromAddress); err != nil {
+		return nil, err
+	}
+	if err := c.rejectCoolify47String("resend_from_name", &input.ResendFromName); err != nil {
+		return nil, err
+	}
 	if jsonObjectEmpty(input) {
 		return c.GetInstanceEmailSettings(ctx)
 	}

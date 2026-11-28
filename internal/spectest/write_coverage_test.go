@@ -60,7 +60,7 @@ func TestWriteCoverage_ServiceEnvSanity(t *testing.T) {
 			t.Errorf("service env write input must not include %s", forbidden)
 		}
 	}
-	for _, required := range []string{"key", "value", "is_preview", "is_literal", "is_multiline", "comment"} {
+	for _, required := range []string{"key", "value", "is_preview", "is_literal", "is_multiline", "is_shown_once", "comment"} {
 		if _, ok := tags[required]; !ok {
 			t.Errorf("service env write input missing %s", required)
 		}

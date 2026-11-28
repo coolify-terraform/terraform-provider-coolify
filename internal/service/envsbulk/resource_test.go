@@ -3,10 +3,12 @@ package envsbulk_test
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"regexp"
+	"sync"
 	"sync/atomic"
 	"testing"
 
@@ -187,6 +189,204 @@ func TestEnvsBulkResource_Update(t *testing.T) {
 					resource.TestCheckResourceAttr("coolify_envs_bulk.test", "variables.DB_HOST", "db.example.com"),
 					resource.TestCheckResourceAttr("coolify_envs_bulk.test", "variables.DB_PORT", "5432"),
 				),
+			},
+		},
+	})
+}
+
+func TestEnvsBulkResource_UpdatesPreviewRowInPlace(t *testing.T) {
+	t.Parallel()
+	var mu sync.Mutex
+	var sawPreview bool
+	const appUUID = "550e8400-e29b-41d4-a716-446655440015"
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/v1/applications/"+appUUID+"/envs", func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte(`[{"uuid":"u-TOKEN","key":"TOKEN","value":"old","is_preview":true}]`))
+	})
+	mux.HandleFunc("PATCH /api/v1/applications/"+appUUID+"/envs/bulk", func(w http.ResponseWriter, r *http.Request) {
+		var body struct {
+			Data []struct {
+				Key       string `json:"key"`
+				IsPreview *bool  `json:"is_preview"`
+			} `json:"data"`
+		}
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		mu.Lock()
+		for _, item := range body.Data {
+			if item.Key == "TOKEN" && item.IsPreview != nil && *item.IsPreview {
+				sawPreview = true
+			}
+		}
+		mu.Unlock()
+		w.WriteHeader(http.StatusOK)
+	})
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{{
+			Config: acctest.TestResourceConfig(srv.URL, "coolify_envs_bulk", "test", `
+				resource_type = "application"
+				resource_uuid = "`+appUUID+`"
+				variables = {
+					TOKEN = "old"
+				}
+			`),
+			Check: resource.ComposeAggregateTestCheckFunc(
+				resource.TestCheckResourceAttr("coolify_envs_bulk.test", "variables.TOKEN", "old"),
+				func(_ *terraform.State) error {
+					mu.Lock()
+					defer mu.Unlock()
+					if !sawPreview {
+						return fmt.Errorf("bulk update did not set is_preview=true for the preview-only row")
+					}
+					return nil
+				},
+			),
+		}},
+	})
+}
+
+func TestEnvsBulkResource_DeletesDroppedKey(t *testing.T) {
+	t.Parallel()
+	var mu sync.Mutex
+	var lastPayload []byte
+	var deleted []string
+	const appUUID = "550e8400-e29b-41d4-a716-446655440010"
+	mux := http.NewServeMux()
+	mux.HandleFunc("PATCH /api/v1/applications/"+appUUID+"/envs/bulk", func(w http.ResponseWriter, r *http.Request) {
+		body, _ := io.ReadAll(r.Body)
+		mu.Lock()
+		lastPayload = body
+		mu.Unlock()
+		w.WriteHeader(http.StatusOK)
+	})
+	mux.HandleFunc("GET /api/v1/applications/"+appUUID+"/envs", func(w http.ResponseWriter, _ *http.Request) {
+		mu.Lock()
+		payload := append([]byte(nil), lastPayload...)
+		mu.Unlock()
+		var body struct {
+			Data []struct {
+				Key   string `json:"key"`
+				Value string `json:"value"`
+			} `json:"data"`
+		}
+		if len(payload) > 0 {
+			_ = json.Unmarshal(payload, &body)
+		}
+		envs := make([]map[string]interface{}, 0, len(body.Data))
+		for _, e := range body.Data {
+			envs = append(envs, map[string]interface{}{
+				"uuid": "u-" + e.Key, "key": e.Key, "value": e.Value, "is_preview": false,
+			})
+		}
+		out, _ := json.Marshal(envs)
+		_, _ = w.Write(out)
+	})
+	mux.HandleFunc("DELETE /api/v1/applications/"+appUUID+"/envs/{envUUID}", func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		deleted = append(deleted, r.PathValue("envUUID"))
+		mu.Unlock()
+		w.WriteHeader(http.StatusNoContent)
+	})
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.TestResourceConfig(srv.URL, "coolify_envs_bulk", "test", `
+					resource_type = "application"
+					resource_uuid = "`+appUUID+`"
+					variables = {
+						APP_ENV   = "production"
+						LOG_LEVEL = "info"
+					}
+				`),
+				Check: resource.TestCheckResourceAttr("coolify_envs_bulk.test", "variables.LOG_LEVEL", "info"),
+			},
+			{
+				Config: acctest.TestResourceConfig(srv.URL, "coolify_envs_bulk", "test", `
+					resource_type = "application"
+					resource_uuid = "`+appUUID+`"
+					variables = {
+						APP_ENV = "production"
+					}
+				`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_envs_bulk.test", "variables.APP_ENV", "production"),
+					func(_ *terraform.State) error {
+						mu.Lock()
+						defer mu.Unlock()
+						if len(deleted) != 1 || deleted[0] != "u-LOG_LEVEL" {
+							return fmt.Errorf("deleted = %v, want [u-LOG_LEVEL]", deleted)
+						}
+						return nil
+					},
+				),
+			},
+		},
+	})
+}
+
+func TestEnvsBulkResource_DroppedKeyKeepsPreviewRow(t *testing.T) {
+	t.Parallel()
+	var mu sync.Mutex
+	var deleted []string
+	const appUUID = "550e8400-e29b-41d4-a716-446655440014"
+	mux := http.NewServeMux()
+	mux.HandleFunc("PATCH /api/v1/applications/"+appUUID+"/envs/bulk", func(w http.ResponseWriter, r *http.Request) {
+		_, _ = io.Copy(io.Discard, r.Body)
+		w.WriteHeader(http.StatusOK)
+	})
+	mux.HandleFunc("GET /api/v1/applications/"+appUUID+"/envs", func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte(`[
+			{"uuid":"u-APP_ENV","key":"APP_ENV","value":"production","is_preview":false},
+			{"uuid":"u-LOG_LEVEL","key":"LOG_LEVEL","value":"info","is_preview":false},
+			{"uuid":"u-LOG_LEVEL-preview","key":"LOG_LEVEL","value":"debug","is_preview":true}
+		]`))
+	})
+	mux.HandleFunc("DELETE /api/v1/applications/"+appUUID+"/envs/{envUUID}", func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		deleted = append(deleted, r.PathValue("envUUID"))
+		mu.Unlock()
+		w.WriteHeader(http.StatusNoContent)
+	})
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.TestResourceConfig(srv.URL, "coolify_envs_bulk", "test", `
+					resource_type = "application"
+					resource_uuid = "`+appUUID+`"
+					variables = {
+						APP_ENV   = "production"
+						LOG_LEVEL = "info"
+					}
+				`),
+				Check: resource.TestCheckResourceAttr("coolify_envs_bulk.test", "variables.LOG_LEVEL", "info"),
+			},
+			{
+				Config: acctest.TestResourceConfig(srv.URL, "coolify_envs_bulk", "test", `
+					resource_type = "application"
+					resource_uuid = "`+appUUID+`"
+					variables = {
+						APP_ENV = "production"
+					}
+				`),
+				Check: func(_ *terraform.State) error {
+					mu.Lock()
+					defer mu.Unlock()
+					if len(deleted) != 1 || deleted[0] != "u-LOG_LEVEL" {
+						return fmt.Errorf("deleted = %v, want [u-LOG_LEVEL]", deleted)
+					}
+					return nil
+				},
 			},
 		},
 	})

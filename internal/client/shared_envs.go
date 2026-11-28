@@ -20,12 +20,12 @@ type SharedEnvironmentVariable struct {
 }
 
 type SharedEnvInput struct {
-	Key         string `json:"key,omitempty"`
-	Value       string `json:"value,omitempty"`
-	IsLiteral   *bool  `json:"is_literal,omitempty"`
-	IsMultiline *bool  `json:"is_multiline,omitempty"`
-	IsShownOnce *bool  `json:"is_shown_once,omitempty"`
-	Comment     string `json:"comment,omitempty"`
+	Key         string  `json:"key,omitempty"`
+	Value       string  `json:"value,omitempty"`
+	IsLiteral   *bool   `json:"is_literal,omitempty"`
+	IsMultiline *bool   `json:"is_multiline,omitempty"`
+	IsShownOnce *bool   `json:"is_shown_once,omitempty"`
+	Comment     *string `json:"comment,omitempty"`
 }
 
 func sharedEnvBase(scope, projectUUID, environment, serverUUID string) (string, error) {

@@ -3,15 +3,15 @@
 page_title: "coolify_envs_bulk Resource - coolify"
 subcategory: ""
 description: |-
-  Manages all environment variables for a Coolify resource as a single atomic set. All variables are set in a single API call, preventing partial state.
-  ~> Note: Destroying this resource removes it from Terraform state but does not delete the environment variables from Coolify. To remove variables, delete them manually or use individual coolify_environment_variable resources. After importing, ensure your variables map includes all variables you want to keep; variables not present in your configuration will be overwritten on the next apply.
+  Manages environment variables for a Coolify resource as one set. The variables in the map are sent in a single API call.
+  ~> Note: Destroying this resource removes it from Terraform state but does not delete the environment variables from Coolify. Removing a key from variables does delete that variable in Coolify. Variables that were never in this resource stay in place. After importing, keep every variable you still want in the map.
 ---
 
 # coolify_envs_bulk (Resource)
 
-Manages all environment variables for a Coolify resource as a single atomic set. All variables are set in a single API call, preventing partial state.
+Manages environment variables for a Coolify resource as one set. The variables in the map are sent in a single API call.
 
-~> **Note:** Destroying this resource removes it from Terraform state but **does not** delete the environment variables from Coolify. To remove variables, delete them manually or use individual `coolify_environment_variable` resources. After importing, ensure your `variables` map includes all variables you want to keep; variables not present in your configuration will be overwritten on the next apply.
+~> **Note:** Destroying this resource removes it from Terraform state but **does not** delete the environment variables from Coolify. Removing a key from `variables` does delete that variable in Coolify. Variables that were never in this resource stay in place. After importing, keep every variable you still want in the map.
 
 ## Example Usage
 

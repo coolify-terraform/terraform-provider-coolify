@@ -2,6 +2,7 @@ package sharedenv_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"regexp"
@@ -11,6 +12,7 @@ import (
 
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
 func TestSharedEnvResource_TeamCRUD(t *testing.T) {
@@ -314,5 +316,111 @@ resource "coolify_shared_environment_variable" "test" {
 }`,
 			ExpectError: regexp.MustCompile(`Error creating shared environment variable`),
 		}},
+	})
+}
+
+func TestSharedEnvResource_CommentOmittedDoesNotClear(t *testing.T) {
+	t.Parallel()
+	var mu sync.Mutex
+	var patches int
+	var lastPatch map[string]any
+	store := map[string]any{
+		"id":      float64(3),
+		"key":     "GLOBAL_FLAG",
+		"value":   "on",
+		"comment": "ui note",
+	}
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		defer mu.Unlock()
+		w.Header().Set("Content-Type", "application/json")
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/api/v1/team/envs":
+			var body map[string]any
+			_ = json.NewDecoder(r.Body).Decode(&body)
+			if _, ok := body["comment"]; ok {
+				t.Errorf("create omitted comment, body has %#v", body["comment"])
+			}
+			body["id"] = float64(3)
+			body["comment"] = "ui note"
+			store = body
+			w.WriteHeader(http.StatusCreated)
+			_ = json.NewEncoder(w).Encode(map[string]any{"id": float64(3)})
+		case r.Method == http.MethodGet && r.URL.Path == "/api/v1/team/envs":
+			_ = json.NewEncoder(w).Encode([]any{store})
+		case r.Method == http.MethodPatch:
+			patches++
+			_ = json.NewDecoder(r.Body).Decode(&lastPatch)
+			for k, val := range lastPatch {
+				store[k] = val
+			}
+			_ = json.NewEncoder(w).Encode(store)
+		default:
+			http.Error(w, r.URL.Path, http.StatusNotFound)
+		}
+	})))
+	defer srv.Close()
+
+	base := acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_shared_environment_variable" "test" {
+  scope = "team"
+  key   = "GLOBAL_FLAG"
+  value = "on"
+}
+`
+	cleared := acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_shared_environment_variable" "test" {
+  scope   = "team"
+  key     = "GLOBAL_FLAG"
+  value   = "on"
+  comment = ""
+}
+`
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: base,
+				Check: func(_ *terraform.State) error {
+					mu.Lock()
+					defer mu.Unlock()
+					if patches != 0 {
+						return fmt.Errorf("create patched %d times", patches)
+					}
+					if store["comment"] != "ui note" {
+						return fmt.Errorf("stored comment = %#v", store["comment"])
+					}
+					return nil
+				},
+			},
+			{
+				Config: base,
+				Check: func(_ *terraform.State) error {
+					mu.Lock()
+					defer mu.Unlock()
+					if patches != 0 {
+						return fmt.Errorf("omitted comment patched %d times, last %#v", patches, lastPatch)
+					}
+					return nil
+				},
+			},
+			{
+				Config: cleared,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_shared_environment_variable.test", "comment", ""),
+					func(_ *terraform.State) error {
+						mu.Lock()
+						defer mu.Unlock()
+						if patches != 1 {
+							return fmt.Errorf("clear patched %d times", patches)
+						}
+						if lastPatch["comment"] != "" {
+							return fmt.Errorf("clear comment = %#v", lastPatch["comment"])
+						}
+						return nil
+					},
+				),
+			},
+		},
 	})
 }

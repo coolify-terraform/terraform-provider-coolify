@@ -18,8 +18,25 @@ import (
 )
 
 // maxResponseSize limits API response bodies to 10 MB to prevent OOM
-// from a malicious or compromised server.
+// from a malicious or compromised server. One extra byte is read so a
+// body that stops exactly on a JSON boundary is not decoded as a short
+// document.
 const maxResponseSize = 10 << 20
+
+func readLimitedBody(r io.Reader) ([]byte, error) {
+	return readLimitedBodyN(r, maxResponseSize)
+}
+
+func readLimitedBodyN(r io.Reader, limit int64) ([]byte, error) {
+	body, err := io.ReadAll(io.LimitReader(r, limit+1))
+	if err != nil {
+		return nil, err
+	}
+	if int64(len(body)) > limit {
+		return nil, fmt.Errorf("API response exceeds %d bytes", limit)
+	}
+	return body, nil
+}
 
 // Client is the Coolify API client.
 type Client struct {
@@ -258,7 +275,7 @@ func (c *Client) doText(ctx context.Context, path string) (string, error) {
 	}
 	defer func() { _ = resp.Body.Close() }()
 
-	body, err := io.ReadAll(io.LimitReader(resp.Body, maxResponseSize))
+	body, err := readLimitedBody(resp.Body)
 	if err != nil {
 		return "", fmt.Errorf("reading response for %s: %w", path, err)
 	}
@@ -526,7 +543,7 @@ func (c *Client) doCachedList(ctx context.Context, path string, result interface
 	}
 	defer func() { _ = resp.Body.Close() }()
 
-	respBody, err := io.ReadAll(io.LimitReader(resp.Body, maxResponseSize))
+	respBody, err := readLimitedBody(resp.Body)
 	if err != nil {
 		return fmt.Errorf("reading response body: %w", err)
 	}
@@ -593,7 +610,7 @@ func (c *Client) doWithStatus(ctx context.Context, method, path string, body int
 	}
 	defer func() { _ = resp.Body.Close() }()
 
-	respBody, err := io.ReadAll(io.LimitReader(resp.Body, maxResponseSize))
+	respBody, err := readLimitedBody(resp.Body)
 	if err != nil {
 		return fmt.Errorf("reading response: %w", err)
 	}

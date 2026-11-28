@@ -108,7 +108,7 @@ func EventSchemaAttrs(channel string) map[string]schema.Attribute {
 			desc += " Requires Coolify >= v4.3.15 (not in tag v4.3.14). Omit on older instances; the API rejects the field with HTTP 422."
 		}
 		if e.attr == "image_vulnerabilities" {
-			desc += " Requires Coolify >= v4.7.0. On older instances the provider keeps the value in state and does not send it."
+			desc += " Requires Coolify >= v4.7.0. On older instances, true is rejected because Coolify will not send those notifications. false is kept in state and is not sent."
 		}
 		attrs[e.attr] = BoolOptComputed(desc)
 	}

@@ -145,23 +145,23 @@ func (r *instanceEmailResource) Schema(_ context.Context, _ resource.SchemaReque
 			},
 			"resend_api_key": notificationcommon.StringSensitiveOmit("Resend API key."),
 			"notification_from_address": schema.StringAttribute{
-				MarkdownDescription: "From address for Coolify's own notification mail." + notificationcommon.SensitiveOmitSuffix + " Must be a valid email address. Requires Coolify >= v4.7.0. On older instances the provider keeps the value in state and does not send it.",
+				MarkdownDescription: "From address for Coolify's own notification mail." + notificationcommon.SensitiveOmitSuffix + " Must be a valid email address. Requires Coolify >= v4.7.0. On older instances a configured value is rejected because Coolify would keep the previous sender.",
 				Optional:            true,
 				Computed:            true,
 				Sensitive:           true,
 				Validators:          []validator.String{validate.Email()},
 				PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 			},
-			"notification_from_name": notificationcommon.StringSensitiveOmit("Display name for Coolify's own notification mail. Requires Coolify >= v4.7.0. On older instances the provider keeps the value in state and does not send it."),
+			"notification_from_name": notificationcommon.StringSensitiveOmit("Display name for Coolify's own notification mail. Requires Coolify >= v4.7.0. On older instances a configured value is rejected because Coolify would keep the previous sender."),
 			"resend_from_address": schema.StringAttribute{
-				MarkdownDescription: "From address used when Resend sends mail." + notificationcommon.SensitiveOmitSuffix + " Must be a valid email address. Requires Coolify >= v4.7.0. On older instances the provider keeps the value in state and does not send it.",
+				MarkdownDescription: "From address used when Resend sends mail." + notificationcommon.SensitiveOmitSuffix + " Must be a valid email address. Requires Coolify >= v4.7.0. On older instances a configured value is rejected because Coolify would keep the previous sender.",
 				Optional:            true,
 				Computed:            true,
 				Sensitive:           true,
 				Validators:          []validator.String{validate.Email()},
 				PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 			},
-			"resend_from_name": notificationcommon.StringSensitiveOmit("Display name used when Resend sends mail. Requires Coolify >= v4.7.0. On older instances the provider keeps the value in state and does not send it."),
+			"resend_from_name": notificationcommon.StringSensitiveOmit("Display name used when Resend sends mail. Requires Coolify >= v4.7.0. On older instances a configured value is rejected because Coolify would keep the previous sender."),
 		},
 	}
 }
@@ -190,7 +190,7 @@ func (r *instanceEmailResource) Create(ctx context.Context, req resource.CreateR
 		resp.Diagnostics.AddError("Error configuring instance email settings", err.Error())
 		return
 	}
-	flatten(updated, &plan)
+	flatten(updated, &plan, r.client.SupportsCoolify47())
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
@@ -210,7 +210,7 @@ func (r *instanceEmailResource) Read(ctx context.Context, req resource.ReadReque
 		resp.Diagnostics.AddError("Error reading instance email settings", err.Error())
 		return
 	}
-	flatten(got, &state)
+	flatten(got, &state, r.client.SupportsCoolify47())
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
@@ -231,7 +231,7 @@ func (r *instanceEmailResource) Update(ctx context.Context, req resource.UpdateR
 		resp.Diagnostics.AddError("Error updating instance email settings", err.Error())
 		return
 	}
-	flatten(updated, &plan)
+	flatten(updated, &plan, r.client.SupportsCoolify47())
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
@@ -334,7 +334,7 @@ func updateInputFromPlan(plan, state model) client.UpdateInstanceEmailInput {
 	return in
 }
 
-func flatten(api *client.InstanceEmailSettings, m *model) {
+func flatten(api *client.InstanceEmailSettings, m *model, serverAcceptsV47From bool) {
 	if api == nil || m == nil {
 		return
 	}
@@ -360,6 +360,12 @@ func flatten(api *client.InstanceEmailSettings, m *model) {
 	flex.SetStringPreserveEmpty(&m.NotificationFromName, api.NotificationFromName)
 	flex.SetStringPreserveEmpty(&m.ResendFromAddress, api.ResendFromAddress)
 	flex.SetStringPreserveEmpty(&m.ResendFromName, api.ResendFromName)
+	if !serverAcceptsV47From {
+		dropUnsentFrom(&m.NotificationFromAddress, api.NotificationFromAddress)
+		dropUnsentFrom(&m.NotificationFromName, api.NotificationFromName)
+		dropUnsentFrom(&m.ResendFromAddress, api.ResendFromAddress)
+		dropUnsentFrom(&m.ResendFromName, api.ResendFromName)
+	}
 	if api.SMTPPort != nil {
 		m.SMTPPort = types.Int64Value(int64(*api.SMTPPort))
 	} else if m.SMTPPort.IsNull() || m.SMTPPort.IsUnknown() {
@@ -369,6 +375,12 @@ func flatten(api *client.InstanceEmailSettings, m *model) {
 		m.SMTPTimeout = types.Int64Value(int64(*api.SMTPTimeout))
 	} else if m.SMTPTimeout.IsNull() || m.SMTPTimeout.IsUnknown() {
 		m.SMTPTimeout = types.Int64Null()
+	}
+}
+
+func dropUnsentFrom(dst *types.String, apiValue string) {
+	if apiValue == "" {
+		*dst = types.StringNull()
 	}
 }
 

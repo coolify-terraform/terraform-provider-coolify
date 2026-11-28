@@ -30,11 +30,11 @@ resource "coolify_shared_environment_variable" "team" {
 
 ### Optional
 
-- `comment` (String)
+- `comment` (String) Note stored with the variable. Omit to keep the stored note. Set an empty string to clear it.
 - `environment` (String) Environment name or UUID. Required for environment scope.
-- `is_literal` (Boolean)
-- `is_multiline` (Boolean)
-- `is_shown_once` (Boolean)
+- `is_literal` (Boolean) When true, Coolify stores the value without expanding variables. Omit to keep the stored value.
+- `is_multiline` (Boolean) When true, the value is multiline. Omit to keep the stored value.
+- `is_shown_once` (Boolean) When true, Coolify reveals the value only once. Omit to keep the stored value. On current Coolify a saved `true` stays locked, so a later `false` does not reveal the value again.
 - `project_uuid` (String) Required for project and environment scopes.
 - `server_uuid` (String) Required for server scope.
 - `value` (String, Sensitive) Variable value. Preserved when GET omits it.

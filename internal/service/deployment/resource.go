@@ -63,7 +63,9 @@ func (r *deploymentResource) Schema(ctx context.Context, _ resource.SchemaReques
 		MarkdownDescription: "Triggers a Coolify application deployment (`POST /api/v1/deploy?uuid=`). " +
 			"Use this to bring up a newly created application in the same apply as the application resource. " +
 			"If Coolify already queued a deploy (`instant_deploy = true`), this resource adopts that deployment UUID instead of failing. " +
-			"Changing the triggers map forces a new deployment.",
+			"Changing the triggers map forces a new deployment. " +
+			"Destroy cancels a queued or in-progress deployment (`POST /deployments/{uuid}/cancel`). " +
+			"A deployment that has already finished, failed, been cancelled, or skipped stays in Coolify and is only removed from Terraform state.",
 		Attributes: map[string]schema.Attribute{
 			"timeouts": timeouts.Attributes(ctx, timeouts.Opts{Create: true}),
 			"application_uuid": schema.StringAttribute{
@@ -82,11 +84,11 @@ func (r *deploymentResource) Schema(ctx context.Context, _ resource.SchemaReques
 				},
 			},
 			"status": schema.StringAttribute{
-				MarkdownDescription: "The current status of the deployment. Possible values: `queued`, `in_progress`, `finished`, `failed`. The deployment may still be `in_progress` when `terraform apply` completes.",
+				MarkdownDescription: "The current status of the deployment. Possible values: `queued`, `in_progress`, `finished`, `failed`, `cancelled-by-user`, `skipped`. The deployment may still be `in_progress` when `terraform apply` completes.",
 				Computed:            true,
 			},
 			"wait_for_completion": schema.BoolAttribute{
-				MarkdownDescription: "When `true`, the resource waits until the deployment reaches `finished` or `failed` status before completing. The default create timeout is 10 minutes; for long-running builds, increase it with `timeouts { create = \"30m\" }`. On `failed`, the apply fails with a diagnostic. Default `false`.",
+				MarkdownDescription: "When `true`, the resource waits until the deployment reaches a final status. `finished` succeeds. `failed`, `error`, `cancelled-by-user`, and `skipped` fail the apply. The default create timeout is 10 minutes; for long-running builds, increase it with `timeouts { create = \"30m\" }`. Default `false`.",
 				Optional:            true,
 				Computed:            true,
 				Default:             booldefault.StaticBool(false),
@@ -239,16 +241,32 @@ func (r *deploymentResource) pollDeployment(ctx context.Context, uuid string, pl
 		}
 		plan.Status = types.StringValue(dep.Status)
 		resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
-		if dep.Status == "finished" || dep.Status == "failed" || dep.Status == "error" {
-			if dep.Status == "failed" || dep.Status == "error" {
-				// Do not append FormatLogs: Coolify only returns logs when the
-				// token can read sensitive fields, and those lines often include
-				// git tokens and docker login credentials.
-				resp.Diagnostics.AddError("Deployment failed",
-					fmt.Sprintf("Deployment %s finished with status '%s'. Check the Coolify UI (application > Deployments) for details.", uuid, dep.Status))
-			}
-			return
+		done, failed := deploymentPollResult(dep.Status)
+		if !done {
+			continue
 		}
+		if failed {
+			// Do not append FormatLogs: Coolify only returns logs when the
+			// token can read sensitive fields, and those lines often include
+			// git tokens and docker login credentials.
+			resp.Diagnostics.AddError("Deployment failed",
+				fmt.Sprintf("Deployment %s ended with status '%s'. Check the Coolify UI (application > Deployments) for details.", uuid, dep.Status))
+		}
+		return
+	}
+}
+
+// deploymentPollResult reports whether Coolify has stopped this deployment.
+// cancelled-by-user and skipped are final. Waiting for finished would hold
+// the apply until the create timeout.
+func deploymentPollResult(status string) (done, failed bool) {
+	switch status {
+	case "finished":
+		return true, false
+	case "failed", "error", "cancelled-by-user", "skipped":
+		return true, true
+	default:
+		return false, false
 	}
 }
 
@@ -291,8 +309,53 @@ func (r *deploymentResource) Update(ctx context.Context, req resource.UpdateRequ
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
-func (r *deploymentResource) Delete(ctx context.Context, _ resource.DeleteRequest, _ *resource.DeleteResponse) {
-	tflog.Debug(ctx, "delete is a no-op for deployments (cannot be undone)")
+func (r *deploymentResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var state deploymentResourceModel
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	uuid := state.UUID.ValueString()
+	if uuid == "" {
+		return
+	}
+	if err := r.cancelRunningDeployment(ctx, uuid); err != nil {
+		resp.Diagnostics.AddError(
+			"Error cancelling deployment",
+			fmt.Sprintf("Could not cancel deployment %s: %s", uuid, err),
+		)
+	}
+}
+
+// cancelRunningDeployment stops a deployment that is still queued or
+// in progress. A finished record is left in Coolify. The route requires
+// the deploy ability, so a read-only token can still drop a finished
+// deployment from state. A 400 from cancel covers the race where the
+// deployment finishes between the read and the cancel.
+func (r *deploymentResource) cancelRunningDeployment(ctx context.Context, uuid string) error {
+	dep, err := r.client.GetDeployment(ctx, uuid)
+	if err != nil {
+		if client.IsNotFound(err) {
+			return nil
+		}
+		return err
+	}
+	if dep.Status != "queued" && dep.Status != "in_progress" {
+		return nil
+	}
+	tflog.Debug(ctx, "cancelling deployment", map[string]interface{}{"uuid": uuid, "status": dep.Status})
+	err = r.client.CancelDeployment(ctx, uuid)
+	if err != nil && !deploymentCancelDone(err) {
+		return err
+	}
+	return nil
+}
+
+// deploymentCancelDone reports that Coolify has nothing left to stop.
+// A 404 means the record is already gone. The 400 "cannot be cancelled"
+// body means the deployment already finished, failed, or was cancelled.
+func deploymentCancelDone(err error) bool {
+	return client.IsNotFound(err) || client.APIMessageContains(err, "cannot be cancelled")
 }
 
 func (r *deploymentResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
