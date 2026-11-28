@@ -4,6 +4,7 @@
 Ready means, on that commit:
 
 - the CI workflow succeeded (unit tests, edge acceptance, scenarios)
+  on this commit, or on a pull-request commit with the same tree
 - nightly acceptance succeeded for edge, stable (latest), and 4.1.2
 
 A failed acceptance test is a flake only when every failure is an HTTP
@@ -175,6 +176,79 @@ def product_ci_jobs_ok(jobs: list[dict]) -> bool:
     return True
 
 
+def git_tree(sha: str) -> str:
+    """Return the tree id for sha, or "" when this clone does not have it."""
+    if not sha:
+        return ""
+    try:
+        return subprocess.check_output(
+            ["git", "rev-parse", f"{sha}^{{tree}}"],
+            text=True,
+            stderr=subprocess.DEVNULL,
+        ).strip()
+    except (subprocess.CalledProcessError, OSError):
+        return ""
+
+
+def recent_ci_runs(limit: int = 40) -> list[dict]:
+    data = gh_json(
+        [
+            "run",
+            "list",
+            "--repo",
+            REPO,
+            "--workflow",
+            "ci.yml",
+            "--limit",
+            str(limit),
+            "--json",
+            "databaseId,conclusion,status,event,headSha,url,createdAt",
+        ]
+    )
+    return list(data) if isinstance(data, list) else []
+
+
+def select_same_tree_ci(
+    target_tree: str,
+    runs_list: list[dict],
+    tree_of,
+    jobs_of,
+) -> tuple[str, dict | None]:
+    """Borrow CI from another commit only when the trees match.
+
+    The newest non-schedule run with that tree wins. A success counts
+    only when Test, acceptance, and scenarios each succeeded. A newer
+    failure on that tree is a failure. An open run on a different tree
+    is ignored. An empty target_tree is missing: this clone cannot
+    prove the trees match.
+    """
+    if not target_tree:
+        return "missing", None
+    ordered = sorted(runs_list, key=lambda run: run.get("createdAt") or "", reverse=True)
+    for run in ordered:
+        if run.get("event") == "schedule":
+            continue
+        head = run.get("headSha") or ""
+        if not head or tree_of(head) != target_tree:
+            continue
+        if run.get("status") in _OPEN_RUN:
+            return "running", run
+        if run.get("conclusion") != "success":
+            return "fail", run
+        jobs = jobs_of(int(run["databaseId"]))
+        if product_ci_jobs_ok(jobs):
+            return "pass", run
+        return "missing", run
+    return "missing", None
+
+
+def same_tree_product_ci(sha: str) -> tuple[str, dict | None]:
+    """Find a recent ci.yml run whose commit tree equals sha."""
+    tree = git_tree(sha)
+    runs_list = [run for run in recent_ci_runs() if (run.get("headSha") or "") != sha]
+    return select_same_tree_ci(tree, runs_list, git_tree, jobs_for)
+
+
 def classify_ci(runs_list: list[dict]) -> tuple[str, dict | None]:
     """Return (pass|running|fail|missing, latest product run).
 
@@ -249,7 +323,20 @@ def collect(sha: str) -> tuple[str, dict[str, str], dict[str, list[dict]], list[
         url = (latest_ci or {}).get("url", "")
         lines.append(f"CI: failed on {sha[:7]} ({url})")
     else:
-        lines.append(f"CI: not run on {sha[:7]} (a Monday schedule run does not count)")
+        borrowed, borrowed_run = same_tree_product_ci(sha)
+        other = ((borrowed_run or {}).get("headSha") or "")[:7]
+        if borrowed == "pass":
+            ci_status = "pass"
+            lines.append(f"CI: pass on {sha[:7]} via same tree as {other}")
+        elif borrowed == "running":
+            ci_status = "running"
+            lines.append(f"CI: still running on the same tree as {sha[:7]} ({other})")
+        elif borrowed == "fail":
+            ci_status = "fail"
+            url = (borrowed_run or {}).get("url", "")
+            lines.append(f"CI: failed on the same tree as {sha[:7]} ({url})")
+        else:
+            lines.append(f"CI: not run on {sha[:7]} (a Monday schedule run does not count)")
 
     nightly = runs("coolify-nightly.yml", sha)
     jobs_by_run = {int(run["databaseId"]): jobs_for(int(run["databaseId"])) for run in nightly}
@@ -378,7 +465,7 @@ def main() -> int:
 
     print("release-check: not ready")
     if ci_status == "missing":
-        print("  gh workflow run ci.yml --repo coolify-terraform/terraform-provider-coolify --ref main")
+        print("  no product CI on this commit, and no run with the same tree")
     if any(slot_state.get(name) == "missing" for name, _names in SLOTS):
         print(
             "  gh workflow run coolify-nightly.yml --repo "

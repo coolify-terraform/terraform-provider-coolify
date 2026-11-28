@@ -164,6 +164,160 @@ class TestCI(unittest.TestCase):
         self.assertEqual(status, "pass")
 
 
+def _product_jobs(conclusion="success"):
+    return [
+        {"name": "Test (0)", "conclusion": conclusion},
+        {"name": "Acceptance Tests (0)", "conclusion": conclusion},
+        {"name": "Scenario Tests (core, 25)", "conclusion": conclusion},
+    ]
+
+
+class TestSameTreeCI(unittest.TestCase):
+    def test_same_tree_success_counts(self):
+        runs = [
+            {
+                "databaseId": 9,
+                "event": "pull_request",
+                "conclusion": "success",
+                "status": "completed",
+                "createdAt": "2026-11-28T16:00:00Z",
+                "headSha": "pr",
+                "url": "https://example.test/ci",
+            }
+        ]
+        status, run = rc.select_same_tree_ci("tree-a", runs, lambda _sha: "tree-a", lambda _run: _product_jobs())
+        self.assertEqual(status, "pass")
+        self.assertEqual(run["databaseId"], 9)
+
+    def test_different_tree_does_not_count(self):
+        runs = [
+            {
+                "databaseId": 9,
+                "event": "pull_request",
+                "conclusion": "success",
+                "status": "completed",
+                "createdAt": "2026-11-28T16:00:00Z",
+                "headSha": "other",
+            }
+        ]
+        status, run = rc.select_same_tree_ci("tree-a", runs, lambda _sha: "tree-b", lambda _run: _product_jobs())
+        self.assertEqual(status, "missing")
+        self.assertIsNone(run)
+
+    def test_skipped_product_jobs_do_not_count(self):
+        runs = [
+            {
+                "databaseId": 9,
+                "event": "pull_request",
+                "conclusion": "success",
+                "status": "completed",
+                "createdAt": "2026-11-28T16:00:00Z",
+                "headSha": "pr",
+            }
+        ]
+        jobs = [
+            {"name": "Test (0)", "conclusion": "skipped"},
+            {"name": "Acceptance Tests (0)", "conclusion": "skipped"},
+            {"name": "Scenario Tests (core, 25)", "conclusion": "skipped"},
+        ]
+        status, _run = rc.select_same_tree_ci("tree-a", runs, lambda _sha: "tree-a", lambda _run: jobs)
+        self.assertEqual(status, "missing")
+
+    def test_newer_same_tree_failure_wins(self):
+        runs = [
+            {
+                "databaseId": 1,
+                "event": "pull_request",
+                "conclusion": "success",
+                "status": "completed",
+                "createdAt": "2026-11-28T15:00:00Z",
+                "headSha": "old",
+            },
+            {
+                "databaseId": 2,
+                "event": "pull_request",
+                "conclusion": "failure",
+                "status": "completed",
+                "createdAt": "2026-11-28T16:00:00Z",
+                "headSha": "new",
+                "url": "https://example.test/fail",
+            },
+        ]
+        status, run = rc.select_same_tree_ci("tree-a", runs, lambda _sha: "tree-a", lambda _run: _product_jobs())
+        self.assertEqual(status, "fail")
+        self.assertEqual(run["databaseId"], 2)
+
+    def test_schedule_run_is_ignored(self):
+        runs = [
+            {
+                "databaseId": 3,
+                "event": "schedule",
+                "conclusion": "success",
+                "status": "completed",
+                "createdAt": "2026-11-28T17:00:00Z",
+                "headSha": "monday",
+            },
+            {
+                "databaseId": 4,
+                "event": "pull_request",
+                "conclusion": "success",
+                "status": "completed",
+                "createdAt": "2026-11-28T16:00:00Z",
+                "headSha": "pr",
+            },
+        ]
+        status, run = rc.select_same_tree_ci("tree-a", runs, lambda _sha: "tree-a", lambda _run: _product_jobs())
+        self.assertEqual(status, "pass")
+        self.assertEqual(run["databaseId"], 4)
+
+    def test_open_run_on_another_tree_is_ignored(self):
+        runs = [
+            {
+                "databaseId": 8,
+                "event": "pull_request",
+                "conclusion": "",
+                "status": "in_progress",
+                "createdAt": "2026-11-28T18:00:00Z",
+                "headSha": "other",
+            },
+            {
+                "databaseId": 4,
+                "event": "pull_request",
+                "conclusion": "success",
+                "status": "completed",
+                "createdAt": "2026-11-28T16:00:00Z",
+                "headSha": "pr",
+            },
+        ]
+
+        def trees(sha):
+            return "tree-b" if sha == "other" else "tree-a"
+
+        status, run = rc.select_same_tree_ci("tree-a", runs, trees, lambda _run: _product_jobs())
+        self.assertEqual(status, "pass")
+        self.assertEqual(run["databaseId"], 4)
+
+    def test_open_run_on_the_same_tree_is_running(self):
+        runs = [
+            {
+                "databaseId": 8,
+                "event": "pull_request",
+                "conclusion": "",
+                "status": "in_progress",
+                "createdAt": "2026-11-28T18:00:00Z",
+                "headSha": "pr",
+            }
+        ]
+        status, run = rc.select_same_tree_ci("tree-a", runs, lambda _sha: "tree-a", lambda _run: _product_jobs())
+        self.assertEqual(status, "running")
+        self.assertEqual(run["databaseId"], 8)
+
+    def test_unknown_tree_is_missing(self):
+        status, run = rc.select_same_tree_ci("", [], lambda _sha: "tree-a", lambda _run: _product_jobs())
+        self.assertEqual(status, "missing")
+        self.assertIsNone(run)
+
+
 class TestSlots(unittest.TestCase):
     def test_latest_failure_wins_over_older_success(self):
         jobs = [
