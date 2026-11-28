@@ -65,7 +65,8 @@ func (r *deploymentResource) Schema(ctx context.Context, _ resource.SchemaReques
 			"If Coolify already queued a deploy (`instant_deploy = true`), this resource adopts that deployment UUID instead of failing. " +
 			"Changing the triggers map forces a new deployment. " +
 			"Destroy cancels a queued or in-progress deployment (`POST /deployments/{uuid}/cancel`). " +
-			"A deployment that has already finished, failed, been cancelled, or skipped stays in Coolify and is only removed from Terraform state.",
+			"A deployment that has already finished, failed, been cancelled, or skipped stays in Coolify and is only removed from Terraform state. " +
+			"Coolify 4.1.2 marks the deployment cancelled and then returns HTTP 500 (`Undefined variable $application`). Destroy still removes the resource from state.",
 		Attributes: map[string]schema.Attribute{
 			"timeouts": timeouts.Attributes(ctx, timeouts.Opts{Create: true}),
 			"application_uuid": schema.StringAttribute{
@@ -354,8 +355,12 @@ func (r *deploymentResource) cancelRunningDeployment(ctx context.Context, uuid s
 // deploymentCancelDone reports that Coolify has nothing left to stop.
 // A 404 means the record is already gone. The 400 "cannot be cancelled"
 // body means the deployment already finished, failed, or was cancelled.
+// Coolify 4.1.2 updates the row to cancelled-by-user and then auditLog
+// reads an undefined $application, so the API returns 500 after the cancel.
 func deploymentCancelDone(err error) bool {
-	return client.IsNotFound(err) || client.APIMessageContains(err, "cannot be cancelled")
+	return client.IsNotFound(err) ||
+		client.APIMessageContains(err, "cannot be cancelled") ||
+		client.APIMessageContains(err, "Undefined variable $application")
 }
 
 func (r *deploymentResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
