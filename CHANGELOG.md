@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.36](https://github.com/coolify-terraform/terraform-provider-coolify/compare/v0.1.35...v0.1.36) (2026-11-28)
+
+
+### Features
+
+* **application:** allow empty ports_exposes on docker image apps ([#1092](https://github.com/coolify-terraform/terraform-provider-coolify/issues/1092)) ([8860875](https://github.com/coolify-terraform/terraform-provider-coolify/commit/88608758e1dc26031eeb1c7a675eea4f0adfb2a9))
+
+
+### Bug Fixes
+
+* align env, deploy, and version-gated writes with Coolify ([#1095](https://github.com/coolify-terraform/terraform-provider-coolify/issues/1095)) ([9c716fc](https://github.com/coolify-terraform/terraform-provider-coolify/commit/9c716fcac0631ec56e65e5b53a3a1ddbd3b45d9d))
+* **deployment:** accept Coolify 4.1.2 cancel 500 on destroy ([#1102](https://github.com/coolify-terraform/terraform-provider-coolify/issues/1102)) ([f8fab9b](https://github.com/coolify-terraform/terraform-provider-coolify/commit/f8fab9bb708c95f4db9cd173a7fc15b7c77e6b54)), closes [#1101](https://github.com/coolify-terraform/terraform-provider-coolify/issues/1101)
+* **env:** settle preview switches and shown-once locks ([#1100](https://github.com/coolify-terraform/terraform-provider-coolify/issues/1100)) ([21ad429](https://github.com/coolify-terraform/terraform-provider-coolify/commit/21ad42926cd1dbec101044251ec427690ad609f9))
+* **server:** accept public IPs and delete flags on Coolify 4.7.7 ([#1094](https://github.com/coolify-terraform/terraform-provider-coolify/issues/1094)) ([e7dc67e](https://github.com/coolify-terraform/terraform-provider-coolify/commit/e7dc67e89b28ed5486309aa7280c500ba2732ebe)), closes [#1059](https://github.com/coolify-terraform/terraform-provider-coolify/issues/1059)
+
 ## [0.1.35](https://github.com/coolify-terraform/terraform-provider-coolify/compare/v0.1.34...v0.1.35) (2026-11-24)
 
 
